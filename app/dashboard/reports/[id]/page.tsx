@@ -1,0 +1,339 @@
+'use client'
+
+import { use, useEffect, useState } from 'react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { 
+  ArrowLeft, 
+  FileText, 
+  Calendar, 
+  MapPin, 
+  Target,
+  BarChart3,
+  Download,
+  Share2,
+  Mail
+} from 'lucide-react'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
+import { toast } from 'sonner'
+import { getReport, type Report } from '@/lib/reports'
+
+export default function ReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
+  const [report, setReport] = useState<Report | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [isDownloading, setIsDownloading] = useState(false)
+
+  useEffect(() => {
+    console.log('🔄 Report page mounted, loading report ID:', id)
+    const reportData = getReport(id)
+    
+    if (reportData) {
+      console.log('✅ Report loaded successfully:', reportData)
+      setReport(reportData)
+    } else {
+      console.log('⚠️ No report found with ID:', id)
+    }
+    setLoading(false)
+  }, [id])
+
+  const handleDownloadPDF = async () => {
+    setIsDownloading(true)
+    try {
+      const reportElement = document.getElementById('report-content')
+      if (!reportElement) {
+        toast.error('Report content not found')
+        return
+      }
+
+      // Create canvas from HTML
+      const canvas = await html2canvas(reportElement, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      })
+
+      const imgWidth = 210 // A4 width in mm
+      const pageHeight = 297 // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width
+      let heightLeft = imgHeight
+      let position = 0
+
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      const imgData = canvas.toDataURL('image/png')
+
+      // Add first page
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+      heightLeft -= pageHeight
+
+      // Add additional pages if needed
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight
+        pdf.addPage()
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+        heightLeft -= pageHeight
+      }
+
+      // Download PDF
+      const fileName = `Market_Research_Report_${new Date().toISOString().split('T')[0]}.pdf`
+      pdf.save(fileName)
+      
+      toast.success('PDF downloaded successfully', {
+        description: 'Your report has been saved to your downloads folder.'
+      })
+    } catch (error) {
+      console.error('PDF generation error:', error)
+      toast.error('Failed to generate PDF', {
+        description: 'Please try again or contact support.'
+      })
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="p-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-gray-500">Loading report...</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!report) {
+    return (
+      <div className="p-8">
+        <div className="max-w-5xl mx-auto">
+          <Link href="/dashboard/reports">
+            <Button variant="ghost" className="gap-2 mb-6">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Reports
+            </Button>
+          </Link>
+          <Card>
+            <CardContent className="py-16 text-center">
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Report not found</h2>
+              <p className="text-gray-600 mb-6">The report you're looking for doesn't exist.</p>
+              <Link href="/dashboard/reports">
+                <Button>Go to Reports</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-8">
+      <div className="max-w-5xl mx-auto">
+        {/* Back Button */}
+        <Link href="/dashboard/reports">
+          <Button variant="ghost" className="gap-2 mb-6">
+            <ArrowLeft className="w-4 h-4" />
+            Back to Reports
+          </Button>
+        </Link>
+
+        {/* Header */}
+        <Card className="border-2 mb-6">
+          <CardContent className="pt-6">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <FileText className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-bold text-gray-900">{report.title}</h1>
+                  </div>
+                </div>
+                
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  <Badge variant="secondary">{report.category}</Badge>
+                  <Badge variant={report.type === 'Recurring' ? 'default' : 'outline'}>
+                    {report.type}
+                  </Badge>
+                  <Badge className="bg-green-600">
+                    <Mail className="w-3 h-3 mr-1" />
+                    Sent to {report.email}
+                  </Badge>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="w-4 h-4" />
+                    <span>Generated {report.dateGenerated}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4" />
+                    <span>{report.geography}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Target className="w-4 h-4" />
+                    <span>{report.subNiche}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  className="gap-2 bg-blue-600 hover:bg-blue-700"
+                  onClick={handleDownloadPDF}
+                  disabled={isDownloading}
+                >
+                  <Download className="w-4 h-4" />
+                  {isDownloading ? 'Generating...' : 'Download PDF'}
+                </Button>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Share2 className="w-4 h-4" />
+                  Share
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Report Content Container for PDF */}
+        <div id="report-content">
+          {/* Dynamic Tabs with Intelligent Sections */}
+          <Tabs defaultValue="overview" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="trends">Trends</TabsTrigger>
+              <TabsTrigger value="competitors">Competitors</TabsTrigger>
+              <TabsTrigger value="insights">Insights</TabsTrigger>
+            </TabsList>
+
+            {/* Overview Tab */}
+            <TabsContent value="overview" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-blue-600" />
+                    <CardTitle>Market Overview</CardTitle>
+                  </div>
+                  <CardDescription>
+                    Comprehensive analysis of the current market landscape
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <div 
+                    className="prose prose-sm max-w-none
+                      prose-headings:text-gray-900 prose-headings:font-bold
+                      prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:pb-2 prose-h2:border-b prose-h2:border-gray-200
+                      prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3
+                      prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-4
+                      prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
+                      prose-ul:my-4 prose-ul:space-y-2
+                      prose-li:text-gray-700
+                      prose-strong:text-gray-900 prose-strong:font-semibold"
+                    dangerouslySetInnerHTML={{ __html: report.sections.overview }}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Trends Tab */}
+            <TabsContent value="trends" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-green-600" />
+                    <CardTitle>Market Trends</CardTitle>
+                  </div>
+                  <CardDescription>
+                    Emerging patterns and developments shaping the market
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <div 
+                    className="prose prose-sm max-w-none
+                      prose-headings:text-gray-900 prose-headings:font-bold
+                      prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:pb-2 prose-h2:border-b prose-h2:border-gray-200
+                      prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3
+                      prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-4
+                      prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
+                      prose-ul:my-4 prose-ul:space-y-2
+                      prose-li:text-gray-700
+                      prose-strong:text-gray-900 prose-strong:font-semibold"
+                    dangerouslySetInnerHTML={{ __html: report.sections.trends }}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Competitors Tab */}
+            <TabsContent value="competitors" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-purple-600" />
+                    <CardTitle>Competitive Landscape</CardTitle>
+                  </div>
+                  <CardDescription>
+                    Key players and competitive positioning analysis
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <div 
+                    className="prose prose-sm max-w-none
+                      prose-headings:text-gray-900 prose-headings:font-bold
+                      prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:pb-2 prose-h2:border-b prose-h2:border-gray-200
+                      prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3
+                      prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-4
+                      prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
+                      prose-ul:my-4 prose-ul:space-y-2
+                      prose-li:text-gray-700
+                      prose-strong:text-gray-900 prose-strong:font-semibold"
+                    dangerouslySetInnerHTML={{ __html: report.sections.competitors }}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Insights Tab */}
+            <TabsContent value="insights" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-yellow-600" />
+                    <CardTitle>Strategic Insights & Recommendations</CardTitle>
+                  </div>
+                  <CardDescription>
+                    Key takeaways and actionable recommendations
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <div 
+                    className="prose prose-sm max-w-none
+                      prose-headings:text-gray-900 prose-headings:font-bold
+                      prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:pb-2 prose-h2:border-b prose-h2:border-gray-200
+                      prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3
+                      prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-4
+                      prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
+                      prose-ul:my-4 prose-ul:space-y-2
+                      prose-li:text-gray-700
+                      prose-strong:text-gray-900 prose-strong:font-semibold"
+                    dangerouslySetInnerHTML={{ __html: report.sections.insights }}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+        {/* End of report-content for PDF */}
+      </div>
+    </div>
+  )
+}
