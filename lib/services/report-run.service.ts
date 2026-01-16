@@ -13,8 +13,9 @@ import {
   initializeSchedule,
   updateScheduleMetadataAfterExecution,
   isScheduleInitialized,
-  getExecutionCount
-} from '../data-access/execution-logs.dao'
+  getExecutionCount,
+  logActivity
+} from '../data-access/execution-logs-supabase.dao'
 
 /**
  * Process a report run request from n8n
@@ -25,7 +26,7 @@ export async function processReportRun(request: ReportRunRequest): Promise<Repor
     const { schedule_id, is_first_run, run_at } = request
     
     // Check if this is truly a first run
-    const alreadyInitialized = isScheduleInitialized(schedule_id)
+    const alreadyInitialized = await isScheduleInitialized(schedule_id)
     
     if (is_first_run && alreadyInitialized) {
       // Log a warning but continue processing
@@ -34,7 +35,7 @@ export async function processReportRun(request: ReportRunRequest): Promise<Repor
     
     // Initialize schedule if it's a first run and not yet initialized
     if (is_first_run && !alreadyInitialized) {
-      initializeSchedule(schedule_id)
+      await initializeSchedule(schedule_id)
       console.log(`✓ Initialized schedule: ${schedule_id}`)
     }
     
@@ -53,12 +54,25 @@ export async function processReportRun(request: ReportRunRequest): Promise<Repor
     }
     
     // Save the execution log
-    saveExecutionLog(executionLog)
+    await saveExecutionLog(executionLog)
     console.log(`✓ Saved execution log: ${executionLog.execution_id} for schedule: ${schedule_id}`)
     
     // Update schedule metadata
-    updateScheduleMetadataAfterExecution(schedule_id, is_first_run, run_at)
+    await updateScheduleMetadataAfterExecution(schedule_id, is_first_run, run_at)
     console.log(`✓ Updated metadata for schedule: ${schedule_id}`)
+    
+    // Log activity
+    await logActivity({
+      action: 'report_run',
+      resource_type: 'execution',
+      resource_id: executionLog.execution_id,
+      details: {
+        schedule_id,
+        is_first_run,
+        industry: request.industry,
+        sub_niche: request.sub_niche
+      }
+    })
     
     // Prepare response
     const response: ReportRunResponse = {
@@ -92,8 +106,8 @@ export async function getReportsBySchedule(scheduleId: string): Promise<ReportsL
     }
     
     // Get execution logs
-    const executions = getExecutionLogs(scheduleId)
-    const totalExecutions = getExecutionCount(scheduleId)
+    const executions = await getExecutionLogs(scheduleId)
+    const totalExecutions = await getExecutionCount(scheduleId)
     
     console.log(`✓ Retrieved ${totalExecutions} execution(s) for schedule: ${scheduleId}`)
     
@@ -117,7 +131,7 @@ export async function getReportsBySchedule(scheduleId: string): Promise<ReportsL
 /**
  * Validate that a schedule exists and has been initialized
  */
-export function validateScheduleExists(scheduleId: string): boolean {
-  return isScheduleInitialized(scheduleId)
+export async function validateScheduleExists(scheduleId: string): Promise<boolean> {
+  return await isScheduleInitialized(scheduleId)
 }
 
