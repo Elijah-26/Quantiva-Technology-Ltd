@@ -5,16 +5,25 @@ import { supabaseAdmin } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
   try {
-    // Get optional limit from query params
+    // Get optional parameters from query params
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '50')
+    const scheduleId = searchParams.get('schedule_id') // Optional filter by schedule
 
-    // Fetch reports from Supabase
-    const { data: reports, error } = await supabaseAdmin
+    // Build query
+    let query = supabaseAdmin
       .from('reports')
       .select('*')
       .order('run_at', { ascending: false })
       .limit(limit)
+
+    // Apply schedule filter if provided
+    if (scheduleId) {
+      query = query.eq('schedule_id', scheduleId)
+    }
+
+    // Fetch reports from Supabase
+    const { data: reports, error } = await query
 
     if (error) {
       console.error('Error fetching reports:', error)
