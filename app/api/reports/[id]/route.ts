@@ -5,10 +5,10 @@ import { supabaseAdmin } from '@/lib/supabase/server'
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const executionId = params.id
+    const { id: executionId } = await params
 
     if (!executionId) {
       return NextResponse.json(
@@ -47,10 +47,10 @@ export async function DELETE(
 // GET /api/reports/[id] - Get a specific report
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const executionId = params.id
+    const { id: executionId } = await params
 
     if (!executionId) {
       return NextResponse.json(
