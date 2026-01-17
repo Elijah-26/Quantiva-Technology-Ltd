@@ -1,22 +1,62 @@
 'use client'
 
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
+import { useAuth } from '@/lib/auth/auth-context'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const { signIn, user } = useAuth()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Check for success message from signup
+  useEffect(() => {
+    const message = searchParams.get('message')
+    if (message) {
+      setSuccessMessage(message)
+    }
+  }, [searchParams])
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      router.push('/dashboard')
+    }
+  }, [user, router])
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    // Backend logic will be added here later
-    console.log('Login form submitted')
-    // Redirect to dashboard
-    router.push('/dashboard')
+    setError(null)
+    setLoading(true)
+
+    const formData = new FormData(e.currentTarget)
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+
+    try {
+      const { error: signInError } = await signIn(email, password)
+
+      if (signInError) {
+        setError(signInError.message || 'Invalid email or password')
+        setLoading(false)
+        return
+      }
+
+      // Redirect to dashboard on success
+      router.push('/dashboard')
+    } catch (err) {
+      setError('An unexpected error occurred')
+      setLoading(false)
+    }
   }
 
   return (
@@ -47,14 +87,28 @@ export default function LoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {successMessage && (
+              <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
+                {successMessage}
+              </div>
+            )}
+
+            {error && (
+              <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                {error}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="name@example.com"
                   required
+                  disabled={loading}
                   className="h-11"
                 />
               </div>
@@ -71,15 +125,17 @@ export default function LoginPage() {
                 </div>
                 <Input
                   id="password"
+                  name="password"
                   type="password"
                   placeholder="Enter your password"
                   required
+                  disabled={loading}
                   className="h-11"
                 />
               </div>
 
               <div className="flex items-center space-x-2">
-                <Checkbox id="remember" />
+                <Checkbox id="remember" disabled={loading} />
                 <Label 
                   htmlFor="remember" 
                   className="text-sm font-normal cursor-pointer"
@@ -88,8 +144,8 @@ export default function LoginPage() {
                 </Label>
               </div>
 
-              <Button type="submit" className="w-full h-11" size="lg">
-                Sign In
+              <Button type="submit" className="w-full h-11" size="lg" disabled={loading}>
+                {loading ? 'Signing In...' : 'Sign In'}
               </Button>
             </form>
 
@@ -117,6 +173,18 @@ export default function LoginPage() {
         </Card>
       </main>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   )
 }
 

@@ -7,8 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FileText, Calendar, Clock, Plus, TrendingUp, BarChart3 } from 'lucide-react'
 import { getReports } from '@/lib/reports'
 import { getActiveSchedulesCount } from '@/lib/schedules'
+import { useAuth } from '@/lib/auth/auth-context'
+import { withAuth } from '@/lib/auth/protected-route'
 
-export default function DashboardPage() {
+function DashboardPage() {
+  const { user } = useAuth()
   const [stats, setStats] = useState({
     totalReports: 0,
     activeSchedules: 0,
@@ -49,12 +52,15 @@ export default function DashboardPage() {
     })
   }, [])
 
+  // Get user's name from metadata or email
+  const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'
+
   return (
     <div className="p-8">
       {/* Welcome Section */}
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-gray-900 mb-2">
-          Welcome back, John! 👋
+          Welcome back, {userName}! 👋
         </h2>
         <p className="text-gray-600 text-lg">
           Here's an overview of your market intelligence activity
@@ -236,4 +242,6 @@ export default function DashboardPage() {
     </div>
   )
 }
+
+export default withAuth(DashboardPage)
 

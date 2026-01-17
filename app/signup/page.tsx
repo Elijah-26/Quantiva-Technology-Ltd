@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -7,16 +8,61 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
+import { useAuth } from '@/lib/auth/auth-context'
 
 export default function SignUpPage() {
   const router = useRouter()
+  const { signUp } = useAuth()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    // Backend logic will be added here later
-    console.log('Sign up form submitted')
-    // Redirect to dashboard
-    router.push('/dashboard')
+    setError(null)
+    setLoading(true)
+
+    const formData = new FormData(e.currentTarget)
+    const fullName = formData.get('fullName') as string
+    const email = formData.get('email') as string
+    const company = formData.get('company') as string
+    const password = formData.get('password') as string
+    const confirmPassword = formData.get('confirmPassword') as string
+
+    // Validate passwords match
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      setLoading(false)
+      return
+    }
+
+    // Validate password strength
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters')
+      setLoading(false)
+      return
+    }
+
+    try {
+      const { error: signUpError } = await signUp(email, password, fullName, company)
+
+      if (signUpError) {
+        setError(signUpError.message || 'Failed to create account')
+        setLoading(false)
+        return
+      }
+
+      // Show success message
+      setSuccess(true)
+      
+      // Redirect to login after 2 seconds
+      setTimeout(() => {
+        router.push('/login?message=Account created! Please sign in.')
+      }, 2000)
+    } catch (err) {
+      setError('An unexpected error occurred')
+      setLoading(false)
+    }
   }
 
   return (
@@ -47,14 +93,28 @@ export default function SignUpPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {error && (
+              <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
+                Account created successfully! Redirecting to login...
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="fullName">Full Name</Label>
                 <Input
                   id="fullName"
+                  name="fullName"
                   type="text"
                   placeholder="John Doe"
                   required
+                  disabled={loading || success}
                   className="h-11"
                 />
               </div>
@@ -63,9 +123,11 @@ export default function SignUpPage() {
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="name@example.com"
                   required
+                  disabled={loading || success}
                   className="h-11"
                 />
               </div>
@@ -74,8 +136,10 @@ export default function SignUpPage() {
                 <Label htmlFor="company">Company Name (Optional)</Label>
                 <Input
                   id="company"
+                  name="company"
                   type="text"
                   placeholder="Your Company Inc."
+                  disabled={loading || success}
                   className="h-11"
                 />
               </div>
@@ -84,9 +148,11 @@ export default function SignUpPage() {
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
+                  name="password"
                   type="password"
-                  placeholder="Create a strong password"
+                  placeholder="Create a strong password (min 6 characters)"
                   required
+                  disabled={loading || success}
                   className="h-11"
                 />
               </div>
@@ -95,15 +161,17 @@ export default function SignUpPage() {
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
                 <Input
                   id="confirmPassword"
+                  name="confirmPassword"
                   type="password"
                   placeholder="Confirm your password"
                   required
+                  disabled={loading || success}
                   className="h-11"
                 />
               </div>
 
               <div className="flex items-start space-x-2 pt-2">
-                <Checkbox id="terms" required className="mt-1" />
+                <Checkbox id="terms" required disabled={loading || success} className="mt-1" />
                 <Label 
                   htmlFor="terms" 
                   className="text-sm font-normal leading-relaxed cursor-pointer"
@@ -119,8 +187,8 @@ export default function SignUpPage() {
                 </Label>
               </div>
 
-              <Button type="submit" className="w-full h-11" size="lg">
-                Create Account
+              <Button type="submit" className="w-full h-11" size="lg" disabled={loading || success}>
+                {loading ? 'Creating Account...' : success ? 'Account Created!' : 'Create Account'}
               </Button>
             </form>
 
