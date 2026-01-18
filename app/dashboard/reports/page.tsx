@@ -122,13 +122,18 @@ export default function ReportsPage() {
       filtered = filtered.filter(r => r.geography === geographyFilter)
     }
 
-    // Apply sorting
+    // Apply sorting (always runs, even with default filters)
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'date-desc':
-          return new Date(b.dateGenerated).getTime() - new Date(a.dateGenerated).getTime()
+          // Use runAt (ISO timestamp) for accurate date sorting, fallback to dateGenerated
+          const dateA = a.runAt ? new Date(a.runAt).getTime() : new Date(a.dateGenerated).getTime()
+          const dateB = b.runAt ? new Date(b.runAt).getTime() : new Date(b.dateGenerated).getTime()
+          return dateB - dateA // Newest first (descending)
         case 'date-asc':
-          return new Date(a.dateGenerated).getTime() - new Date(b.dateGenerated).getTime()
+          const dateAsc1 = a.runAt ? new Date(a.runAt).getTime() : new Date(a.dateGenerated).getTime()
+          const dateAsc2 = b.runAt ? new Date(b.runAt).getTime() : new Date(b.dateGenerated).getTime()
+          return dateAsc1 - dateAsc2 // Oldest first (ascending)
         case 'title-asc':
           return a.title.localeCompare(b.title)
         case 'title-desc':
