@@ -121,6 +121,38 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
     }
   }
 
+  const handleShare = async () => {
+    const reportUrl = window.location.href
+    
+    // Try native share API first (mobile)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: report?.title || 'Market Research Report',
+          text: `Check out this market research report: ${report?.title}`,
+          url: reportUrl
+        })
+        toast.success('Shared successfully!')
+      } catch (error) {
+        // User cancelled or error occurred
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Error sharing:', error)
+        }
+      }
+    } else {
+      // Fallback: Copy to clipboard
+      try {
+        await navigator.clipboard.writeText(reportUrl)
+        toast.success('Link copied to clipboard!', {
+          description: 'You can now share this link with others.'
+        })
+      } catch (error) {
+        console.error('Error copying to clipboard:', error)
+        toast.error('Failed to copy link')
+      }
+    }
+  }
+
   if (loading) {
     return (
       <div className="p-8">
@@ -220,7 +252,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                   <Download className="w-4 h-4" />
                   {isDownloading ? 'Generating...' : 'Download PDF'}
                 </Button>
-                <Button variant="outline" size="sm" className="gap-2">
+                <Button variant="outline" size="sm" className="gap-2" onClick={handleShare}>
                   <Share2 className="w-4 h-4" />
                   Share
                 </Button>

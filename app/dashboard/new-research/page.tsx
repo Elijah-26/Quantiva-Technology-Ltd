@@ -13,7 +13,6 @@ import { FileSearch, Calendar, Zap, Loader2, Repeat } from 'lucide-react'
 import { getActiveWebhooksByType } from '@/lib/webhooks'
 import { toast } from 'sonner'
 import { LoadingOverlay } from '@/components/LoadingOverlay'
-import { createReportFromWebhook, saveReport } from '@/lib/reports'
 import { createScheduleFromForm, saveSchedule } from '@/lib/schedules'
 
 const marketCategories = [
@@ -138,20 +137,45 @@ export default function NewResearchPage() {
         let savedReportId: string | null = null
         
         if (webhookResponseData) {
-          localStorage.setItem('latestWebhookReport', JSON.stringify(webhookResponseData))
+          console.log('💾 Saving report to database...')
           
-          const report = createReportFromWebhook(webhookResponseData, {
-            ...onDemandForm,
-            researchType: 'on-demand'
-          })
-          saveReport(report)
-          savedReportId = report.id
+          // Extract webReport and emailReport from webhook response
+          const reportData = Array.isArray(webhookResponseData) ? webhookResponseData[0] : webhookResponseData
+          const webReport = reportData.webReport || ''
+          const emailReport = reportData.emailReport || webReport
           
-          console.log('✅ Report saved with ID:', report.id)
+          // Save to database via API
+          try {
+            const saveResponse = await fetch('/api/reports/on-demand', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                industry: onDemandForm.marketCategory,
+                sub_niche: onDemandForm.subNiche,
+                geography: onDemandForm.geography || 'Global',
+                email: onDemandForm.email,
+                final_report: webReport,
+                email_report: emailReport,
+                notes: onDemandForm.notes,
+              }),
+            })
+            
+            if (saveResponse.ok) {
+              const saveResult = await saveResponse.json()
+              savedReportId = saveResult.execution_id
+              console.log('✅ Report saved to database with ID:', savedReportId)
+            } else {
+              console.error('❌ Failed to save report to database:', await saveResponse.text())
+            }
+          } catch (saveError) {
+            console.error('❌ Error saving report to database:', saveError)
+          }
         }
 
         toast.success('On-Demand Research submitted successfully!', {
-          description: 'The Report has been sent to your email',
+          description: 'The report has been generated and saved',
           duration: 5000,
         })
         
@@ -171,7 +195,7 @@ export default function NewResearchPage() {
           } else {
             router.push('/dashboard/reports')
           }
-        }, 2000)
+        }, 1500)
       } else {
         throw new Error('All webhooks failed')
       }

@@ -40,8 +40,8 @@ export async function GET(request: NextRequest) {
       title: `${report.industry} - ${report.sub_niche}`,
       category: report.industry,
       subNiche: report.sub_niche,
-      geography: 'Global', // Not stored yet, default
-      email: '', // Not stored yet
+      geography: report.geography || 'Global',
+      email: report.email || '',
       dateGenerated: new Date(report.run_at).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
       }),
       type: report.frequency === 'on-demand' ? 'On-demand' : 'Recurring',
       webReport: report.final_report || '',
-      emailReport: report.final_report || '',
+      emailReport: report.email_report || report.final_report || '',
       frequency: report.frequency,
       isFirstRun: report.is_first_run,
       runAt: report.run_at,
