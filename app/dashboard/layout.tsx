@@ -139,8 +139,13 @@ export default function DashboardLayout({
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
         {/* Logo */}
         <div className="h-16 flex items-center px-6 border-b border-gray-200">
-          <Link href="/dashboard" className="text-lg font-bold text-gray-900">
-            Market Intel
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <img 
+              src="/quantiva.png" 
+              alt="Quantiva" 
+              className="h-8 w-8 object-contain"
+            />
+            <span className="text-lg font-bold text-gray-900">Quantiva</span>
           </Link>
         </div>
 

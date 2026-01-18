@@ -14,8 +14,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Market Intelligence Platform | Automated Market Research",
-  description: "Transform your business strategy with automated, recurring market insights and competitive intelligence.",
+  title: "Quantiva | AI-Powered Market Intelligence",
+  description: "Transform your business strategy with automated, recurring market insights and competitive intelligence powered by Quantiva.",
+  icons: {
+    icon: '/quantiva.png',
+  },
 };
 
 export default function RootLayout({

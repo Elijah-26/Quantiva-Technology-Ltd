@@ -1,6 +1,7 @@
 {
-  "name": "market_research",
-  "version": "0.1.0",
+  "name": "quantiva",
+  "version": "1.0.0",
+  "description": "AI-Powered Market Intelligence Platform",
   "private": true,
   "scripts": {
     "dev": "next dev",

@@ -1,6 +1,21 @@
-# Market Intelligence Platform
+# Quantiva - AI-Powered Market Intelligence Platform
 
-A modern SaaS landing page for a Market Intelligence Platform that provides automated market research and competitive intelligence.
+<div align="center">
+  <img src="public/quantiva.png" alt="Quantiva Logo" width="120" />
+  
+  ### Transform Your Business Strategy with Automated Market Insights
+  
+  [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
+  [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38bdf8)](https://tailwindcss.com/)
+  [![Supabase](https://img.shields.io/badge/Supabase-Powered-3ecf8e)](https://supabase.com/)
+</div>
+
+---
+
+## 🚀 About Quantiva
+
+Quantiva is a modern SaaS platform that provides automated market research and competitive intelligence powered by AI. Get data-backed insights delivered on your schedule, helping businesses make smarter strategic decisions.
 
 ## Tech Stack
 
@@ -63,7 +78,7 @@ market_research/
 The landing page includes:
 
 1. **Header/Navigation**
-   - Logo: "Market Intelligence Platform"
+   - Logo: "Quantiva" with brand icon
    - Navigation links: Home, Features, How It Works
    - Login and Sign Up buttons
 
@@ -100,7 +115,7 @@ The landing page includes:
 Authenticated user interface with:
 
 1. **Sidebar Navigation**
-   - Logo: "Market Intel"
+   - Logo: "Quantiva" with brand icon
    - Navigation items:
      - Dashboard
      - New Research

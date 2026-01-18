@@ -71,8 +71,13 @@ export default function SignUpPage() {
       <header className="border-b bg-white">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
-            <Link href="/" className="text-xl font-bold text-gray-900">
-              Market Intelligence Platform
+            <Link href="/" className="flex items-center gap-2">
+              <img 
+                src="/quantiva.png" 
+                alt="Quantiva" 
+                className="h-8 w-8 object-contain"
+              />
+              <span className="text-xl font-bold text-gray-900">Quantiva</span>
             </Link>
             <Link href="/">
               <Button variant="ghost" size="sm">
