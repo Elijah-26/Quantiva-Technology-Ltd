@@ -67,6 +67,8 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
   }
 
   const handleDownloadPDF = async () => {
+    if (!report) return
+    
     setIsDownloading(true)
     try {
       const reportElement = document.getElementById('report-content')
@@ -75,46 +77,62 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
         return
       }
 
+      toast.info('Generating PDF...', {
+        description: 'This may take a moment for large reports.'
+      })
+
       // Create canvas from HTML
       const canvas = await html2canvas(reportElement, {
         scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        windowWidth: reportElement.scrollWidth,
+        windowHeight: reportElement.scrollHeight
       })
 
+      // Calculate dimensions
       const imgWidth = 210 // A4 width in mm
       const pageHeight = 297 // A4 height in mm
       const imgHeight = (canvas.height * imgWidth) / canvas.width
       let heightLeft = imgHeight
       let position = 0
 
-      const pdf = new jsPDF('p', 'mm', 'a4')
+      // Initialize jsPDF
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      })
+
       const imgData = canvas.toDataURL('image/png')
 
       // Add first page
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST')
       heightLeft -= pageHeight
 
-      // Add additional pages if needed
+      // Add additional pages if content is longer than one page
       while (heightLeft > 0) {
         position = heightLeft - imgHeight
         pdf.addPage()
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST')
         heightLeft -= pageHeight
       }
 
+      // Generate filename
+      const sanitizedTitle = report.title.replace(/[^a-z0-9]/gi, '_')
+      const fileName = `${sanitizedTitle}_${new Date().toISOString().split('T')[0]}.pdf`
+      
       // Download PDF
-      const fileName = `Market_Research_Report_${new Date().toISOString().split('T')[0]}.pdf`
       pdf.save(fileName)
       
-      toast.success('PDF downloaded successfully', {
+      toast.success('PDF downloaded successfully!', {
         description: 'Your report has been saved to your downloads folder.'
       })
     } catch (error) {
       console.error('PDF generation error:', error)
       toast.error('Failed to generate PDF', {
-        description: 'Please try again or contact support.'
+        description: 'Please try again or contact support if the issue persists.'
       })
     } finally {
       setIsDownloading(false)
@@ -122,34 +140,44 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
   }
 
   const handleShare = async () => {
-    const reportUrl = window.location.href
+    if (!report) return
     
-    // Try native share API first (mobile)
+    // Create public report URL (not requiring authentication)
+    const baseUrl = window.location.origin
+    const publicReportUrl = `${baseUrl}/report/${report.id}`
+    
+    // Try native share API first (mobile/tablets)
     if (navigator.share) {
       try {
         await navigator.share({
-          title: report?.title || 'Market Research Report',
-          text: `Check out this market research report: ${report?.title}`,
-          url: reportUrl
+          title: report.title,
+          text: `Check out this market research report: ${report.title}`,
+          url: publicReportUrl
         })
         toast.success('Shared successfully!')
       } catch (error) {
         // User cancelled or error occurred
         if ((error as Error).name !== 'AbortError') {
           console.error('Error sharing:', error)
+          // Fallback to clipboard
+          await copyToClipboard(publicReportUrl)
         }
       }
     } else {
       // Fallback: Copy to clipboard
-      try {
-        await navigator.clipboard.writeText(reportUrl)
-        toast.success('Link copied to clipboard!', {
-          description: 'You can now share this link with others.'
-        })
-      } catch (error) {
-        console.error('Error copying to clipboard:', error)
-        toast.error('Failed to copy link')
-      }
+      await copyToClipboard(publicReportUrl)
+    }
+  }
+
+  const copyToClipboard = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success('Link copied to clipboard!', {
+        description: 'Anyone with this link can view the report without logging in.'
+      })
+    } catch (error) {
+      console.error('Error copying to clipboard:', error)
+      toast.error('Failed to copy link')
     }
   }
 
