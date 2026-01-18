@@ -304,34 +304,20 @@ export default function NewResearchPage() {
       }
       
       if (successCount > 0) {
-        let savedReportId: string | null = null
         let scheduleId: string | null = null
         
-        // Save the webhook response data and create report
-        if (webhookResponseData) {
-          localStorage.setItem('latestWebhookReport', JSON.stringify(webhookResponseData))
-          
-          const report = createReportFromWebhook(webhookResponseData, {
-            ...recurringForm,
-            researchType: 'recurring'
-          })
-          saveReport(report)
-          savedReportId = report.id
-          
-          console.log('✅ Report saved with ID:', report.id)
-          
-          // Only create schedule AFTER successful webhook response
-          const schedule = createScheduleFromForm(recurringForm)
-          saveSchedule(schedule)
-          scheduleId = schedule.id
-          
-          console.log('✅ Schedule created with ID:', schedule.id)
-          console.log('📆 Next run:', schedule.nextRun)
-        }
+        // Create schedule for recurring reports (n8n will generate reports periodically)
+        const schedule = createScheduleFromForm(recurringForm)
+        saveSchedule(schedule)
+        scheduleId = schedule.id
+        
+        console.log('✅ Recurring research request logged')
+        console.log('✅ Schedule created with ID:', schedule.id)
+        console.log('📆 Next run:', schedule.nextRun)
 
         toast.success('Recurring Research scheduled successfully!', {
-          description: 'First report generated! The Report has been sent to your email.',
-          duration: 5000,
+          description: 'Request logged successfully. Your reports will be generated automatically according to your frequency and available in the Reports section.',
+          duration: 6000,
         })
         
         // Reset form
@@ -344,14 +330,10 @@ export default function NewResearchPage() {
           notes: '',
         })
 
-        // Navigate to the saved report
+        // Navigate to schedules page
         setTimeout(() => {
-          if (savedReportId) {
-            router.push(`/dashboard/reports/${savedReportId}`)
-          } else {
-            router.push('/dashboard/schedules')
-          }
-        }, 2000)
+          router.push('/dashboard/schedules')
+        }, 1500)
       } else {
         throw new Error('All webhooks failed')
       }
