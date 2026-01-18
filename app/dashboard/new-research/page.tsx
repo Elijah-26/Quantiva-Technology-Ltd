@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import { Combobox, type ComboboxOption } from '@/components/ui/combobox'
 import { FileSearch, Calendar, Zap, Loader2, Repeat } from 'lucide-react'
 import { getActiveWebhooksByType } from '@/lib/webhooks'
 import { toast } from 'sonner'
@@ -35,6 +36,89 @@ const frequencies = [
   { value: 'weekly', label: 'Weekly' },
   { value: 'biweekly', label: 'Bi-weekly' },
   { value: 'monthly', label: 'Monthly' },
+]
+
+// Geographic locations for searchable dropdown
+const geographicLocations: ComboboxOption[] = [
+  // Global & Multi-region
+  { value: 'global', label: 'Global' },
+  { value: 'worldwide', label: 'Worldwide' },
+  { value: 'international', label: 'International' },
+  
+  // Continents & Regions
+  { value: 'north-america', label: 'North America' },
+  { value: 'south-america', label: 'South America' },
+  { value: 'latin-america', label: 'Latin America' },
+  { value: 'central-america', label: 'Central America' },
+  { value: 'europe', label: 'Europe' },
+  { value: 'western-europe', label: 'Western Europe' },
+  { value: 'eastern-europe', label: 'Eastern Europe' },
+  { value: 'asia', label: 'Asia' },
+  { value: 'asia-pacific', label: 'Asia Pacific (APAC)' },
+  { value: 'southeast-asia', label: 'Southeast Asia' },
+  { value: 'east-asia', label: 'East Asia' },
+  { value: 'south-asia', label: 'South Asia' },
+  { value: 'middle-east', label: 'Middle East' },
+  { value: 'mena', label: 'Middle East & North Africa (MENA)' },
+  { value: 'africa', label: 'Africa' },
+  { value: 'north-africa', label: 'North Africa' },
+  { value: 'sub-saharan-africa', label: 'Sub-Saharan Africa' },
+  { value: 'oceania', label: 'Oceania' },
+  
+  // Major Countries (alphabetical)
+  { value: 'australia', label: 'Australia' },
+  { value: 'austria', label: 'Austria' },
+  { value: 'belgium', label: 'Belgium' },
+  { value: 'brazil', label: 'Brazil' },
+  { value: 'canada', label: 'Canada' },
+  { value: 'china', label: 'China' },
+  { value: 'denmark', label: 'Denmark' },
+  { value: 'finland', label: 'Finland' },
+  { value: 'france', label: 'France' },
+  { value: 'germany', label: 'Germany' },
+  { value: 'hong-kong', label: 'Hong Kong' },
+  { value: 'india', label: 'India' },
+  { value: 'indonesia', label: 'Indonesia' },
+  { value: 'ireland', label: 'Ireland' },
+  { value: 'israel', label: 'Israel' },
+  { value: 'italy', label: 'Italy' },
+  { value: 'japan', label: 'Japan' },
+  { value: 'malaysia', label: 'Malaysia' },
+  { value: 'mexico', label: 'Mexico' },
+  { value: 'netherlands', label: 'Netherlands' },
+  { value: 'new-zealand', label: 'New Zealand' },
+  { value: 'nigeria', label: 'Nigeria' },
+  { value: 'norway', label: 'Norway' },
+  { value: 'philippines', label: 'Philippines' },
+  { value: 'poland', label: 'Poland' },
+  { value: 'portugal', label: 'Portugal' },
+  { value: 'russia', label: 'Russia' },
+  { value: 'saudi-arabia', label: 'Saudi Arabia' },
+  { value: 'singapore', label: 'Singapore' },
+  { value: 'south-africa', label: 'South Africa' },
+  { value: 'south-korea', label: 'South Korea' },
+  { value: 'spain', label: 'Spain' },
+  { value: 'sweden', label: 'Sweden' },
+  { value: 'switzerland', label: 'Switzerland' },
+  { value: 'taiwan', label: 'Taiwan' },
+  { value: 'thailand', label: 'Thailand' },
+  { value: 'turkey', label: 'Turkey' },
+  { value: 'uae', label: 'United Arab Emirates (UAE)' },
+  { value: 'uk', label: 'United Kingdom (UK)' },
+  { value: 'usa', label: 'United States (USA)' },
+  { value: 'vietnam', label: 'Vietnam' },
+  
+  // US Regions & States (Major markets)
+  { value: 'us-northeast', label: 'US - Northeast' },
+  { value: 'us-southeast', label: 'US - Southeast' },
+  { value: 'us-midwest', label: 'US - Midwest' },
+  { value: 'us-southwest', label: 'US - Southwest' },
+  { value: 'us-west', label: 'US - West Coast' },
+  { value: 'california', label: 'California, USA' },
+  { value: 'texas', label: 'Texas, USA' },
+  { value: 'florida', label: 'Florida, USA' },
+  { value: 'new-york', label: 'New York, USA' },
+  { value: 'illinois', label: 'Illinois, USA' },
 ]
 
 export default function NewResearchPage() {
@@ -463,15 +547,17 @@ export default function NewResearchPage() {
                   <Label htmlFor="od-geography">
                     Geographic Focus <span className="text-red-500">*</span>
                   </Label>
-                  <Input
-                    id="od-geography"
-                    type="text"
-                    placeholder="e.g., North America, United States, Global"
+                  <Combobox
+                    options={geographicLocations}
                     value={onDemandForm.geography}
-                    onChange={(e) => setOnDemandForm(prev => ({ ...prev, geography: e.target.value }))}
-                    required
-                    className="h-11"
+                    onValueChange={(value) => setOnDemandForm(prev => ({ ...prev, geography: value }))}
+                    placeholder="Select a location..."
+                    searchPlaceholder="Search locations..."
+                    emptyText="No location found."
                   />
+                  <p className="text-sm text-gray-500">
+                    Choose the geographic region for market analysis
+                  </p>
                 </div>
 
                 {/* Email */}
@@ -534,27 +620,36 @@ export default function NewResearchPage() {
           </form>
 
           {/* Info Card for On-Demand */}
-          <Card className="bg-blue-50 border-blue-200">
+          <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200">
             <CardHeader>
-              <CardTitle className="text-lg">What happens next?</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Zap className="w-5 h-5 text-blue-600" />
+                What happens next?
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <p className="flex items-start gap-2">
-                <span className="text-blue-600 font-bold">1.</span>
-                <span>Your request is sent to n8n automation workflow immediately</span>
+            <CardContent className="space-y-3 text-sm">
+              <p className="flex items-start gap-3">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs shrink-0">1</span>
+                <span className="pt-0.5"><strong>AI analyzes</strong> market data from multiple sources and industry databases</span>
               </p>
-              <p className="flex items-start gap-2">
-                <span className="text-blue-600 font-bold">2.</span>
-                <span>AI analyzes market data and generates comprehensive report</span>
+              <p className="flex items-start gap-3">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs shrink-0">2</span>
+                <span className="pt-0.5"><strong>Comprehensive report</strong> is generated with insights, trends, and competitive analysis</span>
               </p>
-              <p className="flex items-start gap-2">
-                <span className="text-blue-600 font-bold">3.</span>
-                <span>Results appear in your Reports section (2-24 hours)</span>
+              <p className="flex items-start gap-3">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs shrink-0">3</span>
+                <span className="pt-0.5"><strong>Results delivered</strong> to your Reports section within 2-24 hours</span>
               </p>
-              <p className="flex items-start gap-2">
-                <span className="text-blue-600 font-bold">4.</span>
-                <span>Email notification sent to your address</span>
+              <p className="flex items-start gap-3">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-xs shrink-0">4</span>
+                <span className="pt-0.5"><strong>Email notification</strong> sent when your report is ready to view</span>
               </p>
+              <div className="mt-4 pt-3 border-t border-blue-200">
+                <p className="flex items-center gap-2 text-blue-700 font-medium">
+                  <span>⏱️</span>
+                  <span>Typical turnaround: 4-12 hours</span>
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -617,15 +712,17 @@ export default function NewResearchPage() {
                   <Label htmlFor="rec-geography">
                     Geographic Focus <span className="text-red-500">*</span>
                   </Label>
-                  <Input
-                    id="rec-geography"
-                    type="text"
-                    placeholder="e.g., North America, United States, Global"
+                  <Combobox
+                    options={geographicLocations}
                     value={recurringForm.geography}
-                    onChange={(e) => setRecurringForm(prev => ({ ...prev, geography: e.target.value }))}
-                    required
-                    className="h-11"
+                    onValueChange={(value) => setRecurringForm(prev => ({ ...prev, geography: value }))}
+                    placeholder="Select a location..."
+                    searchPlaceholder="Search locations..."
+                    emptyText="No location found."
                   />
+                  <p className="text-sm text-gray-500">
+                    Choose the geographic region for market analysis
+                  </p>
                 </div>
 
                 {/* Email */}
@@ -713,31 +810,36 @@ export default function NewResearchPage() {
           </form>
 
           {/* Info Card for Recurring */}
-          <Card className="bg-purple-50 border-purple-200">
+          <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200">
             <CardHeader>
-              <CardTitle className="text-lg">How Recurring Research Works</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-purple-600" />
+                How Recurring Research Works
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <p className="flex items-start gap-2">
-                <span className="text-purple-600 font-bold">1.</span>
-                <span>Schedule is created and saved in your Schedules section</span>
+            <CardContent className="space-y-3 text-sm">
+              <p className="flex items-start gap-3">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-600 text-white font-bold text-xs shrink-0">1</span>
+                <span className="pt-0.5"><strong>Schedule created</strong> and saved in your Schedules section for easy management</span>
               </p>
-              <p className="flex items-start gap-2">
-                <span className="text-purple-600 font-bold">2.</span>
-                <span>n8n checks for due schedules automatically (daily)</span>
+              <p className="flex items-start gap-3">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-600 text-white font-bold text-xs shrink-0">2</span>
+                <span className="pt-0.5"><strong>Automatic monitoring</strong> runs on your chosen frequency (daily, weekly, or monthly)</span>
               </p>
-              <p className="flex items-start gap-2">
-                <span className="text-purple-600 font-bold">3.</span>
-                <span>Reports are generated on your chosen frequency</span>
+              <p className="flex items-start gap-3">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-600 text-white font-bold text-xs shrink-0">3</span>
+                <span className="pt-0.5"><strong>Fresh reports generated</strong> automatically with the latest market data and trends</span>
               </p>
-              <p className="flex items-start gap-2">
-                <span className="text-purple-600 font-bold">4.</span>
-                <span>Each report is emailed and logged in your Reports section</span>
+              <p className="flex items-start gap-3">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-600 text-white font-bold text-xs shrink-0">4</span>
+                <span className="pt-0.5"><strong>Email alerts & dashboard updates</strong> notify you when new reports are available</span>
               </p>
-              <p className="flex items-start gap-2 mt-3 pt-3 border-t border-purple-200">
-                <span className="text-purple-700 font-semibold">💡 Tip:</span>
-                <span>You can pause or cancel schedules anytime from the Schedules page</span>
-              </p>
+              <div className="mt-4 pt-3 border-t border-purple-200 bg-purple-100 -mx-6 px-6 py-3 rounded-b-lg">
+                <p className="flex items-center gap-2 text-purple-700 font-medium">
+                  <span>💡</span>
+                  <span>Pause or cancel schedules anytime from your Schedules page</span>
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
