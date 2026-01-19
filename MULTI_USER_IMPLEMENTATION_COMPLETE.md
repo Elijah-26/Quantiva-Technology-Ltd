@@ -252,7 +252,20 @@ If you encounter any issues:
 
 ---
 
+## 📦 **Dependencies**
+
+The following package was added to support server-side authentication:
+
+```bash
+npm install @supabase/ssr
+```
+
+**Added to package.json**: `"@supabase/ssr": "^0.8.0"`
+
+---
+
 **Implementation Status**: ✅ **COMPLETE**
 **Date**: January 19, 2026
 **Linter Errors**: ✅ None
+**Build Status**: ✅ Fixed (added @supabase/ssr)
 
