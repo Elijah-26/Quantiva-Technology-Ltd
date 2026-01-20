@@ -33,18 +33,34 @@ export async function GET(request: NextRequest) {
     
     console.log('✅ Authenticated user for reports:', user.id)
     
+    // ===== STEP 2: CHECK USER ROLE =====
+    // Check if user is admin by querying user metadata or role
+    const isAdmin = user.user_metadata?.role === 'admin' || 
+                    user.app_metadata?.role === 'admin' ||
+                    user.email === 'admin@quantitva.com' // Fallback admin email check
+    
+    console.log(`🔐 User role: ${isAdmin ? 'ADMIN' : 'USER'}`)
+    
     // Get optional parameters from query params
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '50')
     const scheduleId = searchParams.get('schedule_id') // Optional filter by schedule
 
-    // ===== STEP 2: BUILD QUERY WITH USER FILTER =====
+    // ===== STEP 3: BUILD QUERY WITH ROLE-BASED ACCESS =====
     let query = supabaseAdmin
       .from('reports')
       .select('*')
-      .eq('user_id', user.id) // CRITICAL: Only fetch user's own reports
-      .order('run_at', { ascending: false })
-      .limit(limit)
+    
+    // ADMINS: See all reports
+    // USERS: See only their own reports (strict isolation)
+    if (!isAdmin) {
+      query = query.eq('user_id', user.id) // ← STRICT: Only user's reports
+      console.log('👤 USER mode: Filtering by user_id =', user.id)
+    } else {
+      console.log('👑 ADMIN mode: Fetching ALL reports')
+    }
+    
+    query = query.order('run_at', { ascending: false }).limit(limit)
 
     // Apply schedule filter if provided
     if (scheduleId) {

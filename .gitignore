@@ -42,3 +42,12 @@ next-env.d.ts
 
 # backend API data storage
 /data
+
+# Add documentation files to .gitignore
+echo "# Documentation with sensitive examples" >> .gitignore
+echo "STRICT_USER_ISOLATION_COMPLETE.md" >> .gitignore
+echo "REPORTS_FIX_SUMMARY.md" >> .gitignore
+echo "ADMIN_SETUP_GUIDE.md" >> .gitignore
+echo "MULTI_USER_IMPLEMENTATION_COMPLETE.md" >> .gitignore
+echo "n8n_CONFIGURATION_GUIDE.md" >> .gitignore
+echo "supabase-migration-fix-user-ids.sql" >> .gitignore
