@@ -41,7 +41,7 @@ import {
   User,
   AlertCircle
 } from 'lucide-react'
-import { WebhookConfig, WebhookType, getWebhooks, saveWebhooks } from '@/lib/webhooks'
+import { WebhookConfig, WebhookType, getWebhooks, createWebhook, updateWebhook, deleteWebhook } from '@/lib/webhooks'
 import { toast } from 'sonner'
 import { withAuth } from '@/lib/auth/protected-route'
 import { getCurrentUserProfile, getAllUsers, createUser, updateUser, deleteUser, UserProfile } from '@/lib/auth/user-service'
@@ -52,7 +52,7 @@ function SettingsPage() {
   
   // Webhook state
   const [webhooks, setWebhooks] = useState<WebhookConfig[]>([])
-  const [isLoaded, setIsLoaded] = useState(false)
+  const [webhooksLoading, setWebhooksLoading] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingWebhook, setEditingWebhook] = useState<WebhookConfig | null>(null)
   const [testingWebhookId, setTestingWebhookId] = useState<string | null>(null)
@@ -91,18 +91,26 @@ function SettingsPage() {
     loadProfile()
   }, [])
 
-  // Load webhooks from localStorage on mount
+  // Load webhooks from Supabase on mount
   useEffect(() => {
-    setWebhooks(getWebhooks())
-    setIsLoaded(true)
+    loadWebhooks()
   }, [])
 
-  // Load users when tab changes to users
+  // Load users or webhooks when tab changes
   useEffect(() => {
     if (activeTab === 'users') {
       loadUsers()
+    } else if (activeTab === 'webhooks') {
+      loadWebhooks()
     }
   }, [activeTab])
+
+  async function loadWebhooks() {
+    setWebhooksLoading(true)
+    const data = await getWebhooks()
+    setWebhooks(data)
+    setWebhooksLoading(false)
+  }
 
   async function loadUsers() {
     setUsersLoading(true)
@@ -118,13 +126,6 @@ function SettingsPage() {
     
     setUsersLoading(false)
   }
-
-  // Save webhooks to localStorage whenever they change
-  useEffect(() => {
-    if (isLoaded) {
-      saveWebhooks(webhooks)
-    }
-  }, [webhooks, isLoaded])
 
   const handleOpenDialog = (webhook?: WebhookConfig) => {
     if (webhook) {
@@ -148,37 +149,68 @@ function SettingsPage() {
     setFormData({ name: '', url: '', type: 'on-demand', description: '' })
   }
 
-  const handleSaveWebhook = () => {
-    if (editingWebhook) {
-      // Update existing webhook
-      setWebhooks(webhooks.map(w => 
-        w.id === editingWebhook.id 
-          ? { ...w, ...formData }
-          : w
-      ))
-    } else {
-      // Add new webhook
-      const newWebhook: WebhookConfig = {
-        id: Date.now().toString(),
-        ...formData,
-        active: true,
-        createdAt: new Date().toISOString(),
+  const handleSaveWebhook = async () => {
+    try {
+      if (editingWebhook) {
+        // Update existing webhook
+        const { data, error } = await updateWebhook(editingWebhook.id, formData)
+        if (error) {
+          toast.error('Failed to update webhook', { description: error })
+          return
+        }
+        toast.success('Webhook updated successfully')
+      } else {
+        // Add new webhook
+        const { data, error } = await createWebhook({
+          ...formData,
+          active: true,
+        })
+        if (error) {
+          toast.error('Failed to create webhook', { description: error })
+          return
+        }
+        toast.success('Webhook created successfully')
       }
-      setWebhooks([...webhooks, newWebhook])
-    }
-    handleCloseDialog()
-  }
-
-  const handleDeleteWebhook = (id: string) => {
-    if (confirm('Are you sure you want to delete this webhook?')) {
-      setWebhooks(webhooks.filter(w => w.id !== id))
+      handleCloseDialog()
+      loadWebhooks() // Reload webhooks from database
+    } catch (error) {
+      toast.error('An error occurred while saving the webhook')
     }
   }
 
-  const handleToggleActive = (id: string) => {
-    setWebhooks(webhooks.map(w => 
-      w.id === id ? { ...w, active: !w.active } : w
-    ))
+  const handleDeleteWebhook = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this webhook?')) {
+      return
+    }
+
+    try {
+      const { error } = await deleteWebhook(id)
+      if (error) {
+        toast.error('Failed to delete webhook', { description: error })
+        return
+      }
+      toast.success('Webhook deleted successfully')
+      loadWebhooks() // Reload webhooks from database
+    } catch (error) {
+      toast.error('An error occurred while deleting the webhook')
+    }
+  }
+
+  const handleToggleActive = async (id: string) => {
+    const webhook = webhooks.find(w => w.id === id)
+    if (!webhook) return
+
+    try {
+      const { data, error } = await updateWebhook(id, { active: !webhook.active })
+      if (error) {
+        toast.error('Failed to toggle webhook status', { description: error })
+        return
+      }
+      toast.success(`Webhook ${!webhook.active ? 'activated' : 'deactivated'} successfully`)
+      loadWebhooks() // Reload webhooks from database
+    } catch (error) {
+      toast.error('An error occurred while toggling the webhook')
+    }
   }
 
   const handleTestWebhook = async (webhook: WebhookConfig) => {
