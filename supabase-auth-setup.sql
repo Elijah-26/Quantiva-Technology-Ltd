@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS public.users (
   email TEXT NOT NULL UNIQUE,
   full_name TEXT,
   company_name TEXT,
-  role user_role DEFAULT 'admin' NOT NULL,
+  role user_role DEFAULT 'user' NOT NULL, -- Security: Default to 'user', not 'admin'
   last_login TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
@@ -33,7 +33,7 @@ DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
                  WHERE table_name='users' AND column_name='role') THEN
-    ALTER TABLE users ADD COLUMN role user_role DEFAULT 'admin' NOT NULL;
+    ALTER TABLE users ADD COLUMN role user_role DEFAULT 'user' NOT NULL; -- Security: Default to 'user'
   END IF;
 END $$;
 
@@ -48,14 +48,21 @@ CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.users (id, email, full_name, company_name, created_at)
+  INSERT INTO public.users (id, email, full_name, company_name, role, created_at)
   VALUES (
     NEW.id,
     NEW.email,
     NEW.raw_user_meta_data->>'full_name',
     NEW.raw_user_meta_data->>'company_name',
+    'user', -- Security: Explicitly set new signups as 'user' role
     NOW()
-  );
+  )
+  ON CONFLICT (id) DO UPDATE
+  SET 
+    email = EXCLUDED.email,
+    full_name = EXCLUDED.full_name,
+    company_name = EXCLUDED.company_name,
+    updated_at = NOW();
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

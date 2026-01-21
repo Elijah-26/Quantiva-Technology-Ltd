@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create user in auth.users (default role is 'admin' from database)
+    // Create user in auth.users (default role is 'user' from database for security)
     const { data: newAuthUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email: email.toLowerCase(),
       password,
@@ -121,7 +121,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Update the user's role if specified (otherwise defaults to 'admin')
+    // Update the user's role if specified (otherwise defaults to 'user')
+    // The trigger automatically creates the user with 'user' role
     if (newAuthUser.user && role) {
       const { error: updateError } = await supabaseAdmin
         .from('users')
