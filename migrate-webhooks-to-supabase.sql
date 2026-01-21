@@ -41,38 +41,35 @@ TO service_role
 USING (true) 
 WITH CHECK (true);
 
--- Step 5: Insert default active webhooks for production
--- Replace URLs with your actual n8n webhook URLs
+-- Step 5: Insert production webhooks (hardcoded URLs)
 INSERT INTO public.webhooks (name, url, type, description, active)
 VALUES 
   (
     'On-Demand Research Handler',
-    'https://your-n8n-instance.app.n8n.cloud/webhook/on-demand',
+    'https://northsnow.app.n8n.cloud/webhook/on_demand',
     'on-demand',
     'Handles immediate market research requests',
     true
   ),
   (
     'Recurring Research Handler',
-    'https://your-n8n-instance.app.n8n.cloud/webhook/recurring',
+    'https://northsnow.app.n8n.cloud/webhook/recurring',
     'recurring',
     'Handles scheduled recurring research requests',
     true
   )
 ON CONFLICT (type) DO UPDATE
 SET 
-  active = true,
-  updated_at = NOW();
+  url = EXCLUDED.url,
+  active = true;
 
 -- Step 6: Verify setup
 SELECT 
   name, 
-  type, 
+  type,
+  url, 
   active,
-  CASE 
-    WHEN url LIKE '%your-n8n-instance%' THEN '⚠️  CONFIGURE URL IN SETTINGS'
-    ELSE '✅ Configured'
-  END as status
+  '✅ Ready' as status
 FROM public.webhooks
 ORDER BY type;
 
