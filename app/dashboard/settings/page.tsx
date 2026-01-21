@@ -41,21 +41,18 @@ import {
   User,
   AlertCircle
 } from 'lucide-react'
-import { WebhookConfig, WebhookType, getWebhooks, createWebhook, updateWebhook, deleteWebhook } from '@/lib/webhooks'
+import { WebhookConfig, WebhookType, getWebhooks } from '@/lib/webhooks'
 import { toast } from 'sonner'
 import { withAuth } from '@/lib/auth/protected-route'
 import { getCurrentUserProfile, getAllUsers, createUser, updateUser, deleteUser, UserProfile } from '@/lib/auth/user-service'
 
 function SettingsPage() {
-  const [activeTab, setActiveTab] = useState('webhooks')
+  const [activeTab, setActiveTab] = useState('users')
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null)
   
-  // Webhook state
+  // Webhook state (read-only, hardcoded in production)
   const [webhooks, setWebhooks] = useState<WebhookConfig[]>([])
   const [webhooksLoading, setWebhooksLoading] = useState(false)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [editingWebhook, setEditingWebhook] = useState<WebhookConfig | null>(null)
-  const [testingWebhookId, setTestingWebhookId] = useState<string | null>(null)
   
   // User management state
   const [users, setUsers] = useState<UserProfile[]>([])
@@ -393,10 +390,6 @@ function SettingsPage() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList>
-            <TabsTrigger value="webhooks" className="gap-2">
-              <Webhook className="w-4 h-4" />
-              Webhooks
-            </TabsTrigger>
             <TabsTrigger value="users" className="gap-2">
               <Users className="w-4 h-4" />
               User Management
