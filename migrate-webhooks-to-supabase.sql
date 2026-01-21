@@ -55,6 +55,7 @@ VALUES
   (
     'Recurring Research Handler',
     'https://your-n8n-instance.app.n8n.cloud/webhook/recurring',
+    'recurring',
     'Handles scheduled recurring research requests',
     true
   )
