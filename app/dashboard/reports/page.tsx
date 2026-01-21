@@ -379,33 +379,50 @@ export default function ReportsPage() {
 
         {/* Reports List */}
         <div className="space-y-4">
-          {filteredAndSortedReports.map((report) => (
-            <Card key={report.id} className="hover:border-blue-300 transition-colors">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    {/* Title and Type */}
-                    <div className="flex items-start gap-3 mb-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                        <FileText className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                          {report.title}
-                        </h3>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="secondary" className="font-normal">
-                            {report.category}
-                          </Badge>
-                          <Badge 
-                            variant={report.type === 'Recurring' ? 'default' : 'outline'}
-                            className="font-normal"
-                          >
-                            {report.type}
-                          </Badge>
+          {filteredAndSortedReports.map((report, index) => {
+            // Check if this is the most recent report (within last 24 hours)
+            const isNew = index === 0 && (() => {
+              const reportDate = new Date(report.runAt || report.dateGenerated)
+              const hoursSinceReport = (Date.now() - reportDate.getTime()) / (1000 * 60 * 60)
+              return hoursSinceReport < 24
+            })()
+            
+            return (
+              <Card key={report.id} className="hover:border-blue-300 transition-colors relative overflow-hidden">
+                {isNew && (
+                  <div className="absolute top-0 right-0">
+                    <div className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white px-3 py-1 text-xs font-bold tracking-wider flex items-center gap-1 shadow-lg">
+                      <span className="animate-pulse">●</span>
+                      NEW
+                    </div>
+                  </div>
+                )}
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      {/* Title and Type */}
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                          <FileText className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                            {report.title}
+                          </h3>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="secondary" className="font-normal">
+                              {report.category}
+                            </Badge>
+                            <Badge 
+                              variant={report.type === 'Recurring' ? 'default' : 'outline'}
+                              className="font-normal"
+                            >
+                              {report.type}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
-                    </div>
+            
 
                     {/* Details */}
                     <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-3 ml-13">
@@ -445,7 +462,8 @@ export default function ReportsPage() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            )
+          })}
         </div>
 
         {/* Empty State */}

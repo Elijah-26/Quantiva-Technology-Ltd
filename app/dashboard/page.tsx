@@ -2,55 +2,125 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { FileText, Calendar, Clock, Plus, TrendingUp, BarChart3 } from 'lucide-react'
-import { getReports } from '@/lib/reports'
-import { getActiveSchedulesCount } from '@/lib/schedules'
+import { FileText, Calendar, Clock, Plus, TrendingUp, BarChart3, ArrowUpRight, Repeat, Zap } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { withAuth } from '@/lib/auth/protected-route'
 
+interface DashboardStats {
+  totalReports: number
+  onDemandReports: number
+  recurringReports: number
+  activeSchedules: number
+  nextSchedule: {
+    title: string
+    nextRun: string
+    frequency: string
+  } | null
+  lastReport: {
+    title: string
+    date: string
+    time: string
+    type: string
+  } | null
+}
+
 function DashboardPage() {
+  const router = useRouter()
   const { user } = useAuth()
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<DashboardStats>({
     totalReports: 0,
+    onDemandReports: 0,
+    recurringReports: 0,
     activeSchedules: 0,
-    lastRunDate: 'No reports yet',
-    lastRunTime: ''
+    nextSchedule: null,
+    lastReport: null
   })
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Load dynamic data from reports and schedules
-    const reports = getReports()
-    const totalReports = reports.length
-    const activeSchedules = getActiveSchedulesCount()
-    
-    let lastRunDate = 'No reports yet'
-    let lastRunTime = ''
-    
-    if (reports.length > 0) {
-      // Get the latest report (reports are sorted by date, newest first)
-      const latestReport = reports[0]
-      const date = new Date(latestReport.dateGenerated)
-      lastRunDate = date.toLocaleDateString('en-US', { 
-        month: 'long', 
-        day: 'numeric', 
-        year: 'numeric' 
-      })
-      lastRunTime = date.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
-        minute: '2-digit',
-        hour12: true 
-      })
-    }
-    
-    setStats({
-      totalReports,
-      activeSchedules,
-      lastRunDate,
-      lastRunTime
-    })
+    loadDashboardStats()
   }, [])
+
+  const loadDashboardStats = async () => {
+    try {
+      setLoading(true)
+      
+      // Fetch reports
+      const reportsResponse = await fetch('/api/reports')
+      const reportsData = await reportsResponse.json()
+      const reports = reportsData.reports || []
+      
+      // Fetch schedules
+      const schedulesResponse = await fetch('/api/schedules/active')
+      const schedulesData = await schedulesResponse.json()
+      const schedules = schedulesData.schedules || []
+      
+      // Calculate report stats
+      const onDemandReports = reports.filter((r: any) => r.type === 'On-demand').length
+      const recurringReports = reports.filter((r: any) => r.type === 'Recurring').length
+      
+      // Get next upcoming schedule
+      let nextSchedule = null
+      if (schedules.length > 0) {
+        const upcomingSchedules = schedules
+          .filter((s: any) => s.active && s.next_run)
+          .sort((a: any, b: any) => new Date(a.next_run).getTime() - new Date(b.next_run).getTime())
+        
+        if (upcomingSchedules.length > 0) {
+          const next = upcomingSchedules[0]
+          const nextRunDate = new Date(next.next_run)
+          nextSchedule = {
+            title: `${next.industry} - ${next.sub_niche}`,
+            nextRun: nextRunDate.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit'
+            }),
+            frequency: next.frequency
+          }
+        }
+      }
+      
+      // Get last report
+      let lastReport = null
+      if (reports.length > 0) {
+        const latest = reports[0]
+        const date = new Date(latest.runAt || latest.dateGenerated)
+        lastReport = {
+          title: latest.title,
+          date: date.toLocaleDateString('en-US', {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric'
+          }),
+          time: date.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          }),
+          type: latest.type
+        }
+      }
+      
+      setStats({
+        totalReports: reports.length,
+        onDemandReports,
+        recurringReports,
+        activeSchedules: schedules.filter((s: any) => s.active).length,
+        nextSchedule,
+        lastReport
+      })
+    } catch (error) {
+      console.error('Error loading dashboard stats:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Get user's name from metadata or email
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'
@@ -79,71 +149,144 @@ function DashboardPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {/* Total Reports Card */}
-        <Card className="border-2 hover:border-blue-300 transition-colors">
+        {/* Total Reports Card - Clickable */}
+        <Card 
+          className="border-2 hover:border-blue-400 hover:shadow-lg transition-all cursor-pointer group"
+          onClick={() => router.push('/dashboard/reports')}
+        >
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-gray-600">
+              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
                 Total Reports
+                <ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
               </CardTitle>
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
                 <FileText className="w-5 h-5 text-blue-600" />
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-gray-900 mb-1">
-              {stats.totalReports}
-            </div>
-            <p className="text-sm text-gray-600">
-              Research reports generated
-            </p>
+            {loading ? (
+              <div className="text-2xl font-bold text-gray-400 animate-pulse">
+                Loading...
+              </div>
+            ) : (
+              <>
+                <div className="text-4xl font-bold text-gray-900 mb-3">
+                  {stats.totalReports}
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5 text-gray-600">
+                      <Zap className="w-3 h-3 text-amber-500" />
+                      On-demand
+                    </span>
+                    <span className="font-semibold text-gray-900">{stats.onDemandReports}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5 text-gray-600">
+                      <Repeat className="w-3 h-3 text-blue-500" />
+                      Recurring
+                    </span>
+                    <span className="font-semibold text-gray-900">{stats.recurringReports}</span>
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
-        {/* Active Schedules Card */}
-        <Card className="border-2 hover:border-green-300 transition-colors">
+        {/* Active Schedules Card - Clickable */}
+        <Card 
+          className="border-2 hover:border-green-400 hover:shadow-lg transition-all cursor-pointer group"
+          onClick={() => router.push('/dashboard/schedules')}
+        >
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-gray-600">
+              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
                 Active Schedules
+                <ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
               </CardTitle>
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
                 <Calendar className="w-5 h-5 text-green-600" />
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-gray-400 mb-1">
-              {stats.activeSchedules}
-            </div>
-            <p className="text-sm text-gray-500">
-              Coming soon
-            </p>
+            {loading ? (
+              <div className="text-2xl font-bold text-gray-400 animate-pulse">
+                Loading...
+              </div>
+            ) : (
+              <>
+                <div className="text-4xl font-bold text-gray-900 mb-3">
+                  {stats.activeSchedules}
+                </div>
+                {stats.nextSchedule ? (
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-gray-600 truncate">
+                      Next: {stats.nextSchedule.title}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {stats.nextSchedule.nextRun}
+                    </p>
+                    <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium capitalize">
+                      {stats.nextSchedule.frequency}
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">
+                    No upcoming schedules
+                  </p>
+                )}
+              </>
+            )}
           </CardContent>
         </Card>
 
         {/* Last Research Run Card */}
-        <Card className="border-2 hover:border-purple-300 transition-colors">
+        <Card 
+          className="border-2 hover:border-purple-400 hover:shadow-lg transition-all cursor-pointer group"
+          onClick={() => stats.lastReport && router.push('/dashboard/reports')}
+        >
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-gray-600">
+              <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
                 Last Research Run
+                {stats.lastReport && (
+                  <ArrowUpRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                )}
               </CardTitle>
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
                 <Clock className="w-5 h-5 text-purple-600" />
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            {stats.totalReports > 0 ? (
+            {loading ? (
+              <div className="text-2xl font-bold text-gray-400 animate-pulse">
+                Loading...
+              </div>
+            ) : stats.lastReport ? (
               <>
-                <div className="text-2xl font-bold text-gray-900 mb-1">
-                  {stats.lastRunDate}
+                <div className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
+                  {stats.lastReport.title}
                 </div>
-                <p className="text-sm text-gray-600">
-                  at {stats.lastRunTime}
+                <p className="text-sm text-gray-600 mb-1">
+                  {stats.lastReport.date}
                 </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-500">
+                    at {stats.lastReport.time}
+                  </p>
+                  <span className={`inline-block px-2 py-0.5 text-xs rounded-full font-medium ${
+                    stats.lastReport.type === 'On-demand' 
+                      ? 'bg-amber-100 text-amber-700' 
+                      : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    {stats.lastReport.type}
+                  </span>
+                </div>
               </>
             ) : (
               <>
