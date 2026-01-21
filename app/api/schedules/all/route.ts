@@ -1,16 +1,36 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
+import { supabaseAdmin } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const supabase = await createClient()
+    // Create Supabase client with user authentication
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: any) {
+            cookieStore.set(name, value, options)
+          },
+          remove(name: string, options: any) {
+            cookieStore.set(name, '', options)
+          },
+        },
+      }
+    )
     
     // Get authenticated user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (userError || !user) {
+    if (authError || !user) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized', details: 'You must be logged in' },
         { status: 401 }
       )
     }
@@ -20,8 +40,8 @@ export async function GET(request: NextRequest) {
                     user.app_metadata?.role === 'admin' ||
                     user.email === 'admin@quantitva.com'
 
-    // Fetch all schedules
-    let query = supabase
+    // Fetch all schedules using admin client
+    let query = supabaseAdmin
       .from('schedules')
       .select('*')
       .order('created_at', { ascending: false })
@@ -49,7 +69,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Unexpected error fetching schedules:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
