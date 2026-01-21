@@ -59,14 +59,9 @@ export async function GET(request: NextRequest) {
     const scheduleId = searchParams.get('schedule_id')
 
     // ===== STEP 5: BUILD QUERY WITH ROLE-BASED ACCESS =====
-    // For admins, join with users table to get user information
-    const selectFields = isAdmin 
-      ? '*, users:user_id(id, email, full_name, company_name)'
-      : '*'
-    
     let query = supabaseAdmin
       .from('reports')
-      .select(selectFields)
+      .select('*')
     
     // ADMINS: See all reports
     // USERS: See only their own reports (strict isolation)
@@ -95,8 +90,26 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // For admins, fetch user information separately
+    let usersMap = new Map()
+    if (isAdmin && reports && reports.length > 0) {
+      const userIds = [...new Set(reports.map((r: any) => r.user_id).filter(Boolean))]
+      if (userIds.length > 0) {
+        const { data: usersData } = await supabaseAdmin
+          .from('users')
+          .select('id, email, full_name, company_name')
+          .in('id', userIds)
+        
+        if (usersData) {
+          usersData.forEach((u: any) => {
+            usersMap.set(u.id, u)
+          })
+        }
+      }
+    }
+
     // Transform reports to match the frontend Report interface
-    const transformedReports = (reports || []).map((report) => {
+    const transformedReports = (reports || []).map((report: any) => {
       const baseReport = {
         id: report.execution_id,
         scheduleId: report.schedule_id,
@@ -120,13 +133,16 @@ export async function GET(request: NextRequest) {
       }
 
       // Add user information for admins
-      if (isAdmin && report.users) {
-        return {
-          ...baseReport,
-          userId: report.user_id,
-          userEmail: report.users.email || 'Unknown',
-          userName: report.users.full_name || 'Unknown User',
-          userCompany: report.users.company_name || '',
+      if (isAdmin && report.user_id) {
+        const userInfo = usersMap.get(report.user_id)
+        if (userInfo) {
+          return {
+            ...baseReport,
+            userId: report.user_id,
+            userEmail: userInfo.email || 'Unknown',
+            userName: userInfo.full_name || 'Unknown User',
+            userCompany: userInfo.company_name || '',
+          }
         }
       }
 
