@@ -16,7 +16,13 @@ import {
   LogOut,
   ChevronDown,
   Menu,
-  X
+  X,
+  User,
+  Mail,
+  Lock,
+  Shield,
+  Eye,
+  EyeOff
 } from 'lucide-react'
 import {
   Sheet,
@@ -43,6 +49,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { supabase } from '@/lib/supabase/client'
 
 const baseNavigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, adminOnly: false },
@@ -63,10 +71,25 @@ export default function DashboardLayout({
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [profileLoading, setProfileLoading] = useState(false)
+  const [activeProfileTab, setActiveProfileTab] = useState('profile')
   const [profileForm, setProfileForm] = useState({
     full_name: '',
     company_name: '',
   })
+  
+  // Password change state
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  })
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  
+  // Email change state
+  const [newEmail, setNewEmail] = useState('')
+  const [emailChangeLoading, setEmailChangeLoading] = useState(false)
 
   // Load user profile
   useEffect(() => {
@@ -198,7 +221,6 @@ export default function DashboardLayout({
         })
       } else {
         toast.success('Profile updated successfully')
-        setIsProfileDialogOpen(false)
         // Reload profile
         const { data } = await getCurrentUserProfile()
         if (data) setUserProfile(data)
@@ -207,6 +229,97 @@ export default function DashboardLayout({
       toast.error('An error occurred while updating profile')
     } finally {
       setProfileLoading(false)
+    }
+  }
+
+  // Handle password change
+  const handleChangePassword = async () => {
+    if (!passwordForm.newPassword || !passwordForm.confirmPassword) {
+      toast.error('Please fill in all password fields')
+      return
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast.error('New passwords do not match')
+      return
+    }
+
+    if (passwordForm.newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters')
+      return
+    }
+
+    setProfileLoading(true)
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: passwordForm.newPassword
+      })
+
+      if (error) throw error
+
+      toast.success('Password changed successfully', {
+        description: 'Your password has been updated.'
+      })
+      
+      // Reset form
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      })
+      
+      // Switch back to profile tab
+      setActiveProfileTab('profile')
+    } catch (error: any) {
+      console.error('Password change error:', error)
+      toast.error(error.message || 'Failed to change password')
+    } finally {
+      setProfileLoading(false)
+    }
+  }
+
+  // Handle email change
+  const handleChangeEmail = async () => {
+    if (!newEmail) {
+      toast.error('Please enter a new email address')
+      return
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(newEmail)) {
+      toast.error('Please enter a valid email address')
+      return
+    }
+
+    if (newEmail === user?.email) {
+      toast.error('This is your current email address')
+      return
+    }
+
+    setEmailChangeLoading(true)
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        email: newEmail
+      }, {
+        emailRedirectTo: `${window.location.origin}/auth/confirm-email`
+      })
+
+      if (error) throw error
+
+      toast.success('Confirmation email sent!', {
+        description: 'Please check both email addresses to confirm the change.'
+      })
+      
+      setNewEmail('')
+      setActiveProfileTab('profile')
+    } catch (error: any) {
+      console.error('Email change error:', error)
+      toast.error(error.message || 'Failed to change email')
+    } finally {
+      setEmailChangeLoading(false)
     }
   }
 
@@ -289,61 +402,252 @@ export default function DashboardLayout({
 
       {/* User Profile Dialog */}
       <Dialog open={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto mx-4">
           <DialogHeader>
-            <DialogTitle>My Profile</DialogTitle>
+            <DialogTitle className="text-xl">Account Settings</DialogTitle>
             <DialogDescription>
-              Update your personal information
+              Manage your profile, security, and account preferences
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="profile-email">Email Address</Label>
-              <Input
-                id="profile-email"
-                type="email"
-                value={user?.email || ''}
-                disabled
-                className="bg-gray-50"
-              />
-              <p className="text-xs text-gray-500">Email cannot be changed</p>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="profile-name">Full Name</Label>
-              <Input
-                id="profile-name"
-                type="text"
-                placeholder="John Doe"
-                value={profileForm.full_name}
-                onChange={(e) => setProfileForm({ ...profileForm, full_name: e.target.value })}
-              />
-            </div>
+          <Tabs value={activeProfileTab} onValueChange={setActiveProfileTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-4">
+              <TabsTrigger value="profile" className="gap-2">
+                <User className="w-4 h-4" />
+                <span className="hidden sm:inline">Profile</span>
+              </TabsTrigger>
+              <TabsTrigger value="security" className="gap-2">
+                <Shield className="w-4 h-4" />
+                <span className="hidden sm:inline">Security</span>
+              </TabsTrigger>
+              <TabsTrigger value="email" className="gap-2">
+                <Mail className="w-4 h-4" />
+                <span className="hidden sm:inline">Email</span>
+              </TabsTrigger>
+            </TabsList>
 
-            <div className="space-y-2">
-              <Label htmlFor="profile-company">Company Name (Optional)</Label>
-              <Input
-                id="profile-company"
-                type="text"
-                placeholder="Your Company Inc."
-                value={profileForm.company_name}
-                onChange={(e) => setProfileForm({ ...profileForm, company_name: e.target.value })}
-              />
-            </div>
+            {/* Profile Tab */}
+            <TabsContent value="profile" className="space-y-4">
+              <div className="space-y-4">
+                <div className="flex items-center justify-center mb-4">
+                  <Avatar className="w-20 h-20">
+                    <AvatarFallback className="bg-blue-600 text-white text-2xl">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
 
-            <div className="pt-4 border-t">
-              <p className="text-sm text-gray-500 mb-1">Role: <span className="font-medium capitalize">{userProfile?.role}</span></p>
-              <p className="text-sm text-gray-500">Member since: {userProfile?.created_at ? new Date(userProfile.created_at).toLocaleDateString() : 'N/A'}</p>
-            </div>
-          </div>
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setIsProfileDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveProfile} disabled={profileLoading}>
-              {profileLoading ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </div>
+                <div className="space-y-2">
+                  <Label htmlFor="profile-email">Email Address</Label>
+                  <Input
+                    id="profile-email"
+                    type="email"
+                    value={user?.email || ''}
+                    disabled
+                    className="bg-gray-50"
+                  />
+                  <p className="text-xs text-gray-500">
+                    To change your email, go to the Email tab
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="profile-name">Full Name</Label>
+                  <Input
+                    id="profile-name"
+                    type="text"
+                    placeholder="John Doe"
+                    value={profileForm.full_name}
+                    onChange={(e) => setProfileForm({ ...profileForm, full_name: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="profile-company">Company Name (Optional)</Label>
+                  <Input
+                    id="profile-company"
+                    type="text"
+                    placeholder="Your Company Inc."
+                    value={profileForm.company_name}
+                    onChange={(e) => setProfileForm({ ...profileForm, company_name: e.target.value })}
+                  />
+                </div>
+
+                <div className="pt-4 border-t space-y-1">
+                  <p className="text-sm text-gray-500">
+                    <span className="font-medium">Role:</span>{' '}
+                    <span className="capitalize">{userProfile?.role}</span>
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    <span className="font-medium">Member since:</span>{' '}
+                    {userProfile?.created_at ? new Date(userProfile.created_at).toLocaleDateString() : 'N/A'}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    <span className="font-medium">Last login:</span>{' '}
+                    {userProfile?.last_login ? new Date(userProfile.last_login).toLocaleDateString() : 'Never'}
+                  </p>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsProfileDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSaveProfile} disabled={profileLoading}>
+                    {profileLoading ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Security Tab - Password Change */}
+            <TabsContent value="security" className="space-y-4">
+              <div className="space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex gap-3">
+                    <Lock className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-blue-900">Password Requirements</p>
+                      <ul className="text-xs text-blue-800 space-y-0.5 list-disc list-inside">
+                        <li>At least 8 characters long</li>
+                        <li>Include uppercase and lowercase letters</li>
+                        <li>Include at least one number</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">New Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="new-password"
+                      type={showNewPassword ? 'text' : 'password'}
+                      placeholder="Enter new password"
+                      value={passwordForm.newPassword}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">Confirm New Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="confirm-password"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      placeholder="Confirm new password"
+                      value={passwordForm.confirmPassword}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {passwordForm.newPassword && passwordForm.confirmPassword && 
+                 passwordForm.newPassword !== passwordForm.confirmPassword && (
+                  <p className="text-sm text-red-600">Passwords do not match</p>
+                )}
+
+                <div className="flex justify-end gap-3 pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setPasswordForm({
+                        currentPassword: '',
+                        newPassword: '',
+                        confirmPassword: '',
+                      })
+                      setActiveProfileTab('profile')
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleChangePassword} 
+                    disabled={profileLoading || !passwordForm.newPassword || !passwordForm.confirmPassword}
+                  >
+                    {profileLoading ? 'Changing...' : 'Change Password'}
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Email Tab - Email Change */}
+            <TabsContent value="email" className="space-y-4">
+              <div className="space-y-4">
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <div className="flex gap-3">
+                    <Mail className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-amber-900">Email Change Process</p>
+                      <p className="text-xs text-amber-800">
+                        A confirmation email will be sent to both your current and new email addresses. 
+                        You must verify the change before it takes effect.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="current-email">Current Email</Label>
+                  <Input
+                    id="current-email"
+                    type="email"
+                    value={user?.email || ''}
+                    disabled
+                    className="bg-gray-50"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new-email">New Email Address</Label>
+                  <Input
+                    id="new-email"
+                    type="email"
+                    placeholder="newemail@example.com"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setNewEmail('')
+                      setActiveProfileTab('profile')
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleChangeEmail} 
+                    disabled={emailChangeLoading || !newEmail}
+                  >
+                    {emailChangeLoading ? 'Sending...' : 'Send Confirmation'}
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 

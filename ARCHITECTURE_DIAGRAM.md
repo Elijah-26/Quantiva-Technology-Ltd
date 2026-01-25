@@ -1,306 +1,613 @@
-# Architecture: PDF Download & Public Sharing
+# Authentication System Architecture
 
-## System Flow Diagram
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     QUANTIVA PLATFORM                        │
-└─────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────┐
-│              AUTHENTICATED ROUTES (Protected)                │
-├─────────────────────────────────────────────────────────────┤
-│                                                               │
-│  /dashboard/reports/[id]                                     │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │ 📊 Report View (Authenticated)                        │  │
-│  │                                                        │  │
-│  │ [Back to Reports]                                     │  │
-│  │                                                        │  │
-│  │ Title: Education & E-learning - EMS                   │  │
-│  │ [Download PDF] [Share]                                │  │
-│  │                                                        │  │
-│  │ ┌────────────────────────────────────────┐           │  │
-│  │ │ Market Intelligence Report              │           │  │
-│  │ │                                          │           │  │
-│  │ │ Report content...                        │           │  │
-│  │ └────────────────────────────────────────┘           │  │
-│  │                                                        │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                                                               │
-│  Actions Available:                                          │
-│  ✅ Download PDF                                             │
-│  ✅ Share (generates public link)                           │
-│  ✅ Delete report                                            │
-│  ✅ Navigate to dashboard                                    │
-│                                                               │
-└─────────────────────────────────────────────────────────────┘
-
-                            ↓ Share Button Clicked
-                            
-                    Generates Public URL:
-              https://yourdomain.com/report/abc123xyz
-              
-                            ↓ Link Shared
-                            
-┌─────────────────────────────────────────────────────────────┐
-│                PUBLIC ROUTES (No Auth Required)              │
-├─────────────────────────────────────────────────────────────┤
-│                                                               │
-│  /report/[id]                                                │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │ 🌐 Public Report View (Anyone can access)            │  │
-│  │                                                        │  │
-│  │ ┌────────────────────────────────────────┐           │  │
-│  │ │      Quantiva                           │           │  │
-│  │ │   AI-Powered Market Intelligence        │           │  │
-│  │ └────────────────────────────────────────┘           │  │
-│  │                                                        │  │
-│  │ Title: Education & E-learning - EMS                   │  │
-│  │ [Education & E-learning] [On-demand]                  │  │
-│  │                                                        │  │
-│  │ ┌────────────────────────────────────────┐           │  │
-│  │ │ Market Intelligence Report              │           │  │
-│  │ │                                          │           │  │
-│  │ │ Report content (READ ONLY)...            │           │  │
-│  │ └────────────────────────────────────────┘           │  │
-│  │                                                        │  │
-│  │ Footer: © 2026 Quantiva                              │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                                                               │
-│  Actions Available:                                          │
-│  ❌ No download                                              │
-│  ❌ No sharing                                               │
-│  ❌ No delete                                                │
-│  ❌ No dashboard access                                      │
-│  ✅ READ ONLY                                                │
-│                                                               │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## PDF Download Flow
+## 🏗️ System Overview
 
 ```
-User clicks "Download PDF" button
-         ↓
-Toast: "Generating PDF..."
-         ↓
-html2canvas captures report content
-         ↓
-Convert canvas to image
-         ↓
-jsPDF creates A4 PDF
-         ↓
-Add pages if content is long
-         ↓
-Generate filename: "Report_Title_2026-01-18.pdf"
-         ↓
-Download to user's computer
-         ↓
-Toast: "PDF downloaded successfully!"
+┌─────────────────────────────────────────────────────────────────────┐
+│                         QUANTIVA AUTHENTICATION SYSTEM              │
+│                                                                     │
+│  Frontend (Next.js)              Supabase                Email      │
+│  ─────────────────              ────────                 ─────      │
+│                                                                     │
+│  ┌──────────────┐              ┌──────────┐           ┌─────────┐ │
+│  │ Login Page   │──────────────▶│   Auth   │──────────▶│  Email  │ │
+│  │              │              │  Service  │           │ Service │ │
+│  │ • Sign In    │◀──────────────│          │◀──────────│         │ │
+│  │ • Forgot PW  │              │ • Create │           │ • Send  │ │
+│  └──────────────┘              │ • Verify │           │ • Track │ │
+│                                │ • Update │           │ • Retry │ │
+│  ┌──────────────┐              └──────────┘           └─────────┘ │
+│  │ Reset Page   │                    │                             │
+│  │              │                    │                             │
+│  │ • Validate   │              ┌──────────┐                        │
+│  │ • Set New PW │              │ Database │                        │
+│  └──────────────┘              │          │                        │
+│                                │ • Users  │                        │
+│  ┌──────────────┐              │ • Tokens │                        │
+│  │ Confirm Page │              │ • Audit  │                        │
+│  │              │              └──────────┘                        │
+│  │ • Auto-Check │                                                  │
+│  │ • Redirect   │                                                  │
+│  └──────────────┘                                                  │
+│                                                                     │
+│  ┌──────────────┐                                                  │
+│  │ Dashboard    │                                                  │
+│  │              │                                                  │
+│  │ Profile Dialog:                                                 │
+│  │ • Profile Tab                                                   │
+│  │ • Security Tab                                                  │
+│  │ • Email Tab                                                     │
+│  └──────────────┘                                                  │
+└─────────────────────────────────────────────────────────────────────┘
 ```
-
-## Share Flow (Before Fix ❌)
-
-```
-User clicks "Share"
-         ↓
-Copies: https://domain.com/dashboard/reports/abc123
-         ↓
-Recipient clicks link
-         ↓
-❌ Redirected to login page
-         ↓
-❌ Must create account
-         ↓
-❌ Gets access to ENTIRE dashboard
-         ↓
-🔴 SECURITY ISSUE
-```
-
-## Share Flow (After Fix ✅)
-
-```
-User clicks "Share"
-         ↓
-Generates public URL: https://domain.com/report/abc123
-         ↓
-Copies to clipboard
-         ↓
-Toast: "Link copied! Anyone with this link can view..."
-         ↓
-Recipient clicks link
-         ↓
-✅ Opens directly (no login)
-         ↓
-✅ Sees ONLY this report
-         ↓
-✅ No dashboard access
-         ↓
-✅ Cannot modify anything
-         ↓
-✅ Professional, branded view
-         ↓
-🟢 SECURE & USER FRIENDLY
-```
-
-## Route Comparison
-
-| Feature | Dashboard Route<br/>`/dashboard/reports/[id]` | Public Route<br/>`/report/[id]` |
-|---------|----------------------------------------------|----------------------------------|
-| **Authentication** | ✅ Required | ❌ Not required |
-| **Navigation** | ✅ Full dashboard | ❌ None |
-| **Download PDF** | ✅ Yes | ❌ No |
-| **Share** | ✅ Yes | ❌ No |
-| **Delete** | ✅ Yes | ❌ No |
-| **Edit** | ✅ Yes | ❌ No |
-| **View Report** | ✅ Yes | ✅ Yes (read-only) |
-| **Branding** | Dashboard UI | Public branded page |
-| **Purpose** | Internal users | External sharing |
-
-## Security Model
-
-```
-┌────────────────────────────────────────────────┐
-│         Report ID: "ondemand_abc123xyz"        │
-└────────────────────────────────────────────────┘
-                      │
-        ┌─────────────┴─────────────┐
-        │                           │
-        ▼                           ▼
-┌──────────────┐            ┌──────────────┐
-│  Dashboard   │            │    Public    │
-│    Route     │            │    Route     │
-├──────────────┤            ├──────────────┤
-│ Auth: YES    │            │ Auth: NO     │
-│ Actions: ALL │            │ Actions: NONE│
-└──────────────┘            └──────────────┘
-        │                           │
-        ▼                           ▼
-┌──────────────┐            ┌──────────────┐
-│ Full Access  │            │ Read Only    │
-│ • Download   │            │ • View       │
-│ • Share      │            │ • That's it  │
-│ • Delete     │            │              │
-│ • Edit       │            │              │
-│ • Create     │            │              │
-└──────────────┘            └──────────────┘
-```
-
-## API Layer (Unchanged)
-
-```
-Both routes use the same API endpoint:
-
-GET /api/reports/[id]
-         │
-         ▼
-┌────────────────────┐
-│  Supabase Query    │
-│  reports table     │
-└────────────────────┘
-         │
-         ▼
-┌────────────────────┐
-│  Return Report     │
-│  Data (JSON)       │
-└────────────────────┘
-         │
-    ┌────┴────┐
-    ▼         ▼
-Dashboard   Public
- Route      Route
-```
-
-## File Structure
-
-```
-app/
-├── dashboard/                    (Authenticated area)
-│   └── reports/
-│       └── [id]/
-│           └── page.tsx         ✏️ UPDATED
-│                                 • Fixed PDF download
-│                                 • Updated share to use public URL
-│
-└── report/                       🆕 NEW (Public area)
-    └── [id]/
-        └── page.tsx             🆕 NEW
-                                  • No auth required
-                                  • Read-only view
-                                  • Branded public page
-
-package.json                      ✏️ UPDATED
-                                  • jsPDF: 4.0.0 → 2.5.2
-```
-
-## Component Comparison
-
-### Dashboard Report Page
-```typescript
-✅ Uses: ProtectedRoute / Auth Context
-✅ Imports: All dashboard components
-✅ Features: 
-   - Back button to dashboard
-   - Download PDF button
-   - Share button  
-   - Delete functionality
-   - Edit capabilities
-```
-
-### Public Report Page
-```typescript
-❌ No auth required
-❌ No dashboard imports
-✅ Features:
-   - Quantiva branding
-   - Report content only
-   - Professional footer
-   - Clean, simple layout
-   - Mobile responsive
-```
-
-## User Personas
-
-### Internal User (Dashboard)
-```
-👤 Walter White Jnr (Admin)
-├─ Has account
-├─ Logs in
-├─ Full dashboard access
-├─ Can download PDFs
-├─ Can share reports
-└─ Can manage all reports
-```
-
-### External User (Public Link)
-```
-👤 Client / Partner (Guest)
-├─ No account needed
-├─ Receives shared link
-├─ Views specific report only
-├─ Cannot download
-├─ Cannot see other reports
-└─ Cannot access dashboard
-```
-
-## Benefits Summary
-
-### Before Fix
-- ❌ PDF downloads failed
-- ❌ Share required recipient login
-- ❌ Shared links exposed full dashboard
-- ❌ Security risk
-- ❌ Poor user experience
-
-### After Fix
-- ✅ PDF downloads work perfectly
-- ✅ Share creates public links
-- ✅ Public viewers see only shared report
-- ✅ Secure by design
-- ✅ Professional experience
 
 ---
 
-**Architecture Status**: ✅ Secure, Scalable, User-Friendly
+## 🔄 Complete User Journey Map
 
+### Journey 1: New User Registration
+```
+START
+  ↓
+[Signup Page]
+  ↓ (submits form)
+[Supabase Auth]
+  ↓ (creates account)
+[Email Service] → ✉️ Confirmation Email
+  ↓ (user clicks link)
+[/auth/confirm-email]
+  ↓ (validates token)
+[Dashboard] ✅
+  END
+```
+
+### Journey 2: Forgot Password
+```
+START (user on login)
+  ↓
+[Clicks "Forgot Password?"]
+  ↓
+[Dialog Opens]
+  ↓ (enters email)
+[Supabase Auth]
+  ↓
+[Email Service] → ✉️ Reset Link
+  ↓ (user clicks link)
+[/auth/reset-password]
+  ↓ (enters new password)
+[Supabase Auth] → Updates password
+  ↓
+[/login] → "Password reset successful"
+  ↓ (user signs in)
+[Dashboard] ✅
+  END
+```
+
+### Journey 3: Change Password (Logged In)
+```
+START (user in dashboard)
+  ↓
+[Clicks Avatar]
+  ↓
+[Selects "My Profile"]
+  ↓
+[Switches to "Security" tab]
+  ↓ (enters new password)
+[Supabase Auth] → Updates password
+  ├─→ Success Toast ✅
+  └─→ [Email Service] → 🔔 Security Alert Email
+  END (stays on page)
+```
+
+### Journey 4: Change Email
+```
+START (user in dashboard)
+  ↓
+[Clicks Avatar]
+  ↓
+[Selects "My Profile"]
+  ↓
+[Switches to "Email" tab]
+  ↓ (enters new email)
+[Supabase Auth]
+  ↓
+[Email Service] → ✉️ Confirmation to OLD email
+                → ✉️ Confirmation to NEW email
+  ↓ (user clicks link in NEW email)
+[/auth/confirm-email]
+  ↓ (validates token)
+[Supabase Auth] → Updates email
+  ├─→ [Dashboard] ✅
+  └─→ [Email Service] → 🔔 Security Alert to BOTH
+  END
+```
+
+---
+
+## 📦 Component Structure
+
+```
+app/
+├── auth/
+│   ├── reset-password/
+│   │   └── page.tsx          [Password Reset Page]
+│   │       ├── Session validation
+│   │       ├── Password strength checker
+│   │       ├── Visual feedback (✓)
+│   │       └── Suspense boundary
+│   │
+│   └── confirm-email/
+│       └── page.tsx          [Email Confirmation Page]
+│           ├── Auto-validation
+│           ├── Success/error states
+│           └── Suspense boundary
+│
+├── login/
+│   └── page.tsx              [Login Page]
+│       ├── Sign in form
+│       ├── Forgot password dialog
+│       └── Email validation
+│
+└── dashboard/
+    └── layout.tsx            [Dashboard Layout]
+        └── Profile Dialog (3 tabs)
+            ├── Profile Tab   [Edit name/company]
+            ├── Security Tab  [Change password]
+            └── Email Tab     [Change email]
+```
+
+---
+
+## 🔐 Security Flow
+
+```
+User Action
+    ↓
+┌─────────────────────────┐
+│ Frontend Validation     │
+│ • Email format          │
+│ • Password strength     │
+│ • Required fields       │
+└─────────────────────────┘
+    ↓
+┌─────────────────────────┐
+│ Supabase Auth Service   │
+│ • Rate limiting         │
+│ • Token generation      │
+│ • Session management    │
+└─────────────────────────┘
+    ↓
+┌─────────────────────────┐
+│ Database Operations     │
+│ • Create/update user    │
+│ • Store hashed password │
+│ • Log audit trail       │
+└─────────────────────────┘
+    ↓
+┌─────────────────────────┐
+│ Email Service           │
+│ • Send confirmation     │
+│ • Track delivery        │
+│ • Handle bounces        │
+└─────────────────────────┘
+    ↓
+User receives email
+    ↓
+Clicks link
+    ↓
+┌─────────────────────────┐
+│ Token Validation        │
+│ • Check expiry          │
+│ • Verify signature      │
+│ • One-time use check    │
+└─────────────────────────┘
+    ↓
+Action Completed ✅
+    ↓
+┌─────────────────────────┐
+│ Security Notifications  │
+│ • Alert user of change  │
+│ • Log security event    │
+└─────────────────────────┘
+```
+
+---
+
+## 📧 Email Flow Architecture
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                    EMAIL SYSTEM FLOW                     │
+└──────────────────────────────────────────────────────────┘
+
+User Action
+    ↓
+┌─────────────────┐
+│ Supabase Auth   │
+│ Triggers Email  │
+└─────────────────┘
+    ↓
+┌─────────────────────────────────┐
+│ Email Template Selection        │
+│                                 │
+│ Types:                          │
+│ 1. Confirm Signup               │
+│ 2. Reset Password               │
+│ 3. Change Email (Confirmation)  │
+│ 4. Password Changed (Alert) 🔔  │
+│ 5. Email Changed (Alert) 🔔     │
+└─────────────────────────────────┘
+    ↓
+┌─────────────────────────────────┐
+│ Variable Substitution           │
+│                                 │
+│ {{ .Email }}                    │
+│ {{ .ConfirmationURL }}          │
+│ {{ .SiteURL }}                  │
+│ {{ .Token }}                    │
+│ {{ .NewEmail }}                 │
+└─────────────────────────────────┘
+    ↓
+┌─────────────────────────────────┐
+│ Email Delivery                  │
+│                                 │
+│ Supabase SMTP → User's Inbox   │
+│                                 │
+│ (Or custom SMTP like SendGrid)  │
+└─────────────────────────────────┘
+    ↓
+┌─────────────────────────────────┐
+│ User Action                     │
+│                                 │
+│ • Opens email                   │
+│ • Clicks link                   │
+│ • Lands on Quantiva page        │
+└─────────────────────────────────┘
+```
+
+---
+
+## 🎯 State Management Flow
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   APPLICATION STATE                     │
+└─────────────────────────────────────────────────────────┘
+
+┌──────────────────┐
+│ Initial Load     │
+│ • Check session  │
+│ • Get user data  │
+└──────────────────┘
+        ↓
+┌──────────────────┐       ┌──────────────────┐
+│ Authenticated    │       │ Not Authenticated│
+│ • Load profile   │       │ • Show login     │
+│ • Enable actions │       │ • Public pages   │
+└──────────────────┘       └──────────────────┘
+        ↓                           ↓
+┌──────────────────┐       ┌──────────────────┐
+│ User Actions     │       │ Auth Actions     │
+│ • Update profile │       │ • Sign up        │
+│ • Change password│       │ • Sign in        │
+│ • Change email   │       │ • Reset password │
+└──────────────────┘       └──────────────────┘
+        ↓                           ↓
+┌──────────────────┐       ┌──────────────────┐
+│ State Updates    │       │ Create Session   │
+│ • Local state    │       │ • Store token    │
+│ • Context update │       │ • Redirect       │
+│ • UI refresh     │       └──────────────────┘
+└──────────────────┘                ↓
+        ↓                    ┌──────────────────┐
+┌──────────────────┐        │ Authenticated    │
+│ Success Feedback │        │ State            │
+│ • Toast          │◄───────┘                  │
+│ • Email alert    │                            │
+└──────────────────┘                            
+```
+
+---
+
+## 🔄 Session & Token Lifecycle
+
+```
+┌─────────────────────────────────────────────────────────┐
+│              TOKEN & SESSION LIFECYCLE                  │
+└─────────────────────────────────────────────────────────┘
+
+ACTION TRIGGERED
+    ↓
+┌──────────────────┐
+│ Token Created    │
+│ • Unique ID      │
+│ • Timestamp      │
+│ • User ID        │
+│ • Type (reset/   │
+│   confirm/etc)   │
+│ • Expiry time    │
+└──────────────────┘
+    ↓
+┌──────────────────┐
+│ Token Sent       │
+│ • Via email      │
+│ • In URL         │
+│ • Encrypted      │
+└──────────────────┘
+    ↓
+┌──────────────────────────────┐
+│ Time Window                  │
+│                              │
+│ Reset PW: 1 hour             │
+│ Confirm Email: 24 hours      │
+│                              │
+│ ⏰ Countdown starts...       │
+└──────────────────────────────┘
+    ↓
+┌──────────────────┐
+│ User Clicks Link │
+└──────────────────┘
+    ↓
+┌──────────────────────────────┐
+│ Validation Checks            │
+│                              │
+│ ✓ Token exists?              │
+│ ✓ Not expired?               │
+│ ✓ Not used before?           │
+│ ✓ Valid signature?           │
+│ ✓ Correct user?              │
+└──────────────────────────────┘
+    ↓
+┌──────────────────┐     ┌──────────────────┐
+│ VALID ✅         │     │ INVALID ❌       │
+│ • Create session │     │ • Show error     │
+│ • Mark token used│     │ • Offer retry    │
+│ • Perform action │     │ • Redirect       │
+└──────────────────┘     └──────────────────┘
+    ↓                           ↓
+┌──────────────────┐     ┌──────────────────┐
+│ Session Active   │     │ Request New Token│
+│ • Access granted │     └──────────────────┘
+│ • Token expired  │
+└──────────────────┘
+```
+
+---
+
+## 🛡️ Security Layers
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   SECURITY ARCHITECTURE                 │
+└─────────────────────────────────────────────────────────┘
+
+Layer 1: Frontend Validation
+├─ Email format validation
+├─ Password strength checking
+├─ Required field validation
+└─ Real-time feedback
+
+Layer 2: Transport Security
+├─ HTTPS only
+├─ Secure cookies
+├─ CORS protection
+└─ CSRF tokens
+
+Layer 3: Supabase Auth
+├─ Rate limiting (prevents brute force)
+├─ Token-based authentication
+├─ Session management
+├─ Password hashing (bcrypt)
+└─ Row Level Security (RLS)
+
+Layer 4: Database
+├─ Encrypted at rest
+├─ Audit logging
+├─ Row-level policies
+└─ Secure backups
+
+Layer 5: Email Security
+├─ Token expiry
+├─ One-time use links
+├─ Signed URLs
+└─ SPF/DKIM verification
+
+Layer 6: Monitoring
+├─ Failed login attempts
+├─ Suspicious activity detection
+├─ Alert system
+└─ Audit trail
+```
+
+---
+
+## 📊 Data Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                      DATA FLOW                          │
+└─────────────────────────────────────────────────────────┘
+
+User Input
+    ↓
+┌──────────────────┐
+│ React Component  │ ◄──── State Management
+│ (Form/Dialog)    │       (useState, Context)
+└──────────────────┘
+    ↓
+┌──────────────────┐
+│ Client Validation│ ◄──── Validation Rules
+└──────────────────┘
+    ↓
+┌──────────────────┐
+│ Supabase Client  │ ◄──── SDK Methods
+│ (Browser)        │       (auth.signIn, etc)
+└──────────────────┘
+    ↓
+┌──────────────────┐
+│ API Request      │ ◄──── HTTPS
+│ (Authenticated)  │       (JWT Token)
+└──────────────────┘
+    ↓
+┌──────────────────┐
+│ Supabase Server  │ ◄──── Auth Service
+│ (Backend)        │       Rate Limiting
+└──────────────────┘
+    ↓
+┌──────────────────┐
+│ Database Write   │ ◄──── RLS Policies
+│ (PostgreSQL)     │       Triggers
+└──────────────────┘
+    ↓
+┌──────────────────┐
+│ Email Trigger    │ ◄──── Template Engine
+│ (If applicable)  │       Variable Substitution
+└──────────────────┘
+    ↓
+┌──────────────────┐
+│ Response         │ ◄──── Success/Error
+│ (JSON)           │       Status Codes
+└──────────────────┘
+    ↓
+┌──────────────────┐
+│ UI Update        │ ◄──── Toast Notification
+│ (React)          │       State Refresh
+└──────────────────┘
+```
+
+---
+
+## 🎨 UI Component Hierarchy
+
+```
+DashboardLayout (app/dashboard/layout.tsx)
+│
+├── Sidebar (Desktop)
+│   ├── Logo
+│   ├── Navigation Links
+│   └── User Profile Button
+│       └── → Opens Profile Dialog
+│
+├── Mobile Menu (Sheet)
+│   ├── Logo
+│   ├── Navigation Links
+│   └── User Profile Button
+│       └── → Opens Profile Dialog
+│
+├── Top Bar
+│   ├── Hamburger Menu (Mobile)
+│   ├── Page Title
+│   └── User Dropdown
+│       ├── Profile Info Display
+│       ├── "My Profile" MenuItem → Opens Dialog
+│       └── "Logout" MenuItem
+│
+├── Profile Dialog (Modal)
+│   │
+│   ├── Tab Bar
+│   │   ├── Profile Tab
+│   │   ├── Security Tab
+│   │   └── Email Tab
+│   │
+│   ├── Profile Tab Content
+│   │   ├── Avatar Display
+│   │   ├── Email (Read-only)
+│   │   ├── Full Name Input
+│   │   ├── Company Input
+│   │   ├── Account Info Display
+│   │   └── Save Button
+│   │
+│   ├── Security Tab Content
+│   │   ├── Password Requirements Info
+│   │   ├── New Password Input
+│   │   │   └── Show/Hide Toggle
+│   │   ├── Confirm Password Input
+│   │   │   └── Show/Hide Toggle
+│   │   ├── Validation Feedback
+│   │   └── Change Password Button
+│   │
+│   └── Email Tab Content
+│       ├── Process Info Box
+│       ├── Current Email (Read-only)
+│       ├── New Email Input
+│       └── Send Confirmation Button
+│
+└── Page Content (children)
+
+LoginPage (app/login/page.tsx)
+│
+├── Header
+│   ├── Logo
+│   └── Back to Home Link
+│
+├── Login Card
+│   ├── Title & Description
+│   ├── Success Message (if any)
+│   ├── Error Message (if any)
+│   ├── Login Form
+│   │   ├── Email Input
+│   │   ├── Password Input
+│   │   ├── Forgot Password Link → Opens Dialog
+│   │   ├── Remember Me Checkbox
+│   │   └── Sign In Button
+│   └── Sign Up Link
+│
+└── Forgot Password Dialog
+    ├── Title & Description
+    ├── Email Input
+    ├── Expiry Info Box
+    └── Action Buttons
+        ├── Cancel
+        └── Send Reset Link
+
+ResetPasswordPage (app/auth/reset-password/page.tsx)
+│
+├── Header
+│   ├── Logo
+│   └── Back to Login Link
+│
+└── Reset Card
+    ├── Title & Description
+    ├── Session Validation Spinner (if validating)
+    ├── Reset Form
+    │   ├── New Password Input
+    │   │   └── Show/Hide Toggle
+    │   ├── Confirm Password Input
+    │   │   └── Show/Hide Toggle
+    │   ├── Requirements Box
+    │   │   ├── Length Check (✓/✗)
+    │   │   ├── Uppercase Check (✓/✗)
+    │   │   ├── Lowercase Check (✓/✗)
+    │   │   ├── Number Check (✓/✗)
+    │   │   └── Match Check (✓/✗)
+    │   └── Reset Button
+    └── Sign In Link
+
+ConfirmEmailPage (app/auth/confirm-email/page.tsx)
+│
+├── Header
+│   └── Logo
+│
+└── Confirmation Card
+    ├── Title & Description
+    └── Status Display
+        ├── Loading State
+        │   ├── Spinner
+        │   └── "Validating..." message
+        ├── Success State
+        │   ├── Success Icon (✓)
+        │   ├── Success Message
+        │   └── Go to Dashboard Button
+        └── Error State
+            ├── Error Icon (✗)
+            ├── Error Message
+            └── Action Buttons
+                ├── Back to Login
+                └── Sign Up Again
+```
+
+---
+
+**System Architecture Version**: 1.0.0  
+**Last Updated**: January 25, 2026  
+**Status**: Production Ready ✅
