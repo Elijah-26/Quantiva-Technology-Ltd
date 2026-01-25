@@ -77,14 +77,20 @@ function LoginForm() {
 
   const handleForgotPassword = async () => {
     if (!resetEmail) {
-      toast.error('Please enter your email address')
+      toast.error('Email Address Required', {
+        description: 'Please enter your email address to receive the reset link.',
+        duration: 4000,
+      })
       return
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(resetEmail)) {
-      toast.error('Please enter a valid email address')
+      toast.error('Invalid Email Format', {
+        description: 'Please enter a valid email address (e.g., user@example.com).',
+        duration: 4000,
+      })
       return
     }
 
@@ -97,15 +103,19 @@ function LoginForm() {
 
       if (error) throw error
 
-      toast.success('Password reset email sent!', {
-        description: 'Check your inbox for the reset link.'
+      toast.success('Reset Link Sent Successfully', {
+        description: 'Check your inbox for the password reset link. It expires in 1 hour.',
+        duration: 6000,
       })
       
       setIsForgotPasswordOpen(false)
       setResetEmail('')
     } catch (error: any) {
       console.error('Password reset error:', error)
-      toast.error(error.message || 'Failed to send reset email')
+      toast.error('Failed to Send Reset Link', {
+        description: error.message || 'Unable to send the password reset email. Please try again.',
+        duration: 5000,
+      })
     } finally {
       setResetLoading(false)
     }

@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { toast } from 'sonner'
 
 function ConfirmEmailContent() {
   const router = useRouter()
@@ -23,26 +24,42 @@ function ConfirmEmailContent() {
         if (sessionError) {
           console.error('Session error:', sessionError)
           setStatus('error')
-          setMessage('Failed to confirm email. Please try again.')
+          setMessage('Unable to confirm your email. Please try again or request a new link.')
           return
         }
 
         if (session) {
           setStatus('success')
-          setMessage('Email confirmed successfully!')
+          setMessage('Your email has been confirmed successfully!')
           
-          // Redirect to dashboard after 2 seconds
+          // Show success toast
+          toast.success('Email Verified Successfully', {
+            description: 'Welcome! Redirecting you to your dashboard...',
+            duration: 4000,
+          })
+          
+          // Redirect to dashboard immediately
           setTimeout(() => {
             router.push('/dashboard')
-          }, 2000)
+          }, 1500)
         } else {
           setStatus('error')
-          setMessage('Invalid or expired confirmation link.')
+          setMessage('This confirmation link is invalid or has expired.')
+          
+          toast.error('Confirmation Link Invalid', {
+            description: 'This link may have expired or been used already.',
+            duration: 5000,
+          })
         }
       } catch (error: any) {
         console.error('Email confirmation error:', error)
         setStatus('error')
-        setMessage(error.message || 'An unexpected error occurred.')
+        setMessage(error.message || 'An unexpected error occurred during confirmation.')
+        
+        toast.error('Confirmation Failed', {
+          description: 'Unable to verify your email. Please try again.',
+          duration: 5000,
+        })
       }
     }
 

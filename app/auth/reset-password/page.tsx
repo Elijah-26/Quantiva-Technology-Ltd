@@ -38,12 +38,13 @@ function ResetPasswordForm() {
         const { data: { session } } = await supabase.auth.getSession()
         
         if (!session) {
-          toast.error('Invalid or expired reset link', {
-            description: 'Please request a new password reset link.'
+          toast.error('Reset Link Invalid or Expired', {
+            description: 'This link has expired or been used. Request a new password reset.',
+            duration: 6000,
           })
           setTimeout(() => {
             router.push('/login')
-          }, 2000)
+          }, 3000)
           setValidating(false)
           return
         }
@@ -52,7 +53,10 @@ function ResetPasswordForm() {
         setValidating(false)
       } catch (error) {
         console.error('Session check error:', error)
-        toast.error('Failed to validate reset link')
+        toast.error('Validation Failed', {
+          description: 'Unable to validate your reset link. Please try again.',
+          duration: 5000,
+        })
         router.push('/login')
       }
     }
@@ -75,17 +79,26 @@ function ResetPasswordForm() {
     e.preventDefault()
 
     if (password !== confirmPassword) {
-      toast.error('Passwords do not match')
+      toast.error('Passwords Don\'t Match', {
+        description: 'Please ensure both password fields are identical.',
+        duration: 4000,
+      })
       return
     }
 
     if (password.length < 8) {
-      toast.error('Password must be at least 8 characters')
+      toast.error('Password Too Short', {
+        description: 'Your password must be at least 8 characters long.',
+        duration: 4000,
+      })
       return
     }
 
     if (!passwordValidation.hasUpperCase || !passwordValidation.hasLowerCase || !passwordValidation.hasNumber) {
-      toast.error('Password must meet all requirements')
+      toast.error('Password Requirements Not Met', {
+        description: 'Please ensure your password meets all the requirements listed below.',
+        duration: 5000,
+      })
       return
     }
 
@@ -98,20 +111,24 @@ function ResetPasswordForm() {
 
       if (error) throw error
 
-      toast.success('Password updated successfully!', {
-        description: 'You can now sign in with your new password.'
+      toast.success('Password Reset Successfully', {
+        description: 'Your password has been updated. Redirecting to sign in...',
+        duration: 5000,
       })
       
       // Sign out to ensure fresh session
       await supabase.auth.signOut()
       
       setTimeout(() => {
-        router.push('/login?message=Password reset successful. Please sign in.')
-      }, 1500)
+        router.push('/login?message=Password reset successful. Please sign in with your new password.')
+      }, 2000)
 
     } catch (error: any) {
       console.error('Password reset error:', error)
-      toast.error(error.message || 'Failed to reset password')
+      toast.error('Password Reset Failed', {
+        description: error.message || 'Unable to reset your password. Please try again.',
+        duration: 5000,
+      })
     } finally {
       setLoading(false)
     }

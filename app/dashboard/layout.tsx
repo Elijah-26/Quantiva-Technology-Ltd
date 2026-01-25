@@ -216,17 +216,24 @@ export default function DashboardLayout({
       const { error } = await updateProfile(profileForm)
       
       if (error) {
-        toast.error('Failed to update profile', {
-          description: error.message
+        toast.error('Profile Update Failed', {
+          description: error.message || 'Unable to save your changes. Please try again.',
+          duration: 5000,
         })
       } else {
-        toast.success('Profile updated successfully')
+        toast.success('Profile Updated Successfully', {
+          description: 'Your profile information has been saved.',
+          duration: 4000,
+        })
         // Reload profile
         const { data } = await getCurrentUserProfile()
         if (data) setUserProfile(data)
       }
     } catch (err) {
-      toast.error('An error occurred while updating profile')
+      toast.error('Update Error', {
+        description: 'An unexpected error occurred while updating your profile.',
+        duration: 5000,
+      })
     } finally {
       setProfileLoading(false)
     }
@@ -235,17 +242,26 @@ export default function DashboardLayout({
   // Handle password change
   const handleChangePassword = async () => {
     if (!passwordForm.newPassword || !passwordForm.confirmPassword) {
-      toast.error('Please fill in all password fields')
+      toast.error('Password Required', {
+        description: 'Please fill in all password fields to continue.',
+        duration: 4000,
+      })
       return
     }
 
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast.error('New passwords do not match')
+      toast.error('Passwords Don\'t Match', {
+        description: 'Please ensure both password fields are identical.',
+        duration: 4000,
+      })
       return
     }
 
     if (passwordForm.newPassword.length < 8) {
-      toast.error('Password must be at least 8 characters')
+      toast.error('Password Too Short', {
+        description: 'Your password must be at least 8 characters long.',
+        duration: 4000,
+      })
       return
     }
 
@@ -258,9 +274,13 @@ export default function DashboardLayout({
 
       if (error) throw error
 
-      toast.success('Password changed successfully', {
-        description: 'Your password has been updated.'
+      toast.success('Password Updated Successfully', {
+        description: 'For security, you\'ll be signed out. Please sign in with your new password.',
+        duration: 5000,
       })
+      
+      // Close dialog
+      setIsProfileDialogOpen(false)
       
       // Reset form
       setPasswordForm({
@@ -269,11 +289,17 @@ export default function DashboardLayout({
         confirmPassword: '',
       })
       
-      // Switch back to profile tab
-      setActiveProfileTab('profile')
+      // Sign out user immediately for security
+      setTimeout(async () => {
+        await signOut()
+      }, 1500)
+      
     } catch (error: any) {
       console.error('Password change error:', error)
-      toast.error(error.message || 'Failed to change password')
+      toast.error('Password Update Failed', {
+        description: error.message || 'Unable to update your password. Please try again.',
+        duration: 5000,
+      })
     } finally {
       setProfileLoading(false)
     }
@@ -282,19 +308,28 @@ export default function DashboardLayout({
   // Handle email change
   const handleChangeEmail = async () => {
     if (!newEmail) {
-      toast.error('Please enter a new email address')
+      toast.error('Email Address Required', {
+        description: 'Please enter your new email address to continue.',
+        duration: 4000,
+      })
       return
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(newEmail)) {
-      toast.error('Please enter a valid email address')
+      toast.error('Invalid Email Format', {
+        description: 'Please enter a valid email address (e.g., user@example.com).',
+        duration: 4000,
+      })
       return
     }
 
     if (newEmail === user?.email) {
-      toast.error('This is your current email address')
+      toast.error('Same Email Address', {
+        description: 'This is already your current email address.',
+        duration: 4000,
+      })
       return
     }
 
@@ -309,15 +344,19 @@ export default function DashboardLayout({
 
       if (error) throw error
 
-      toast.success('Confirmation email sent!', {
-        description: 'Please check both email addresses to confirm the change.'
+      toast.success('Verification Emails Sent', {
+        description: 'Check your inbox at both email addresses to confirm this change.',
+        duration: 6000,
       })
       
       setNewEmail('')
-      setActiveProfileTab('profile')
+      setIsProfileDialogOpen(false)
     } catch (error: any) {
       console.error('Email change error:', error)
-      toast.error(error.message || 'Failed to change email')
+      toast.error('Email Update Failed', {
+        description: error.message || 'Unable to update your email address. Please try again.',
+        duration: 5000,
+      })
     } finally {
       setEmailChangeLoading(false)
     }
