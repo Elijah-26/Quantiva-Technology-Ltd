@@ -26,6 +26,24 @@ export default function ModernLandingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 text-white overflow-hidden">
+      {/* Floating Back to Top Button */}
+      {scrollY > 500 && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-8 right-8 z-50 p-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-2xl shadow-blue-500/50 hover:from-blue-500 hover:to-purple-500 transition-all transform hover:scale-110 animate-bounce"
+          aria-label="Back to top"
+        >
+          <svg 
+            className="w-6 h-6" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+          </svg>
+        </button>
+      )}
+
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div 
@@ -318,20 +336,96 @@ export default function ModernLandingPage() {
       {/* Footer */}
       <footer className="relative border-t border-white/10 bg-black/20 backdrop-blur-xl py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <img 
-                src="/quantiva.png" 
-                alt="Quantiva" 
-                className="w-8 h-8 object-contain"
-              />
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                Quantiva
-              </span>
+          <div className="max-w-6xl mx-auto">
+            {/* Footer Content */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+              {/* Brand Section */}
+              <div className="text-center md:text-left">
+                <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
+                  <img 
+                    src="/quantiva.png" 
+                    alt="Quantiva" 
+                    className="w-8 h-8 object-contain"
+                  />
+                  <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                    Quantiva
+                  </span>
+                </div>
+                <p className="text-gray-400 text-sm">
+                  AI-Powered Market Intelligence & Research
+                </p>
+              </div>
+
+              {/* Quick Links */}
+              <div className="text-center">
+                <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
+                <ul className="space-y-2 text-sm">
+                  <li>
+                    <a href="#home" className="text-gray-400 hover:text-white transition-colors">
+                      Home
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#features" className="text-gray-400 hover:text-white transition-colors">
+                      Features
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#how-it-works" className="text-gray-400 hover:text-white transition-colors">
+                      How It Works
+                    </a>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Legal Links */}
+              <div className="text-center md:text-right">
+                <h4 className="text-lg font-semibold mb-4">Legal</h4>
+                <ul className="space-y-2 text-sm">
+                  <li>
+                    <button
+                      onClick={() => router.push('/terms')}
+                      className="text-gray-400 hover:text-white transition-colors"
+                    >
+                      Terms of Service
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={() => router.push('/privacy')}
+                      className="text-gray-400 hover:text-white transition-colors"
+                    >
+                      Privacy Policy
+                    </button>
+                  </li>
+                </ul>
+              </div>
             </div>
-            <p className="text-gray-400">
-              © 2026 Quantiva. All rights reserved.
-            </p>
+
+            {/* Bottom Bar */}
+            <div className="border-t border-white/10 pt-8">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                <p className="text-gray-400 text-sm">
+                  © 2026 Quantiva. All rights reserved.
+                </p>
+                
+                {/* Back to Top Button */}
+                <button
+                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                  className="group flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
+                >
+                  <span>Back to Top</span>
+                  <svg 
+                    className="w-4 h-4 transform group-hover:-translate-y-1 transition-transform" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </footer>
