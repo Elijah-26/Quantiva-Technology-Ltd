@@ -243,10 +243,18 @@ export default function NewResearchPage() {
         if (webhookResponseData) {
           console.log('💾 Saving report to database...')
           
-          // Extract webReport and emailReport from webhook response
+          // Extract webReport, emailReport, and subject from webhook response
           const reportData = Array.isArray(webhookResponseData) ? webhookResponseData[0] : webhookResponseData
-          const webReport = reportData.webReport || ''
-          const emailReport = reportData.emailReport || webReport
+          // Support both camelCase and snake_case naming
+          const webReport = reportData.webReport || reportData.web_report || ''
+          const emailReport = reportData.emailReport || reportData.email_report || webReport
+          const reportSubject = reportData.subject || ''
+          
+          console.log('📊 Extracted from webhook:', {
+            hasWebReport: !!webReport,
+            hasEmailReport: !!emailReport,
+            subject: reportSubject
+          })
           
           // Validate that we have report content
           if (!webReport || webReport.trim() === '') {
@@ -271,7 +279,7 @@ export default function NewResearchPage() {
                 
                 // Report data
                 industry: onDemandForm.marketCategory,
-                sub_niche: onDemandForm.subNiche,
+                sub_niche: reportSubject || onDemandForm.subNiche, // Use subject as sub_niche if available
                 geography: onDemandForm.geography || 'Global',
                 email: onDemandForm.email,
                 final_report: webReport,
@@ -480,8 +488,16 @@ export default function NewResearchPage() {
           
           try {
             const reportData = Array.isArray(webhookResponseData) ? webhookResponseData[0] : webhookResponseData
-            const webReport = reportData.webReport || ''
-            const emailReport = reportData.emailReport || webReport
+            // Support both camelCase and snake_case naming
+            const webReport = reportData.webReport || reportData.web_report || ''
+            const emailReport = reportData.emailReport || reportData.email_report || webReport
+            const reportSubject = reportData.subject || ''
+            
+            console.log('📊 Recurring report extracted:', {
+              hasWebReport: !!webReport,
+              hasEmailReport: !!emailReport,
+              subject: reportSubject
+            })
             
             if (webReport && webReport.trim() !== '') {
               const saveResponse = await fetch('/api/reports/on-demand', {
@@ -492,7 +508,7 @@ export default function NewResearchPage() {
                 body: JSON.stringify({
                   user_id: user.id,
                   industry: recurringForm.marketCategory,
-                  sub_niche: recurringForm.subNiche,
+                  sub_niche: reportSubject || recurringForm.subNiche, // Use subject as sub_niche if available
                   geography: recurringForm.geography || 'Global',
                   email: recurringForm.email,
                   final_report: webReport,
