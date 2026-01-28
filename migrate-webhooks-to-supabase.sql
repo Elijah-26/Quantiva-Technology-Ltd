@@ -46,14 +46,14 @@ INSERT INTO public.webhooks (name, url, type, description, active)
 VALUES 
   (
     'On-Demand Research Handler',
-    'https://northsnow.app.n8n.cloud/webhook/on_demand',
+    'https://elijahakinola26.app.n8n.cloud/webhook/on_demand',
     'on-demand',
     'Handles immediate market research requests',
     true
   ),
   (
     'Recurring Research Handler',
-    'https://northsnow.app.n8n.cloud/webhook/recurring',
+    'https://elijahakinola26.app.n8n.cloud/webhook/recurring',
     'recurring',
     'Handles scheduled recurring research requests',
     true

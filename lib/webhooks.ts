@@ -18,7 +18,7 @@ const PRODUCTION_WEBHOOKS: WebhookConfig[] = [
   {
     id: '1',
     name: 'On-Demand Research Handler',
-    url: 'https://northsnow.app.n8n.cloud/webhook/on_demand',
+    url: 'https://elijahakinola26.app.n8n.cloud/webhook/on_demand',
     type: 'on-demand',
     description: 'Handles immediate market research requests',
     active: true,
@@ -27,7 +27,7 @@ const PRODUCTION_WEBHOOKS: WebhookConfig[] = [
   {
     id: '2',
     name: 'Recurring Research Handler',
-    url: 'https://northsnow.app.n8n.cloud/webhook/recurring',
+    url: 'https://elijahakinola26.app.n8n.cloud/webhook/recurring',
     type: 'recurring',
     description: 'Handles scheduled recurring research requests',
     active: true,
