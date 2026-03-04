@@ -32,24 +32,33 @@ function ResetPasswordForm() {
   })
 
   // Check if we have a valid session from the reset link
+  // Supabase redirects with hash params (#access_token=...&type=recovery) - the client needs time to process them
   useEffect(() => {
-    const checkSession = async () => {
+    const hasRecoveryHash = typeof window !== 'undefined' && 
+      (window.location.hash.includes('type=recovery') || window.location.hash.includes('access_token'))
+    
+    const checkSession = async (retryCount = 0) => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         
-        if (!session) {
-          toast.error('Reset Link Invalid or Expired', {
-            description: 'This link has expired or been used. Request a new password reset.',
-            duration: 6000,
-          })
-          setTimeout(() => {
-            router.push('/login')
-          }, 3000)
+        if (session) {
+          setHasValidSession(true)
           setValidating(false)
           return
         }
-
-        setHasValidSession(true)
+        
+        // If we have recovery hash in URL, Supabase may still be processing - wait and retry
+        if (hasRecoveryHash && retryCount < 5) {
+          await new Promise(resolve => setTimeout(resolve, 800))
+          return checkSession(retryCount + 1)
+        }
+        
+        // No session after retries or no recovery hash
+        toast.error('Reset Link Invalid or Expired', {
+          description: 'This link has expired or been used. Request a new password reset.',
+          duration: 6000,
+        })
+        setTimeout(() => router.push('/login'), 3000)
         setValidating(false)
       } catch (error) {
         console.error('Session check error:', error)
@@ -61,7 +70,17 @@ function ResetPasswordForm() {
       }
     }
 
+    // Also listen for auth state changes (Supabase fires when hash is processed)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' || (session && hasRecoveryHash)) {
+        setHasValidSession(true)
+        setValidating(false)
+      }
+    })
+
     checkSession()
+    
+    return () => subscription.unsubscribe()
   }, [router])
 
   // Validate password as user types
