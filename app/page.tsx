@@ -123,7 +123,7 @@ export default function ModernLandingPage() {
 
               <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
                 <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-pulse">
-                  Kayode Market Research
+                  Automated Market Research
                 </span>
                 <br />
                 <span className="text-white">
