@@ -109,7 +109,7 @@ function ConfirmEmailContent() {
             <CardTitle className="text-2xl text-center">Email Confirmation</CardTitle>
             <CardDescription className="text-center">
               {status === 'loading' && 'Checking your session...'}
-              {status === 'form' && 'Enter the 6-digit code from your email'}
+              {status === 'form' && 'Enter the confirmation code from your email'}
               {status === 'verifying' && 'Verifying your code...'}
               {status === 'success' && 'Your email has been confirmed'}
               {status === 'error' && 'Confirmation failed'}
@@ -144,11 +144,10 @@ function ConfirmEmailContent() {
                     <Input
                       id="token"
                       type="text"
-                      placeholder="Enter 6-digit code"
+                      placeholder="Enter confirmation code"
                       value={token}
-                      onChange={(e) => setToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      maxLength={6}
-                      className="text-center text-2xl font-mono tracking-[0.5em]"
+                      onChange={(e) => setToken(e.target.value.trim())}
+                      className="text-center text-xl font-mono"
                       autoComplete="one-time-code"
                       autoFocus
                     />
@@ -156,7 +155,7 @@ function ConfirmEmailContent() {
                   {message && (
                     <p className="text-sm text-red-600 text-center">{message}</p>
                   )}
-                  <Button type="submit" className="w-full" disabled={token.length !== 6}>
+                  <Button type="submit" className="w-full" disabled={!token.trim()}>
                     Confirm Email
                   </Button>
                 </form>
