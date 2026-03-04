@@ -194,7 +194,7 @@ function ConfirmEmailContent() {
                     <Link href="/login">
                       <Button variant="outline">Back to Login</Button>
                     </Link>
-                    <Link href="/signup">
+                    <Link href="/pricing">
                       <Button>Sign Up Again</Button>
                     </Link>
                   </div>

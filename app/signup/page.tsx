@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -10,12 +10,14 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useAuth } from '@/lib/auth/auth-context'
 
-export default function SignUpPage() {
+function SignUpForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { signUp } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const fromCheckout = searchParams.get('checkout') === 'success'
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -91,9 +93,14 @@ export default function SignUpPage() {
       <main className="flex-1 flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <Card className="w-full max-w-md shadow-lg">
           <CardHeader className="space-y-1 pb-6">
+            {fromCheckout && (
+              <div className="mb-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm text-center">
+                Payment successful! Complete your account below to get started.
+              </div>
+            )}
             <CardTitle className="text-2xl font-bold text-center">Create your account</CardTitle>
             <CardDescription className="text-center text-base">
-              Start your free account and get market insights today
+              {fromCheckout ? 'Set up your Quantiva account' : 'Start your free account and get market insights today'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -181,11 +188,11 @@ export default function SignUpPage() {
                   className="text-sm font-normal leading-relaxed cursor-pointer"
                 >
                   I agree to the{' '}
-                  <Link href="#" className="text-blue-600 hover:text-blue-700 hover:underline">
+                  <Link href="/terms" className="text-blue-600 hover:text-blue-700 hover:underline">
                     Terms of Service
                   </Link>{' '}
                   and{' '}
-                  <Link href="#" className="text-blue-600 hover:text-blue-700 hover:underline">
+                  <Link href="/privacy" className="text-blue-600 hover:text-blue-700 hover:underline">
                     Privacy Policy
                   </Link>
                 </Label>
@@ -220,6 +227,18 @@ export default function SignUpPage() {
         </Card>
       </main>
     </div>
+  )
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" />
+      </div>
+    }>
+      <SignUpForm />
+    </Suspense>
   )
 }
 

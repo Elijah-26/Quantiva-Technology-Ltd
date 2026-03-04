@@ -90,6 +90,12 @@ export default function ModernLandingPage() {
                 <a href="#how-it-works" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
                   How It Works
                 </a>
+                <button
+                  onClick={() => router.push('/pricing')}
+                  className="text-sm font-medium text-gray-300 hover:text-white transition-colors"
+                >
+                  Pricing
+                </button>
               </nav>
             </div>
             <div className="flex items-center gap-3">
@@ -100,7 +106,7 @@ export default function ModernLandingPage() {
                 Login
               </button>
               <button 
-                onClick={() => router.push('/signup')}
+                onClick={() => router.push('/pricing')}
                 className="px-4 py-2 text-sm font-medium bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-500 hover:to-purple-500 transition-all transform hover:scale-105"
               >
                 Sign Up
@@ -138,7 +144,7 @@ export default function ModernLandingPage() {
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
                 <button 
-                  onClick={() => router.push('/signup')}
+                  onClick={() => router.push('/pricing')}
                   className="group relative px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl font-semibold text-lg hover:from-blue-500 hover:to-purple-500 transition-all transform hover:scale-105 shadow-2xl shadow-blue-500/50"
                 >
                   <span className="flex items-center gap-2">
@@ -320,7 +326,7 @@ export default function ModernLandingPage() {
               </p>
 
               <button 
-                onClick={() => router.push('/signup')}
+                onClick={() => router.push('/pricing')}
                 className="group relative px-10 py-5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl font-bold text-xl hover:from-blue-500 hover:to-purple-500 transition-all transform hover:scale-105 shadow-2xl shadow-blue-500/50"
               >
                 <span className="flex items-center gap-2">
@@ -374,6 +380,14 @@ export default function ModernLandingPage() {
                     <a href="#how-it-works" className="text-gray-400 hover:text-white transition-colors">
                       How It Works
                     </a>
+                  </li>
+                  <li>
+                    <button
+                      onClick={() => router.push('/pricing')}
+                      className="text-gray-400 hover:text-white transition-colors"
+                    >
+                      Pricing
+                    </button>
                   </li>
                 </ul>
               </div>

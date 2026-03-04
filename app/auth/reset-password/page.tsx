@@ -153,7 +153,7 @@ function ResetPasswordForm() {
                 <Button className="w-full h-11" size="lg">Back to Login</Button>
               </Link>
               <p className="text-center text-sm text-gray-600">
-                Don&apos;t have an account? <Link href="/signup" className="text-blue-600 hover:underline">Sign up</Link>
+                Don&apos;t have an account? <Link href="/pricing" className="text-blue-600 hover:underline">Sign up</Link>
               </p>
             </CardContent>
           </Card>

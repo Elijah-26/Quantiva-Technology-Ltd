@@ -258,7 +258,7 @@ function LoginForm() {
             <div className="text-center text-sm text-muted-foreground">
               Don't have an account?{' '}
               <Link 
-                href="/signup" 
+                href="/pricing" 
                 className="text-blue-600 hover:text-blue-700 font-medium hover:underline"
               >
                 Sign up
