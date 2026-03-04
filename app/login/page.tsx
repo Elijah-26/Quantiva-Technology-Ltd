@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Loader2, Mail } from 'lucide-react'
+import { Loader2, Mail, CheckCircle2 } from 'lucide-react'
 
 function LoginForm() {
   const router = useRouter()
@@ -33,6 +33,7 @@ function LoginForm() {
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false)
   const [resetEmail, setResetEmail] = useState('')
   const [resetLoading, setResetLoading] = useState(false)
+  const [resetSuccess, setResetSuccess] = useState(false)
 
   // Check for success message from signup
   useEffect(() => {
@@ -97,19 +98,41 @@ function LoginForm() {
     setResetLoading(true)
 
     try {
+      // Check if email exists before sending reset link
+      const checkRes = await fetch('/api/auth/check-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetEmail.trim() }),
+      })
+      const { exists } = await checkRes.json()
+
+      if (!exists) {
+        toast.error('No Account Found', {
+          description: 'This email is not registered. Please sign up to create an account.',
+          duration: 5000,
+        })
+        setResetLoading(false)
+        return
+      }
+
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
         redirectTo: `${window.location.origin}/auth/reset-password`,
       })
 
       if (error) throw error
 
+      setResetSuccess(true)
       toast.success('Reset Link Sent Successfully', {
-        description: 'Check your inbox for the password reset link. It expires in 1 hour.',
-        duration: 6000,
+        description: 'Check your inbox. The link works on any browser or device.',
+        duration: 5000,
       })
-      
-      setIsForgotPasswordOpen(false)
-      setResetEmail('')
+
+      // Keep success state visible for 4 seconds, then close
+      setTimeout(() => {
+        setIsForgotPasswordOpen(false)
+        setResetEmail('')
+        setResetSuccess(false)
+      }, 4000)
     } catch (error: any) {
       console.error('Password reset error:', error)
       toast.error('Failed to Send Reset Link', {
@@ -185,7 +208,11 @@ function LoginForm() {
                   <Label htmlFor="password">Password</Label>
                   <button 
                     type="button"
-                    onClick={() => setIsForgotPasswordOpen(true)}
+                    onClick={() => {
+                      const emailVal = (document.getElementById('email') as HTMLInputElement)?.value
+                      if (emailVal) setResetEmail(emailVal)
+                      setIsForgotPasswordOpen(true)
+                    }}
                     className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
                   >
                     Forgot password?
@@ -242,68 +269,100 @@ function LoginForm() {
       </main>
 
       {/* Forgot Password Dialog */}
-      <Dialog open={isForgotPasswordOpen} onOpenChange={setIsForgotPasswordOpen}>
+      <Dialog open={isForgotPasswordOpen} onOpenChange={(open: boolean) => {
+        if (!open) {
+          setResetSuccess(false)
+          setResetEmail('')
+        }
+        setIsForgotPasswordOpen(open)
+      }}>
         <DialogContent className="sm:max-w-[425px] mx-4">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Mail className="w-5 h-5 text-blue-600" />
-              Reset Password
-            </DialogTitle>
-            <DialogDescription>
-              Enter your email address and we'll send you a link to reset your password.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="reset-email">Email Address</Label>
-              <Input
-                id="reset-email"
-                type="email"
-                placeholder="name@example.com"
-                value={resetEmail}
-                onChange={(e) => setResetEmail(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleForgotPassword()
-                  }
-                }}
-                disabled={resetLoading}
-                className="h-11"
-              />
-            </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className="text-sm text-blue-800">
-                <strong>Note:</strong> The reset link will expire in 1 hour for security purposes.
-              </p>
-            </div>
-          </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setIsForgotPasswordOpen(false)
-                setResetEmail('')
-              }}
-              disabled={resetLoading}
-              className="w-full sm:w-auto"
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleForgotPassword}
-              disabled={resetLoading}
-              className="w-full sm:w-auto"
-            >
-              {resetLoading ? (
+              {resetSuccess ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Sending...
+                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  Email Sent Successfully
                 </>
               ) : (
-                'Send Reset Link'
+                <>
+                  <Mail className="w-5 h-5 text-blue-600" />
+                  Reset Password
+                </>
               )}
-            </Button>
-          </DialogFooter>
+            </DialogTitle>
+            <DialogDescription>
+              {resetSuccess ? (
+                <>
+                  We&apos;ve sent a password reset link to <strong>{resetEmail}</strong>. Check your inbox and use the link to set a new password. The link works on any browser or device and expires in 1 hour.
+                </>
+              ) : (
+                'Enter your email address and we\'ll send you a link to reset your password.'
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          {!resetSuccess && (
+            <>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reset-email">Email Address</Label>
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    placeholder="name@example.com"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleForgotPassword()
+                      }
+                    }}
+                    disabled={resetLoading}
+                    className="h-11"
+                  />
+                </div>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm text-blue-800">
+                    <strong>Note:</strong> The reset link will expire in 1 hour for security purposes.
+                  </p>
+                </div>
+              </div>
+              <DialogFooter className="flex-col sm:flex-row gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsForgotPasswordOpen(false)
+                    setResetEmail('')
+                    setResetSuccess(false)
+                  }}
+                  disabled={resetLoading}
+                  className="w-full sm:w-auto"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleForgotPassword}
+                  disabled={resetLoading}
+                  className="w-full sm:w-auto"
+                >
+                  {resetLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    'Send Reset Link'
+                  )}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+          {resetSuccess && (
+            <div className="py-6 text-center">
+              <CheckCircle2 className="w-16 h-16 text-green-600 mx-auto mb-4" />
+              <p className="text-sm text-gray-600">This dialog will close in a few seconds.</p>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
