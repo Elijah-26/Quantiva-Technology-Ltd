@@ -52,13 +52,12 @@ export default function SignUpPage() {
         return
       }
 
-      // Show success message
+      // Show success message and redirect to confirm-email page for token entry
       setSuccess(true)
       
-      // Redirect to login after 2 seconds
       setTimeout(() => {
-        router.push('/login?message=Account created! Please sign in.')
-      }, 2000)
+        router.push(`/auth/confirm-email?email=${encodeURIComponent(email)}`)
+      }, 1500)
     } catch (err) {
       setError('An unexpected error occurred')
       setLoading(false)
@@ -106,7 +105,7 @@ export default function SignUpPage() {
 
             {success && (
               <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
-                Account created successfully! Redirecting to login...
+                Check your email for a confirmation code. Redirecting to confirm...
               </div>
             )}
 
