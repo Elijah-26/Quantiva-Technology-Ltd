@@ -107,8 +107,8 @@ function LoginForm() {
       const { exists } = await checkRes.json()
 
       if (!exists) {
-        toast.error('No Account Found', {
-          description: 'This email is not registered. Please sign up to create an account.',
+        toast.error('Sorry, this email doesn\'t exist', {
+          description: 'Kindly create an account to sign in.',
           duration: 5000,
         })
         setResetLoading(false)
@@ -123,7 +123,7 @@ function LoginForm() {
 
       setResetSuccess(true)
       toast.success('Reset Link Sent Successfully', {
-        description: 'Check your inbox. The link works on any browser or device.',
+        description: 'Check your inbox and click the link to reset your password.',
         duration: 5000,
       })
 
