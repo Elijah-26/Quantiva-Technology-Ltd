@@ -9,16 +9,19 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { Eye, EyeOff, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, CheckCircle2, XCircle, Loader2, Mail, KeyRound } from 'lucide-react'
 
-type ResetMode = 'validating' | 'session' | 'error'
+type ResetMode = 'validating' | 'session' | 'token'
 
 function ResetPasswordForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const emailFromUrl = searchParams.get('email')
   const [mode, setMode] = useState<ResetMode>('validating')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [tokenEmail, setTokenEmail] = useState(emailFromUrl || '')
+  const [token, setToken] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -38,10 +41,10 @@ function ResetPasswordForm() {
       (window.location.hash.includes('type=recovery') || window.location.hash.includes('access_token'))
 
     if (errorParam === 'access_denied' || errorCode === 'otp_expired') {
-      setMode('error')
-      toast.error('Link Invalid or Expired', {
+      setMode('token')
+      toast.info('Use Code from Email', {
         description: 'This link was opened in a different browser or has expired. Please request a new reset link from the login page.',
-        duration: 8000,
+        duration: 6000,
       })
       return
     }
@@ -57,13 +60,13 @@ function ResetPasswordForm() {
           await new Promise(resolve => setTimeout(resolve, 800))
           return checkSession(retryCount + 1)
         }
-        setMode('error')
-        toast.error('Invalid or Expired Link', {
-          description: 'Please request a new password reset link from the login page.',
+        setMode('token')
+        toast.info('Enter Code from Email', {
+          description: 'Enter the code from your reset email to continue. Or request a new link from the login page.',
           duration: 6000,
         })
       } catch (error) {
-        setMode('error')
+        setMode('token')
       }
     }
 
@@ -86,6 +89,39 @@ function ResetPasswordForm() {
       matches: password.length > 0 && password === confirmPassword,
     })
   }, [password, confirmPassword])
+
+  const handleTokenReset = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!tokenEmail.trim() || !token.trim()) {
+      toast.error('Email and code required')
+      return
+    }
+    if (password !== confirmPassword || !Object.values(passwordValidation).every(v => v)) {
+      toast.error('Please fix the form errors')
+      return
+    }
+    setLoading(true)
+    try {
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: tokenEmail.trim(),
+        token: token.trim(),
+        type: 'recovery',
+      })
+      if (verifyError) throw verifyError
+      const { error: updateError } = await supabase.auth.updateUser({ password })
+      if (updateError) throw updateError
+      toast.success('Password Reset Successfully', { description: 'Redirecting to sign in...', duration: 4000 })
+      await supabase.auth.signOut()
+      setTimeout(() => router.push('/login?message=Password reset successful. Please sign in with your new password.'), 2000)
+    } catch (error: any) {
+      toast.error('Verification Failed', {
+        description: error.message || 'Invalid or expired code. Request a new reset link from the login page.',
+        duration: 6000,
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSessionReset = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -158,7 +194,7 @@ function ResetPasswordForm() {
     </form>
   )
 
-  if (mode === 'error') {
+  if (mode === 'token') {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
         <header className="border-b bg-white">
@@ -175,18 +211,51 @@ function ResetPasswordForm() {
         <main className="flex-1 flex items-center justify-center py-12 px-4">
           <Card className="w-full max-w-md shadow-lg">
             <CardHeader>
-              <CardTitle className="text-2xl text-center">Link Invalid or Expired</CardTitle>
+              <CardTitle className="text-2xl text-center">Reset Your Password</CardTitle>
               <CardDescription className="text-center">
-                This reset link has expired or was opened in a different browser. Please request a new password reset link from the login page.
+                Enter the code from your reset email and choose a new password. Works on any browser or device.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <Link href="/login">
-                <Button className="w-full h-11" size="lg">Back to Login</Button>
-              </Link>
-              <p className="text-center text-sm text-gray-600">
-                Don&apos;t have an account? <Link href="/signup" className="text-blue-600 hover:underline">Sign up</Link>
-              </p>
+            <CardContent>
+              <form onSubmit={handleTokenReset} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="token-email" className="flex items-center gap-2"><Mail className="w-4 h-4" />Email</Label>
+                  <Input id="token-email" type="email" placeholder="Your email address" value={tokenEmail} onChange={(e) => setTokenEmail(e.target.value)} required className="h-11" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="token" className="flex items-center gap-2"><KeyRound className="w-4 h-4" />Reset Code</Label>
+                  <Input id="token" type="text" placeholder="Enter code from your reset email" value={token} onChange={(e) => setToken(e.target.value.trim())} required className="h-11 font-mono" autoComplete="one-time-code" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">New Password</Label>
+                  <div className="relative">
+                    <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="Enter new password" value={password} onChange={(e) => setPassword(e.target.value)} required className="h-11 pr-10" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">{showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <div className="relative">
+                    <Input id="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} placeholder="Confirm new password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required className="h-11 pr-10" />
+                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">{showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
+                  </div>
+                </div>
+                {password && (
+                  <div className="bg-gray-50 p-4 rounded-lg space-y-2 border">
+                    <ValidationItem isValid={passwordValidation.minLength} text="At least 8 characters" />
+                    <ValidationItem isValid={passwordValidation.hasUpperCase} text="Uppercase letter" />
+                    <ValidationItem isValid={passwordValidation.hasLowerCase} text="Lowercase letter" />
+                    <ValidationItem isValid={passwordValidation.hasNumber} text="Number" />
+                    {confirmPassword && <ValidationItem isValid={passwordValidation.matches} text="Passwords match" />}
+                  </div>
+                )}
+                <Button type="submit" className="w-full h-11" size="lg" disabled={loading || !tokenEmail.trim() || !token.trim() || !Object.values(passwordValidation).every(v => v)}>
+                  {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Resetting...</> : 'Reset Password'}
+                </Button>
+              </form>
+              <div className="mt-6 text-center">
+                <p className="text-sm text-gray-600">Remember your password? <Link href="/login" className="text-blue-600 hover:underline">Sign in</Link></p>
+              </div>
             </CardContent>
           </Card>
         </main>
