@@ -12,16 +12,12 @@ import {
   Shield,
 } from 'lucide-react'
 
-type BillingPeriod = 'monthly' | 'yearly'
-
 const PLANS = {
   starter: {
     name: 'Starter',
     description: 'Perfect for individuals and small teams getting started',
     icon: Zap,
-    monthlyPrice: 29,
-    yearlyPrice: 290,
-    yearlyLabel: 'Save 2 months',
+    price: 49,
     features: [
       'Up to 5 market reports per month',
       'Basic competitive intelligence',
@@ -31,13 +27,11 @@ const PLANS = {
     ],
     popular: false,
   },
-  pro: {
-    name: 'Pro',
+  professional: {
+    name: 'Professional',
     description: 'For growing teams that need deeper insights',
     icon: Sparkles,
-    monthlyPrice: 79,
-    yearlyPrice: 790,
-    yearlyLabel: 'Save 2 months',
+    price: 149,
     popular: true,
     features: [
       'Up to 25 market reports per month',
@@ -53,9 +47,7 @@ const PLANS = {
     name: 'Enterprise',
     description: 'Unlimited power for large organizations',
     icon: Building2,
-    monthlyPrice: 199,
-    yearlyPrice: 1990,
-    yearlyLabel: 'Save 2 months',
+    price: 499,
     popular: false,
     features: [
       'Unlimited market reports',
@@ -72,7 +64,6 @@ const PLANS = {
 
 export default function PricingPage() {
   const router = useRouter()
-  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('yearly')
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
 
   const handleSelectPlan = async (planKey: keyof typeof PLANS) => {
@@ -86,7 +77,6 @@ export default function PricingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           plan: planKey,
-          billingPeriod,
           successUrl: `${baseUrl}/signup?checkout=success&plan=${planKey}`,
           cancelUrl: `${baseUrl}/pricing`,
         }),
@@ -151,36 +141,9 @@ export default function PricingPage() {
             <h1 className="text-4xl md:text-6xl font-bold mb-4">
               Simple, <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">transparent</span> pricing
             </h1>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto mb-10">
+            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
               Choose the plan that fits your needs. All plans include a 14-day free trial.
             </p>
-
-            {/* Billing Toggle */}
-            <div className="inline-flex items-center gap-3 p-2 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
-              <button
-                onClick={() => setBillingPeriod('monthly')}
-                className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${
-                  billingPeriod === 'monthly'
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Monthly
-              </button>
-              <button
-                onClick={() => setBillingPeriod('yearly')}
-                className={`px-6 py-3 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                  billingPeriod === 'yearly'
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Yearly
-                <span className="px-2 py-0.5 text-xs bg-emerald-500/20 text-emerald-400 rounded-full">
-                  Save 17%
-                </span>
-              </button>
-            </div>
           </div>
 
           {/* Pricing Cards */}
@@ -188,8 +151,6 @@ export default function PricingPage() {
             {(Object.entries(PLANS) as [keyof typeof PLANS, (typeof PLANS)[keyof typeof PLANS]][]).map(
               ([key, plan]) => {
                 const Icon = plan.icon
-                const price =
-                  billingPeriod === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice
                 const isLoading = loadingPlan === key
 
                 return (
@@ -217,13 +178,8 @@ export default function PricingPage() {
                       </div>
 
                       <div className="mb-6">
-                        <span className="text-4xl font-bold">${price}</span>
-                        <span className="text-gray-400 ml-1">
-                          /{billingPeriod === 'monthly' ? 'month' : 'year'}
-                        </span>
-                        {billingPeriod === 'yearly' && (
-                          <p className="text-emerald-400 text-sm mt-2">{plan.yearlyLabel}</p>
-                        )}
+                        <span className="text-4xl font-bold">£{plan.price}</span>
+                        <span className="text-gray-400 ml-1">/month</span>
                       </div>
 
                       <ul className="space-y-4 flex-1 mb-8">

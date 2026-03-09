@@ -5,7 +5,7 @@ This guide walks you through configuring Stripe for Quantiva's pricing and subsc
 ## Overview
 
 - **Sign Up flow**: Users click "Sign Up" → land on `/pricing` → select a plan → Stripe Checkout → complete payment → redirect to `/signup` to create their account
-- **Plans**: Starter, Pro, Enterprise (each with monthly and yearly billing)
+- **Plans**: Starter (£49), Professional (£149), Enterprise (£499) — monthly billing only
 - **14-day free trial** is included on all subscriptions
 
 ---
@@ -18,18 +18,15 @@ In [Stripe Dashboard](https://dashboard.stripe.com/products):
 
 1. **Starter**
    - Create product "Quantiva Starter"
-   - Add price: $29/month (recurring)
-   - Add price: $290/year (recurring) — copy both Price IDs
+   - Add price: £49/month (recurring) — copy the Price ID
 
-2. **Pro**
-   - Create product "Quantiva Pro"
-   - Add price: $79/month (recurring)
-   - Add price: $790/year (recurring) — copy both Price IDs
+2. **Professional**
+   - Create product "Quantiva Professional"
+   - Add price: £149/month (recurring) — copy the Price ID
 
 3. **Enterprise**
    - Create product "Quantiva Enterprise"
-   - Add price: $199/month (recurring)
-   - Add price: $1,990/year (recurring) — copy both Price IDs
+   - Add price: £499/month (recurring) — copy the Price ID
 
 ---
 
@@ -41,12 +38,9 @@ Add these in **Vercel** → Project → Settings → Environment Variables:
 |----------|-------------|---------|
 | `STRIPE_SECRET_KEY` | Secret key from Stripe Dashboard → Developers → API Keys | `sk_live_...` or `sk_test_...` |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Publishable key (for future client-side Stripe usage) | `pk_live_...` or `pk_test_...` |
-| `STRIPE_PRICE_STARTER_MONTHLY` | Price ID for Starter monthly | `price_xxx` |
-| `STRIPE_PRICE_STARTER_YEARLY` | Price ID for Starter yearly | `price_xxx` |
-| `STRIPE_PRICE_PRO_MONTHLY` | Price ID for Pro monthly | `price_xxx` |
-| `STRIPE_PRICE_PRO_YEARLY` | Price ID for Pro yearly | `price_xxx` |
-| `STRIPE_PRICE_ENTERPRISE_MONTHLY` | Price ID for Enterprise monthly | `price_xxx` |
-| `STRIPE_PRICE_ENTERPRISE_YEARLY` | Price ID for Enterprise yearly | `price_xxx` |
+| `STRIPE_PRICE_STARTER_MONTHLY` | Price ID for Starter | `price_xxx` |
+| `STRIPE_PRICE_PROFESSIONAL_MONTHLY` | Price ID for Professional | `price_xxx` |
+| `STRIPE_PRICE_ENTERPRISE_MONTHLY` | Price ID for Enterprise | `price_xxx` |
 | `STRIPE_WEBHOOK_SECRET` | For Phase 2: webhook signing secret | `whsec_xxx` |
 
 Use **Production** values for Production environment, and **Test** values for Preview/Development.
@@ -59,23 +53,26 @@ Create a `.env.local` file with the same variables (use test keys for local):
 STRIPE_SECRET_KEY=sk_test_...
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 STRIPE_PRICE_STARTER_MONTHLY=price_xxx
-STRIPE_PRICE_STARTER_YEARLY=price_xxx
-STRIPE_PRICE_PRO_MONTHLY=price_xxx
-STRIPE_PRICE_PRO_YEARLY=price_xxx
+STRIPE_PRICE_PROFESSIONAL_MONTHLY=price_xxx
 STRIPE_PRICE_ENTERPRISE_MONTHLY=price_xxx
-STRIPE_PRICE_ENTERPRISE_YEARLY=price_xxx
 ```
 
 ---
 
-## 3. Optional: Webhook (Phase 2 – Plan Restriction)
+## 3. Webhook Setup (Required for plan restriction)
 
-When implementing plan-based access control:
+1. **Run the subscriptions SQL in Supabase:**
+   - Open Supabase Dashboard → SQL Editor
+   - Copy contents of `supabase-subscriptions-setup.sql`
+   - Run the script
 
-1. In Stripe Dashboard → Developers → Webhooks → Add endpoint
-2. URL: `https://your-domain.com/api/stripe/webhook`
-3. Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
-4. Copy the signing secret → add as `STRIPE_WEBHOOK_SECRET`
+2. **Add webhook endpoint in Stripe Dashboard:**
+   - Developers → Webhooks → Add endpoint
+   - URL: `https://quantiva.world/api/stripe/webhook`
+   - Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
+   - Copy the signing secret → add as `STRIPE_WEBHOOK_SECRET` in Vercel
+
+3. **Redeploy** so the webhook route and env vars are live.
 
 For local testing, use [Stripe CLI](https://stripe.com/docs/stripe-cli):
 
@@ -96,10 +93,10 @@ stripe listen --forward-to localhost:3000/api/stripe/webhook
 
 ## Pricing Tier Mapping
 
-| Plan | Monthly | Yearly |
-|------|---------|--------|
-| Starter | $29 | $290 |
-| Pro | $79 | $790 |
-| Enterprise | $199 | $1,990 |
+| Plan | Monthly |
+|------|---------|
+| Starter | £49 |
+| Professional | £149 |
+| Enterprise | £499 |
 
 You can change these amounts in the Stripe Dashboard; the prices shown on `/pricing` are for display only. The actual billing is controlled by your Stripe Price IDs.

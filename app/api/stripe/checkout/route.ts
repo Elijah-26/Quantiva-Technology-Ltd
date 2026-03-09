@@ -7,29 +7,19 @@ function getStripe() {
   return new Stripe(key)
 }
 
-const PRICE_MAP: Record<string, Record<string, string>> = {
-  starter: {
-    monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY || '',
-    yearly: process.env.STRIPE_PRICE_STARTER_YEARLY || '',
-  },
-  pro: {
-    monthly: process.env.STRIPE_PRICE_PRO_MONTHLY || '',
-    yearly: process.env.STRIPE_PRICE_PRO_YEARLY || '',
-  },
-  enterprise: {
-    monthly: process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY || '',
-    yearly: process.env.STRIPE_PRICE_ENTERPRISE_YEARLY || '',
-  },
+const PRICE_MAP: Record<string, string> = {
+  starter: process.env.STRIPE_PRICE_STARTER_MONTHLY || '',
+  professional: process.env.STRIPE_PRICE_PROFESSIONAL_MONTHLY || '',
+  enterprise: process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY || '',
 }
 
 export async function POST(req: NextRequest) {
   try {
     const stripe = getStripe()
     const body = await req.json()
-    const { plan, billingPeriod, successUrl, cancelUrl } = body
+    const { plan, successUrl, cancelUrl } = body
 
-    const priceId =
-      plan && billingPeriod ? PRICE_MAP[plan]?.[billingPeriod] : body.priceId
+    const priceId = plan ? PRICE_MAP[plan] : body.priceId
 
     if (!priceId) {
       return NextResponse.json(
@@ -50,8 +40,10 @@ export async function POST(req: NextRequest) {
       success_url: successUrl || `${origin}/signup?checkout=success`,
       cancel_url: cancelUrl || `${origin}/pricing`,
       allow_promotion_codes: true,
+      metadata: plan ? { plan } : undefined,
       subscription_data: {
         trial_period_days: 14,
+        ...(plan && { metadata: { plan } }),
       },
     })
 
