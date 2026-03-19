@@ -188,7 +188,7 @@ export default function HomePage() {
             <Link href="/login" className="text-sm text-gray-300 hover:text-white transition-colors">
               Sign In
             </Link>
-            <button type="button" className="btn-primary text-sm" onClick={() => router.push('/signup')}>
+            <button type="button" className="btn-primary text-sm" onClick={() => router.push('/pricing')}>
               Get Started
             </button>
           </div>
@@ -223,7 +223,7 @@ export default function HomePage() {
               >
                 Sign In
               </Link>
-              <button type="button" className="btn-primary text-sm mt-2" onClick={() => router.push('/signup')}>
+              <button type="button" className="btn-primary text-sm mt-2" onClick={() => router.push('/pricing')}>
                 Get Started
               </button>
             </div>
