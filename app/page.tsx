@@ -24,6 +24,26 @@ export default function ModernLandingPage() {
     };
   }, []);
 
+  // #region agent log
+  useEffect(() => {
+    fetch('http://127.0.0.1:7371/ingest/c76e0e12-c27c-47d5-8135-e7618f6d8d7c', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '72ed28' },
+      body: JSON.stringify({
+        sessionId: '72ed28',
+        hypothesisId: 'H1',
+        location: 'app/page.tsx:ModernLandingPage',
+        message: 'landing_client_mounted',
+        data: {
+          host: typeof window !== 'undefined' ? window.location.hostname : '',
+          pathname: typeof window !== 'undefined' ? window.location.pathname : '',
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+  }, []);
+  // #endregion
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 text-white overflow-hidden">
       {/* Floating Back to Top Button */}
