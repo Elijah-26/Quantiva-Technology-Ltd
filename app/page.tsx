@@ -188,7 +188,7 @@ export default function HomePage() {
             <Link href="/login" className="text-sm text-gray-300 hover:text-white transition-colors">
               Sign In
             </Link>
-            <button type="button" className="btn-primary text-sm" onClick={() => router.push('/pricing')}>
+            <button type="button" className="btn-primary text-sm" onClick={() => router.push('/signup')}>
               Get Started
             </button>
           </div>
@@ -223,7 +223,7 @@ export default function HomePage() {
               >
                 Sign In
               </Link>
-              <button type="button" className="btn-primary text-sm mt-2" onClick={() => router.push('/pricing')}>
+              <button type="button" className="btn-primary text-sm mt-2" onClick={() => router.push('/signup')}>
                 Get Started
               </button>
             </div>
@@ -233,21 +233,21 @@ export default function HomePage() {
 
       <section
         ref={heroRef}
-        className="relative min-h-screen flex items-center justify-center px-6 lg:px-12 pt-24"
+        className="relative min-h-screen flex items-center justify-center px-6 lg:px-12 pt-24 pb-16"
       >
-        <div className="relative z-10 text-center max-w-5xl mx-auto">
-          <div className="hero-coin relative w-48 h-48 md:w-72 md:h-72 lg:w-96 lg:h-96 mx-auto mb-8 [perspective:1000px]">
+        <div className="relative z-10 text-center max-w-4xl mx-auto">
+          <div className="hero-coin relative w-36 h-36 sm:w-44 sm:h-44 md:w-52 md:h-52 lg:w-60 lg:h-60 mx-auto mb-6 [perspective:1000px]">
             <div className="absolute inset-0 rounded-full accent-glow opacity-60" />
             <img
               src="/hero-coin.jpg"
               alt="Quantiva"
               className="w-full h-full object-cover rounded-full animate-float relative z-[1]"
-              width={384}
-              height={384}
+              width={240}
+              height={240}
             />
           </div>
 
-          <h1 className="hero-headline font-heading text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+          <h1 className="hero-headline font-heading text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight">
             {'Automated Market Research That Never Sleeps'.split(' ').map((word, i) => (
               <span key={i} className="inline-block mr-[0.25em]">
                 {word}
@@ -255,7 +255,7 @@ export default function HomePage() {
             ))}
           </h1>
 
-          <p className="hero-subheadline text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-10">
+          <p className="hero-subheadline text-base md:text-lg text-gray-400 max-w-2xl mx-auto mb-8">
             Transform your business strategy with automated, recurring market insights. Get data-backed
             competitive intelligence delivered on your schedule.
           </p>
