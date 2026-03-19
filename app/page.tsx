@@ -24,6 +24,7 @@ import {
   ExternalLink,
   Clock,
 } from 'lucide-react'
+import { PricingSection } from '@/components/pricing/PricingSection'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -494,104 +495,7 @@ export default function HomePage() {
       </section>
 
       <section ref={pricingRef} id="pricing" className="relative py-24 px-6 lg:px-12 z-10">
-        <div className="pricing-content max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="font-heading text-3xl md:text-5xl font-bold text-white mb-4">Simple, transparent pricing</h2>
-            <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-              Choose the plan that fits your needs. All plans include a 14-day free trial.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="pricing-card glass-card p-8">
-              <div className="mb-6">
-                <h3 className="font-heading text-xl font-bold text-white mb-2">Starter</h3>
-                <p className="text-gray-400 text-sm">Perfect for individuals and small teams getting started</p>
-              </div>
-              <div className="mb-6">
-                <span className="font-heading text-4xl font-bold text-white">£0</span>
-                <span className="text-gray-400">/month</span>
-              </div>
-              <ul className="space-y-3 mb-8">
-                {[
-                  'Up to 5 market reports per month',
-                  'Basic competitive intelligence',
-                  'Email report delivery',
-                  '7-day report history',
-                  'Standard support',
-                ].map((t) => (
-                  <li key={t} className="flex items-center gap-3 text-gray-300 text-sm">
-                    <Check size={16} className="text-emerald-400 shrink-0" /> {t}
-                  </li>
-                ))}
-              </ul>
-              <button type="button" className="btn-secondary w-full" onClick={() => router.push('/pricing')}>
-                Get Started
-              </button>
-            </div>
-
-            <div className="pricing-card glass-card-strong p-8 relative border-indigo-500/30">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <span className="bg-indigo-500 text-white text-xs font-medium px-3 py-1 rounded-full">Most Popular</span>
-              </div>
-              <div className="mb-6">
-                <h3 className="font-heading text-xl font-bold text-white mb-2">Professional</h3>
-                <p className="text-gray-400 text-sm">For growing teams that need deeper insights</p>
-              </div>
-              <div className="mb-6">
-                <span className="font-heading text-4xl font-bold text-white">£49</span>
-                <span className="text-gray-400">/month</span>
-              </div>
-              <ul className="space-y-3 mb-8">
-                {[
-                  'Up to 25 market reports per month',
-                  'Advanced competitive intelligence',
-                  'Scheduled recurring reports',
-                  '90-day report history',
-                  'Custom report templates',
-                  'Priority support',
-                  'API access',
-                ].map((t) => (
-                  <li key={t} className="flex items-center gap-3 text-gray-300 text-sm">
-                    <Check size={16} className="text-emerald-400 shrink-0" /> {t}
-                  </li>
-                ))}
-              </ul>
-              <button type="button" className="btn-primary w-full" onClick={() => router.push('/pricing')}>
-                Get Started
-              </button>
-            </div>
-
-            <div className="pricing-card glass-card p-8">
-              <div className="mb-6">
-                <h3 className="font-heading text-xl font-bold text-white mb-2">Enterprise</h3>
-                <p className="text-gray-400 text-sm">Unlimited power for large organizations</p>
-              </div>
-              <div className="mb-6">
-                <span className="font-heading text-4xl font-bold text-white">Custom</span>
-              </div>
-              <ul className="space-y-3 mb-8">
-                {[
-                  'Unlimited market reports',
-                  'Full competitive intelligence suite',
-                  'Custom schedules & workflows',
-                  'Unlimited report history',
-                  'Dedicated account manager',
-                  'Custom integrations',
-                  'SSO & advanced security',
-                  'SLA guarantee',
-                ].map((t) => (
-                  <li key={t} className="flex items-center gap-3 text-gray-300 text-sm">
-                    <Check size={16} className="text-emerald-400 shrink-0" /> {t}
-                  </li>
-                ))}
-              </ul>
-              <button type="button" className="btn-secondary w-full" onClick={() => router.push('/pricing')}>
-                Get Started
-              </button>
-            </div>
-          </div>
-        </div>
+        <PricingSection onSelectPlan={() => router.push('/pricing')} />
       </section>
 
       <section ref={ctaRef} className="relative py-24 px-6 lg:px-12 z-10">
