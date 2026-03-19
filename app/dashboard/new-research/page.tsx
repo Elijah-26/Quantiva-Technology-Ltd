@@ -1,7 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+
+const UPGRADE_MESSAGE = "You've reached your plan limit. Please upgrade to continue."
+const RECURRING_BLOCKED_MESSAGE = 'Recurring research is not available on your plan. Please upgrade to continue.'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -147,6 +150,29 @@ function NewResearchPage() {
   
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [activeTab, setActiveTab] = useState('on-demand')
+  const [recurringEnabled, setRecurringEnabled] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    fetch('/api/reports/usage')
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data && typeof data.recurringEnabled === 'boolean') {
+          setRecurringEnabled(data.recurringEnabled)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  const showUpgradeToast = () => {
+    toast.error(UPGRADE_MESSAGE, {
+      description: 'View plans to upgrade your subscription.',
+      action: {
+        label: 'View plans',
+        onClick: () => router.push('/pricing'),
+      },
+      duration: 6000,
+    })
+  }
 
   // Handle On-Demand Research submission
   const handleOnDemandSubmit = async (e: React.FormEvent) => {
@@ -168,6 +194,17 @@ function NewResearchPage() {
       }
       
       console.log('✅ Authenticated user:', user.id, user.email)
+      
+      // ===== PLAN CHECK: Can create reports? =====
+      const usageRes = await fetch('/api/reports/usage')
+      if (usageRes.ok) {
+        const usage = await usageRes.json()
+        if (!usage.canCreate) {
+          showUpgradeToast()
+          setIsSubmitting(false)
+          return
+        }
+      }
       
       // Get active on-demand webhooks
       const activeWebhooks = await getActiveWebhooksByType('on-demand')
@@ -298,11 +335,14 @@ function NewResearchPage() {
               // Wait a bit to ensure database transaction completes
               await new Promise(resolve => setTimeout(resolve, 1000))
             } else {
-              const errorText = await saveResponse.text()
-              console.error('❌ Failed to save report to database:', errorText)
-              toast.error('Failed to save report', {
-                description: 'The report was generated but could not be saved. Please contact support.',
-              })
+              const errJson = await saveResponse.json().catch(() => ({}))
+              if (saveResponse.status === 403 && (errJson.code === 'REPORTS_LIMIT' || errJson.upgradeUrl)) {
+                showUpgradeToast()
+              } else {
+                toast.error('Failed to save report', {
+                  description: errJson.error || 'The report was generated but could not be saved. Please contact support.',
+                })
+              }
               setIsSubmitting(false)
               return
             }
@@ -383,6 +423,29 @@ function NewResearchPage() {
       }
       
       console.log('✅ Authenticated user:', user.id, user.email)
+      
+      // ===== PLAN CHECK: Recurring allowed? =====
+      const usageRes = await fetch('/api/reports/usage')
+      if (usageRes.ok) {
+        const usage = await usageRes.json()
+        if (!usage.recurringEnabled) {
+          toast.error(RECURRING_BLOCKED_MESSAGE, {
+            description: 'View plans to upgrade your subscription.',
+            action: {
+              label: 'View plans',
+              onClick: () => router.push('/pricing'),
+            },
+            duration: 6000,
+          })
+          setIsSubmitting(false)
+          return
+        }
+        if (!usage.canCreate) {
+          showUpgradeToast()
+          setIsSubmitting(false)
+          return
+        }
+      }
       
       // Get active recurring webhooks
       const activeWebhooks = await getActiveWebhooksByType('recurring')
@@ -527,7 +590,12 @@ function NewResearchPage() {
                 // Wait for database transaction
                 await new Promise(resolve => setTimeout(resolve, 1000))
               } else {
-                console.error('❌ Failed to save initial report:', await saveResponse.text())
+                const errJson = await saveResponse.json().catch(() => ({}))
+                if (saveResponse.status === 403 && (errJson.code === 'REPORTS_LIMIT' || errJson.upgradeUrl)) {
+                  showUpgradeToast()
+                } else {
+                  console.error('❌ Failed to save initial report:', errJson)
+                }
               }
             }
           } catch (saveError) {
@@ -617,7 +685,7 @@ function NewResearchPage() {
 
       {/* Tab-based Forms */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
-        <TabsList className="grid w-full grid-cols-2 h-auto">
+        <TabsList className={`grid w-full h-auto ${recurringEnabled === false ? 'grid-cols-1' : 'grid-cols-2'}`}>
           <TabsTrigger value="on-demand" className="gap-1.5 sm:gap-2 py-2.5 sm:py-3 min-h-[48px]">
             <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
             <div className="text-left">
@@ -625,13 +693,15 @@ function NewResearchPage() {
               <div className="text-xs text-gray-500 font-normal hidden sm:block">Immediate results</div>
             </div>
           </TabsTrigger>
-          <TabsTrigger value="recurring" className="gap-1.5 sm:gap-2 py-2.5 sm:py-3 min-h-[48px]">
-            <Repeat className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-            <div className="text-left">
-              <div className="font-semibold text-xs sm:text-sm">Recurring Research</div>
-              <div className="text-xs text-gray-500 font-normal hidden sm:block">Automated schedule</div>
-            </div>
-          </TabsTrigger>
+          {recurringEnabled !== false && (
+            <TabsTrigger value="recurring" className="gap-1.5 sm:gap-2 py-2.5 sm:py-3 min-h-[48px]">
+              <Repeat className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+              <div className="text-left">
+                <div className="font-semibold text-xs sm:text-sm">Recurring Research</div>
+                <div className="text-xs text-gray-500 font-normal hidden sm:block">Automated schedule</div>
+              </div>
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* On-Demand Research Form */}

@@ -1,8 +1,25 @@
 // POST /api/reports/on-demand - Save on-demand report to database
 // This endpoint is called when webhook returns with report data
+// Enforces plan-based report limits (403 with upgrade message when exceeded)
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+import { getUserPlanAndLimits } from '@/lib/plan-helper'
+
+const UPGRADE_URL = '/pricing'
+
+function isAdmin(user: { email?: string | null; user_metadata?: Record<string, unknown>; app_metadata?: Record<string, unknown> }) {
+  const um = user.user_metadata as { role?: string } | undefined
+  const am = user.app_metadata as { role?: string } | undefined
+  return (
+    um?.role === 'admin' ||
+    am?.role === 'admin' ||
+    user.email === 'admin@quantitva.com' ||
+    user.email === 'pat2echo@gmail.com'
+  )
+}
 
 export interface OnDemandReportRequest {
   user_id: string  // CRITICAL: Required for multi-user isolation
@@ -43,6 +60,75 @@ export async function POST(request: NextRequest) {
         { error: 'Validation failed', details: errors.join(', ') },
         { status: 400 }
       )
+    }
+
+    // ===== AUTH & PLAN LIMITS =====
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: any) {
+            cookieStore.set(name, value, options)
+          },
+          remove(name: string, options: any) {
+            cookieStore.set(name, '', options)
+          },
+        },
+      }
+    )
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized', details: 'You must be logged in to save reports.' },
+        { status: 401 }
+      )
+    }
+
+    if (body.user_id !== user.id && !isAdmin(user)) {
+      return NextResponse.json(
+        { error: 'Forbidden', details: 'Cannot save report for another user.' },
+        { status: 403 }
+      )
+    }
+
+    const { plan, limits } = await getUserPlanAndLimits(user.id)
+
+    if (!isAdmin(user) && limits.reportsPerMonth !== Infinity) {
+      const now = new Date()
+      const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
+
+      const { count, error: countError } = await supabaseAdmin
+        .from('reports')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('run_at', startOfMonth)
+
+      if (countError) {
+        console.error('Error counting reports:', countError)
+        return NextResponse.json(
+          { error: 'Failed to check usage', details: countError.message },
+          { status: 500 }
+        )
+      }
+
+      const usedThisMonth = count ?? 0
+      if (usedThisMonth >= limits.reportsPerMonth) {
+        return NextResponse.json(
+          {
+            error: "You've reached your plan limit. Please upgrade to continue.",
+            code: 'REPORTS_LIMIT',
+            upgradeUrl: UPGRADE_URL,
+          },
+          { status: 403 }
+        )
+      }
     }
 
     // Generate unique execution ID

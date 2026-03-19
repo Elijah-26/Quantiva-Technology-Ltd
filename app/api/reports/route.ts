@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { getUserPlanAndLimits } from '@/lib/plan-helper'
 
 export async function GET(request: NextRequest) {
   try {
@@ -90,10 +91,22 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Plan-based report history filter (admins see all)
+    let reportsToTransform = reports || []
+    if (!isAdmin) {
+      const { limits } = await getUserPlanAndLimits(user.id)
+      if (limits.reportHistoryDays !== Infinity) {
+        const cutoff = new Date()
+        cutoff.setDate(cutoff.getDate() - limits.reportHistoryDays)
+        const cutoffIso = cutoff.toISOString()
+        reportsToTransform = (reports || []).filter((r: { run_at: string }) => r.run_at >= cutoffIso)
+      }
+    }
+
     // For admins, fetch user information separately
     let usersMap = new Map()
-    if (isAdmin && reports && reports.length > 0) {
-      const userIds = [...new Set(reports.map((r: any) => r.user_id).filter(Boolean))]
+    if (isAdmin && reportsToTransform.length > 0) {
+      const userIds = [...new Set(reportsToTransform.map((r: any) => r.user_id).filter(Boolean))]
       if (userIds.length > 0) {
         const { data: usersData } = await supabaseAdmin
           .from('users')
@@ -109,7 +122,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform reports to match the frontend Report interface
-    const transformedReports = (reports || []).map((report: any) => {
+    const transformedReports = reportsToTransform.map((report: any) => {
       const baseReport = {
         id: report.execution_id,
         scheduleId: report.schedule_id,
@@ -151,7 +164,7 @@ export async function GET(request: NextRequest) {
 
     const response = NextResponse.json({
       success: true,
-      total: transformedReports.length,
+      total: transformedReports.length, // After history filter
       reports: transformedReports,
       isAdmin: isAdmin, // Let frontend know if user is admin
       currentUserId: user.id
