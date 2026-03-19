@@ -15,7 +15,7 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, PlanLimits> = {
   starter: {
     reportsPerMonth: 5,
     reportHistoryDays: 7,
-    recurringEnabled: false,
+    recurringEnabled: true, // Available on all plans; limits apply to total reports/month
     pptExport: false,
     apiAccess: false,
   },

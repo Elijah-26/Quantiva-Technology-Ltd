@@ -22,7 +22,7 @@ const PLANS = {
     features: [
       'Up to 5 market reports per month',
       '7-day report history',
-      'On-demand reports only',
+      'On-demand and recurring reports',
       'Basic reporting and limited integrations',
       'Standard support',
     ],

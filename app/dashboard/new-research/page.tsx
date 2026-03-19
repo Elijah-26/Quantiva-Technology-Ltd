@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 const UPGRADE_MESSAGE = "You've reached your plan limit. Please upgrade to continue."
-const RECURRING_BLOCKED_MESSAGE = 'Recurring research is not available on your plan. Please upgrade to continue.'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -150,18 +149,6 @@ function NewResearchPage() {
   
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [activeTab, setActiveTab] = useState('on-demand')
-  const [recurringEnabled, setRecurringEnabled] = useState<boolean | null>(null)
-
-  useEffect(() => {
-    fetch('/api/reports/usage')
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => {
-        if (data && typeof data.recurringEnabled === 'boolean') {
-          setRecurringEnabled(data.recurringEnabled)
-        }
-      })
-      .catch(() => {})
-  }, [])
 
   const showUpgradeToast = () => {
     toast.error(UPGRADE_MESSAGE, {
@@ -424,22 +411,10 @@ function NewResearchPage() {
       
       console.log('✅ Authenticated user:', user.id, user.email)
       
-      // ===== PLAN CHECK: Recurring allowed? =====
+      // ===== PLAN CHECK: Can create reports this month? (Same limit for on-demand and recurring) =====
       const usageRes = await fetch('/api/reports/usage')
       if (usageRes.ok) {
         const usage = await usageRes.json()
-        if (!usage.recurringEnabled) {
-          toast.error(RECURRING_BLOCKED_MESSAGE, {
-            description: 'View plans to upgrade your subscription.',
-            action: {
-              label: 'View plans',
-              onClick: () => router.push('/pricing'),
-            },
-            duration: 6000,
-          })
-          setIsSubmitting(false)
-          return
-        }
         if (!usage.canCreate) {
           showUpgradeToast()
           setIsSubmitting(false)
@@ -685,7 +660,7 @@ function NewResearchPage() {
 
       {/* Tab-based Forms */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
-        <TabsList className={`grid w-full h-auto ${recurringEnabled === false ? 'grid-cols-1' : 'grid-cols-2'}`}>
+        <TabsList className="grid w-full grid-cols-2 h-auto">
           <TabsTrigger value="on-demand" className="gap-1.5 sm:gap-2 py-2.5 sm:py-3 min-h-[48px]">
             <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
             <div className="text-left">
@@ -693,15 +668,13 @@ function NewResearchPage() {
               <div className="text-xs text-gray-500 font-normal hidden sm:block">Immediate results</div>
             </div>
           </TabsTrigger>
-          {recurringEnabled !== false && (
-            <TabsTrigger value="recurring" className="gap-1.5 sm:gap-2 py-2.5 sm:py-3 min-h-[48px]">
-              <Repeat className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-              <div className="text-left">
-                <div className="font-semibold text-xs sm:text-sm">Recurring Research</div>
-                <div className="text-xs text-gray-500 font-normal hidden sm:block">Automated schedule</div>
-              </div>
-            </TabsTrigger>
-          )}
+          <TabsTrigger value="recurring" className="gap-1.5 sm:gap-2 py-2.5 sm:py-3 min-h-[48px]">
+            <Repeat className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+            <div className="text-left">
+              <div className="font-semibold text-xs sm:text-sm">Recurring Research</div>
+              <div className="text-xs text-gray-500 font-normal hidden sm:block">Automated schedule</div>
+            </div>
+          </TabsTrigger>
         </TabsList>
 
         {/* On-Demand Research Form */}
