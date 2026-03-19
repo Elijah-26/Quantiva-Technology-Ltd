@@ -11,6 +11,7 @@ import {
   ArrowRight,
   Shield,
 } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
 
 const PLANS = {
   starter: {
@@ -156,10 +157,10 @@ export default function PricingPage() {
                 return (
                   <div
                     key={key}
-                    className={`relative rounded-2xl border backdrop-blur-xl transition-all duration-300 ${
+                    className={`relative transition-all duration-300 ${
                       plan.popular
-                        ? 'border-blue-500/50 bg-gradient-to-b from-blue-500/10 to-transparent shadow-2xl shadow-blue-500/20 scale-[1.02]'
-                        : 'border-white/10 bg-white/5 hover:border-white/20'
+                        ? 'glass-card-strong scale-[1.02]'
+                        : 'glass-card hover:translate-y-[-2px]'
                     }`}
                   >
                     {plan.popular && (
@@ -201,7 +202,10 @@ export default function PricingPage() {
                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
                         {isLoading ? (
-                          <span className="animate-pulse">Redirecting...</span>
+                          <>
+                            <Spinner className="size-4 text-white" />
+                            Redirecting...
+                          </>
                         ) : (
                           <>
                             Get Started

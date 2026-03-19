@@ -7,9 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CheckCircle2, XCircle, Loader2, Mail } from 'lucide-react'
+import { CheckCircle2, XCircle, Mail } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { Spinner } from '@/components/ui/spinner'
 
 function ConfirmEmailContent() {
   const router = useRouter()
@@ -91,20 +92,20 @@ function ConfirmEmailContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <header className="border-b bg-white">
+    <div className="min-h-screen flex flex-col bg-[#05060B] text-white">
+      <header className="border-b border-white/10 bg-white/5 backdrop-blur-xl">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
               <img src="/quantiva.png" alt="Quantiva" className="h-8 w-8 object-contain" />
-              <span className="text-xl font-bold text-gray-900">Quantiva</span>
+              <span className="text-xl font-bold text-white">Quantiva</span>
             </Link>
           </div>
         </div>
       </header>
 
       <main className="flex-1 flex items-center justify-center py-12 px-4">
-        <Card className="w-full max-w-md shadow-lg">
+        <Card className="w-full max-w-md shadow-lg glass-card-strong text-white border-white/10 bg-white/5">
           <CardHeader>
             <CardTitle className="text-2xl text-center">Email Confirmation</CardTitle>
             <CardDescription className="text-center">
@@ -119,8 +120,8 @@ function ConfirmEmailContent() {
             <div className="flex flex-col items-center justify-center py-6 space-y-4">
               {status === 'loading' && (
                 <>
-                  <Loader2 className="w-16 h-16 animate-spin text-blue-600" />
-                  <p className="text-gray-600 text-center">Please wait...</p>
+                  <Spinner className="size-16 text-blue-600" />
+                  <p className="text-gray-300 text-center">Please wait...</p>
                 </>
               )}
 
@@ -136,7 +137,7 @@ function ConfirmEmailContent() {
                       type="email"
                       value={emailFromUrl || ''}
                       disabled
-                      className="bg-gray-50"
+                      className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
                     />
                   </div>
                   <div className="space-y-2">
@@ -163,8 +164,8 @@ function ConfirmEmailContent() {
 
               {status === 'verifying' && (
                 <>
-                  <Loader2 className="w-16 h-16 animate-spin text-blue-600" />
-                  <p className="text-gray-600 text-center">Verifying your code...</p>
+                  <Spinner className="size-16 text-blue-600" />
+                  <p className="text-gray-300 text-center">Verifying your code...</p>
                 </>
               )}
 
@@ -172,8 +173,8 @@ function ConfirmEmailContent() {
                 <>
                   <CheckCircle2 className="w-16 h-16 text-green-600" />
                   <div className="text-center space-y-2">
-                    <p className="text-lg font-semibold text-gray-900">{message}</p>
-                    <p className="text-sm text-gray-600">Redirecting you to your dashboard...</p>
+                    <p className="text-lg font-semibold text-white">{message}</p>
+                    <p className="text-sm text-gray-400">Redirecting you to your dashboard...</p>
                   </div>
                   <Button onClick={() => router.push('/dashboard')} className="mt-4">
                     Go to Dashboard
@@ -185,14 +186,19 @@ function ConfirmEmailContent() {
                 <>
                   <XCircle className="w-16 h-16 text-red-600" />
                   <div className="text-center space-y-2">
-                    <p className="text-lg font-semibold text-gray-900">{message}</p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-lg font-semibold text-white">{message}</p>
+                    <p className="text-sm text-gray-400">
                       Please sign up again or check your email for the confirmation code.
                     </p>
                   </div>
                   <div className="flex gap-3 mt-4">
                     <Link href="/login">
-                      <Button variant="outline">Back to Login</Button>
+                      <Button
+                        variant="outline"
+                        className="bg-white/5 border-white/10 text-white hover:bg-white/10"
+                      >
+                        Back to Login
+                      </Button>
                     </Link>
                     <Link href="/pricing">
                       <Button>Sign Up Again</Button>
@@ -212,12 +218,12 @@ export default function ConfirmEmailPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <Card className="w-full max-w-md shadow-lg mx-4">
+        <div className="min-h-screen flex items-center justify-center bg-[#05060B] text-white">
+          <Card className="w-full max-w-md shadow-lg glass-card-strong text-white border-white/10 bg-white/5 mx-4">
             <CardContent className="pt-6">
               <div className="flex flex-col items-center justify-center py-8">
-                <Loader2 className="w-8 h-8 animate-spin mb-4" />
-                <p className="text-gray-600">Loading...</p>
+                    <Spinner className="size-8 text-blue-600 mb-4" />
+                <p className="text-gray-300">Loading...</p>
               </div>
             </CardContent>
           </Card>

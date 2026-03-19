@@ -6,6 +6,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from './auth-context'
+import { Spinner } from '@/components/ui/spinner'
 
 export function withAuth<P extends object>(
   Component: React.ComponentType<P>
@@ -23,7 +24,7 @@ export function withAuth<P extends object>(
     if (loading) {
       return (
         <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <Spinner className="size-12 text-blue-600" />
         </div>
       )
     }

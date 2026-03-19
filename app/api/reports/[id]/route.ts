@@ -2,6 +2,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 export async function DELETE(
   request: NextRequest,
@@ -17,11 +19,52 @@ export async function DELETE(
       )
     }
 
-    // Delete report from Supabase
-    const { error } = await supabaseAdmin
+    // Auth: Create Supabase client with user cookies
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options?: Parameters<typeof cookieStore.set>[2]) {
+            cookieStore.set(name, value, options)
+          },
+          remove(name: string, options?: Parameters<typeof cookieStore.set>[2]) {
+            cookieStore.set(name, '', options)
+          },
+        },
+      }
+    )
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized', details: 'You must be logged in to delete reports' },
+        { status: 401 }
+      )
+    }
+
+    // Check if user is admin (admins can delete any report)
+    const isAdmin = user.user_metadata?.role === 'admin' ||
+      user.app_metadata?.role === 'admin' ||
+      user.email === 'admin@quantitva.com' ||
+      user.email === 'pat2echo@gmail.com'
+
+    // Build delete query: admins can delete any; users only their own
+    let deleteQuery = supabaseAdmin
       .from('reports')
       .delete()
       .eq('execution_id', executionId)
+
+    if (!isAdmin) {
+      deleteQuery = deleteQuery.eq('user_id', user.id)
+    }
+
+    const { error } = await deleteQuery
 
     if (error) {
       console.error('Error deleting report:', error)

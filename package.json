@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint .",
     "test:api": "node examples/api-client-example.js",
     "test:api:bash": "bash test-api.sh",
     "test:api:ps": "powershell -File test-api.ps1"

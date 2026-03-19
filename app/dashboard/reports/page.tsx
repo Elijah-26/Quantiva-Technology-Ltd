@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FileText, Calendar, MapPin, ChevronRight, TrendingUp, Clock, Trash2, RefreshCw, Search, Filter, X, User, Target } from 'lucide-react'
 import { toast } from 'sonner'
+import { Spinner } from '@/components/ui/spinner'
+import { withAuth } from '@/lib/auth/protected-route'
 
 interface Report {
   id: string
@@ -35,7 +37,7 @@ interface Report {
 
 type SortOption = 'date-desc' | 'date-asc' | 'title-asc' | 'title-desc' | 'category-asc'
 
-export default function ReportsPage() {
+function ReportsPage() {
   const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -166,7 +168,7 @@ export default function ReportsPage() {
     })
 
     return filtered
-  }, [reports, searchQuery, categoryFilter, typeFilter, geographyFilter, sortBy])
+  }, [reports, searchQuery, categoryFilter, typeFilter, geographyFilter, userFilter, isAdmin, sortBy])
 
   // Clear all filters
   const clearFilters = () => {
@@ -198,7 +200,10 @@ export default function ReportsPage() {
       <div className="p-8">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-center h-64">
-            <div className="text-gray-500">Loading reports...</div>
+            <div className="flex items-center gap-3 text-gray-500">
+              <Spinner className="size-6 text-blue-600" />
+              <span>Loading reports...</span>
+            </div>
           </div>
         </div>
       </div>
@@ -222,7 +227,7 @@ export default function ReportsPage() {
             disabled={loading}
             className="gap-2 w-full sm:w-auto flex-shrink-0 min-h-[44px]"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            {loading ? <Spinner className="size-4" /> : <RefreshCw className="w-4 h-4" />}
             Refresh
           </Button>
         </div>
@@ -564,3 +569,5 @@ export default function ReportsPage() {
     </div>
   )
 }
+
+export default withAuth(ReportsPage)

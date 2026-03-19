@@ -159,19 +159,19 @@ export default function ModernLandingPage() {
 
               {/* Stats */}
               <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto">
-                <div className="text-center">
+                <div className="glass-card p-8 text-center">
                   <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">
                     10K+
                   </div>
                   <div className="text-sm text-gray-400">Reports Generated</div>
                 </div>
-                <div className="text-center">
+                <div className="glass-card p-8 text-center">
                   <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
                     500+
                   </div>
                   <div className="text-sm text-gray-400">Active Users</div>
                 </div>
-                <div className="text-center">
+                <div className="glass-card p-8 text-center">
                   <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-pink-400 to-blue-400 bg-clip-text text-transparent mb-2">
                     99.9%
                   </div>

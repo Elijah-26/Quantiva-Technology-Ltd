@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,12 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox'
-import { FileSearch, Calendar, Zap, Loader2, Repeat } from 'lucide-react'
+import { FileSearch, Calendar, Zap, Repeat } from 'lucide-react'
 import { getActiveWebhooksByType } from '@/lib/webhooks'
 import { toast } from 'sonner'
 import { LoadingOverlay } from '@/components/LoadingOverlay'
 import { createScheduleFromForm, saveSchedule } from '@/lib/schedules'
 import { supabase } from '@/lib/supabase/client'
+import { Spinner } from '@/components/ui/spinner'
+import { withAuth } from '@/lib/auth/protected-route'
 
 const marketCategories = [
   'Technology & Software',
@@ -122,7 +124,7 @@ const geographicLocations: ComboboxOption[] = [
   { value: 'illinois', label: 'Illinois, USA' },
 ]
 
-export default function NewResearchPage() {
+function NewResearchPage() {
   const router = useRouter()
   
   // Separate form states for each type
@@ -746,7 +748,7 @@ export default function NewResearchPage() {
                     <Button type="submit" size="lg" className="gap-2 w-full sm:w-auto min-h-[48px] order-1 sm:order-2" disabled={isSubmitting}>
                       {isSubmitting ? (
                         <>
-                          <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                          <Spinner className="size-4 sm:size-5" />
                           <span className="text-sm sm:text-base">Processing...</span>
                         </>
                       ) : (
@@ -936,7 +938,7 @@ export default function NewResearchPage() {
                     <Button type="submit" size="lg" className="gap-2 w-full sm:w-auto min-h-[48px] order-1 sm:order-2" disabled={isSubmitting}>
                       {isSubmitting ? (
                         <>
-                          <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                          <Spinner className="size-4 sm:size-5" />
                           <span className="text-sm sm:text-base">Creating Schedule...</span>
                         </>
                       ) : (
@@ -990,3 +992,5 @@ export default function NewResearchPage() {
     </div>
   )
 }
+
+export default withAuth(NewResearchPage)

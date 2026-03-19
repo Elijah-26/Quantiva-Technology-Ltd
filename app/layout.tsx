@@ -32,6 +32,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        {/* Global background effects (marketing + dashboard) */}
+        <div className="starfield" />
+        <div className="aurora" />
+        <div className="noise-overlay" />
+
         <AuthProvider>
           {children}
           <Toaster richColors position="top-right" />

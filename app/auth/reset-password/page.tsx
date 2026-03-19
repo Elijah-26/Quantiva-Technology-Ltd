@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { Eye, EyeOff, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, CheckCircle2, XCircle } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
 
 type ResetMode = 'validating' | 'session' | 'error'
 
@@ -117,7 +118,7 @@ function ResetPasswordForm() {
         <Card className="w-full max-w-md mx-4">
           <CardContent className="pt-6">
             <div className="flex flex-col items-center justify-center py-8">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-4" />
+              <Spinner className="size-8 text-blue-600 mb-4" />
               <p className="text-gray-600">Validating reset link...</p>
             </div>
           </CardContent>
@@ -210,7 +211,14 @@ function ResetPasswordForm() {
                 </div>
               )}
               <Button type="submit" className="w-full h-11" size="lg" disabled={loading || !Object.values(passwordValidation).every(v => v)}>
-                {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Resetting...</> : 'Reset Password'}
+                {loading ? (
+                  <>
+                    <Spinner className="size-4 text-blue-600 mr-2" />
+                    Resetting...
+                  </>
+                ) : (
+                  'Reset Password'
+                )}
               </Button>
             </form>
             <div className="mt-6 text-center">
@@ -227,7 +235,7 @@ export default function ResetPasswordPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Card className="w-full max-w-md mx-4"><CardContent className="pt-6"><div className="flex flex-col items-center py-8"><Loader2 className="w-8 h-8 animate-spin mb-4" /><p className="text-gray-600">Loading...</p></div></CardContent></Card>
+        <Card className="w-full max-w-md mx-4"><CardContent className="pt-6"><div className="flex flex-col items-center py-8"><Spinner className="size-8 text-blue-600 mb-4" /><p className="text-gray-600">Loading...</p></div></CardContent></Card>
       </div>
     }>
       <ResetPasswordForm />

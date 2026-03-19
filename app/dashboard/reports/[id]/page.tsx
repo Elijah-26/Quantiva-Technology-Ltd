@@ -17,6 +17,8 @@ import {
   Mail
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Spinner } from '@/components/ui/spinner'
+import { withAuth } from '@/lib/auth/protected-route'
 
 interface Report {
   id: string
@@ -36,7 +38,7 @@ interface Report {
   createdAt?: string
 }
 
-export default function ReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
+function ReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const [report, setReport] = useState<Report | null>(null)
   const [loading, setLoading] = useState(true)
@@ -109,7 +111,10 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
       <div className="p-8">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-center h-64">
-            <div className="text-gray-500">Loading report...</div>
+            <div className="flex items-center gap-3 text-gray-500">
+              <Spinner className="size-6 text-blue-600" />
+              <span>Loading report...</span>
+            </div>
           </div>
         </div>
       </div>
@@ -245,3 +250,5 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
     </div>
   )
 }
+
+export default withAuth(ReportDetailPage)

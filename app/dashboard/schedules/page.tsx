@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Calendar, Clock, MapPin, Mail, Trash2, Play, Pause, Plus, RefreshCw, TrendingUp, Repeat, BarChart } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { Spinner } from '@/components/ui/spinner'
 import {
   Dialog,
   DialogContent,
@@ -15,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { withAuth } from '@/lib/auth/protected-route'
 
 interface SupabaseSchedule {
   id: string
@@ -35,7 +37,7 @@ interface SupabaseSchedule {
   updated_at: string
 }
 
-export default function SchedulesPage() {
+function SchedulesPage() {
   const [schedules, setSchedules] = useState<SupabaseSchedule[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; schedule: SupabaseSchedule | null }>({
@@ -127,7 +129,10 @@ export default function SchedulesPage() {
     return (
       <div className="p-8">
         <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Loading schedules...</div>
+          <div className="flex items-center gap-3 text-gray-500">
+            <Spinner className="size-6 text-blue-600" />
+            <span>Loading schedules...</span>
+          </div>
         </div>
       </div>
     )
@@ -154,7 +159,11 @@ export default function SchedulesPage() {
             disabled={isLoading}
             className="min-h-[44px] min-w-[44px] flex-shrink-0"
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? (
+              <Spinner className="size-4" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
           </Button>
           <Link href="/dashboard/new-research" className="flex-1 sm:flex-initial">
             <Button className="gap-2 w-full min-h-[44px]">
@@ -382,6 +391,8 @@ export default function SchedulesPage() {
     </div>
   )
 }
+
+export default withAuth(SchedulesPage)
 
 function ScheduleCard({ 
   schedule, 

@@ -19,7 +19,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Loader2, Mail, CheckCircle2 } from 'lucide-react'
+import { Mail, CheckCircle2 } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
 
 function LoginForm() {
   const router = useRouter()
@@ -147,7 +148,7 @@ function LoginForm() {
   return (
     <div className="flex min-h-screen flex-col">
       {/* Header */}
-      <header className="border-b bg-white">
+      <header className="border-b border-white/10 bg-white/5 backdrop-blur-xl">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
@@ -168,23 +169,23 @@ function LoginForm() {
       </header>
 
       {/* Login Form */}
-      <main className="flex-1 flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <Card className="w-full max-w-md shadow-lg">
+      <main className="flex-1 flex items-center justify-center bg-[#05060B] py-12 px-4 sm:px-6 lg:px-8">
+        <Card className="w-full max-w-md shadow-lg glass-card-strong text-white border-white/10 bg-white/5">
           <CardHeader className="space-y-1 pb-6">
             <CardTitle className="text-2xl font-bold text-center">Welcome back</CardTitle>
-            <CardDescription className="text-center text-base">
+            <CardDescription className="text-center text-base text-gray-300">
               Sign in to your account to continue
             </CardDescription>
           </CardHeader>
           <CardContent>
             {successMessage && (
-              <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
+              <div className="mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-200 text-sm">
                 {successMessage}
               </div>
             )}
 
             {error && (
-              <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+              <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-200 text-sm">
                 {error}
               </div>
             )}
@@ -199,7 +200,7 @@ function LoginForm() {
                   placeholder="name@example.com"
                   required
                   disabled={loading}
-                  className="h-11"
+                  className="h-11 bg-white/5 border-white/10 text-white placeholder:text-gray-500"
                 />
               </div>
               
@@ -225,7 +226,7 @@ function LoginForm() {
                   placeholder="Enter your password"
                   required
                   disabled={loading}
-                  className="h-11"
+                  className="h-11 bg-white/5 border-white/10 text-white placeholder:text-gray-500"
                 />
               </div>
 
@@ -258,7 +259,7 @@ function LoginForm() {
             <div className="text-center text-sm text-muted-foreground">
               Don't have an account?{' '}
               <Link 
-                href="/pricing" 
+                href="/signup" 
                 className="text-blue-600 hover:text-blue-700 font-medium hover:underline"
               >
                 Sign up
@@ -318,7 +319,7 @@ function LoginForm() {
                       }
                     }}
                     disabled={resetLoading}
-                    className="h-11"
+                    className="h-11 bg-white/5 border-white/10 text-white placeholder:text-gray-500"
                   />
                 </div>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -347,7 +348,7 @@ function LoginForm() {
                 >
                   {resetLoading ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <Spinner className="size-4 text-blue-600 mr-2" />
                       Sending...
                     </>
                   ) : (
@@ -373,7 +374,7 @@ export default function LoginPage() {
   return (
     <Suspense fallback={
       <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <Spinner className="size-12 text-blue-600" />
       </div>
     }>
       <LoginForm />

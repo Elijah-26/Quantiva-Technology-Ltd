@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useAuth } from '@/lib/auth/auth-context'
+import { Spinner } from '@/components/ui/spinner'
 
 function SignUpForm() {
   const router = useRouter()
@@ -69,7 +70,7 @@ function SignUpForm() {
   return (
     <div className="flex min-h-screen flex-col">
       {/* Header */}
-      <header className="border-b bg-white">
+      <header className="border-b border-white/10 bg-white/5 backdrop-blur-xl">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
@@ -90,28 +91,28 @@ function SignUpForm() {
       </header>
 
       {/* Sign Up Form */}
-      <main className="flex-1 flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <Card className="w-full max-w-md shadow-lg">
+      <main className="flex-1 flex items-center justify-center bg-[#05060B] py-12 px-4 sm:px-6 lg:px-8">
+        <Card className="w-full max-w-md shadow-lg glass-card-strong text-white border-white/10 bg-white/5">
           <CardHeader className="space-y-1 pb-6">
             {fromCheckout && (
-              <div className="mb-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm text-center">
+              <div className="mb-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-200 text-sm text-center">
                 Payment successful! Complete your account below to get started.
               </div>
             )}
             <CardTitle className="text-2xl font-bold text-center">Create your account</CardTitle>
-            <CardDescription className="text-center text-base">
+            <CardDescription className="text-center text-base text-gray-300">
               {fromCheckout ? 'Set up your Quantiva account' : 'Start your free account and get market insights today'}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {error && (
-              <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+              <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-200 text-sm">
                 {error}
               </div>
             )}
 
             {success && (
-              <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
+              <div className="mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-200 text-sm">
                 Check your email for a confirmation code. Redirecting to confirm...
               </div>
             )}
@@ -126,7 +127,7 @@ function SignUpForm() {
                   placeholder="John Doe"
                   required
                   disabled={loading || success}
-                  className="h-11"
+                  className="h-11 bg-white/5 border-white/10 text-white placeholder:text-gray-500"
                 />
               </div>
 
@@ -139,7 +140,7 @@ function SignUpForm() {
                   placeholder="name@example.com"
                   required
                   disabled={loading || success}
-                  className="h-11"
+                  className="h-11 bg-white/5 border-white/10 text-white placeholder:text-gray-500"
                 />
               </div>
 
@@ -151,7 +152,7 @@ function SignUpForm() {
                   type="text"
                   placeholder="Your Company Inc."
                   disabled={loading || success}
-                  className="h-11"
+                  className="h-11 bg-white/5 border-white/10 text-white placeholder:text-gray-500"
                 />
               </div>
               
@@ -164,7 +165,7 @@ function SignUpForm() {
                   placeholder="Create a strong password (min 6 characters)"
                   required
                   disabled={loading || success}
-                  className="h-11"
+                  className="h-11 bg-white/5 border-white/10 text-white placeholder:text-gray-500"
                 />
               </div>
 
@@ -177,7 +178,7 @@ function SignUpForm() {
                   placeholder="Confirm your password"
                   required
                   disabled={loading || success}
-                  className="h-11"
+                  className="h-11 bg-white/5 border-white/10 text-white placeholder:text-gray-500"
                 />
               </div>
 
@@ -234,7 +235,7 @@ export default function SignUpPage() {
   return (
     <Suspense fallback={
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" />
+        <Spinner className="size-8 text-blue-600" />
       </div>
     }>
       <SignUpForm />
