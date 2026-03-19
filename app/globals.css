@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -44,6 +46,8 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+  /* Landing (updated_ui) */
+  --color-navy-900: #05060b;
 }
 
 :root {
@@ -121,6 +125,17 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  .font-heading {
+    font-family: "Sora", ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.02em;
   }
 }
 
@@ -253,5 +268,39 @@
       radial-gradient(ellipse 80% 50% at 20% 40%, rgba(79, 70, 229, 0.08) 0%, transparent 50%),
       radial-gradient(ellipse 60% 40% at 80% 60%, rgba(79, 70, 229, 0.05) 0%, transparent 50%),
       radial-gradient(ellipse 50% 30% at 50% 80%, rgba(79, 70, 229, 0.06) 0%, transparent 50%);
+  }
+
+  .accent-glow {
+    box-shadow:
+      0 0 80px rgba(79, 70, 229, 0.35),
+      0 0 160px rgba(79, 70, 229, 0.15);
+  }
+
+  .animate-float {
+    animation: quantiva-float 6s ease-in-out infinite;
+  }
+
+  @keyframes quantiva-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+}
+
+/* Landing page extras (from updated_ui App.css) */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float {
+    animation: none !important;
+  }
+  html {
+    scroll-behavior: auto;
   }
 }

@@ -32,20 +32,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
-      // #region agent log
-      fetch('http://127.0.0.1:7371/ingest/c76e0e12-c27c-47d5-8135-e7618f6d8d7c', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '72ed28' },
-        body: JSON.stringify({
-          sessionId: '72ed28',
-          hypothesisId: 'H2',
-          location: 'auth-context.tsx:getSession',
-          message: 'auth_session_resolved',
-          data: { hasSession: Boolean(session) },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {})
-      // #endregion
     })
 
     // Listen for auth changes
