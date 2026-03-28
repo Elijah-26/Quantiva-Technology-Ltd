@@ -161,21 +161,31 @@ const sections = [
 
 export default function DemoHubPage() {
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10">
-      <div className="mb-8">
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <div className="mb-8 rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/80 to-white p-6 shadow-sm sm:p-8">
         <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-          Product demos
+          Quantiva product demos
         </h1>
-        <p className="mt-2 text-gray-600">
-          Everything below uses dummy data for client walkthroughs. Use the live
-          app sidebar &quot;Product demos&quot; anytime to return here.
+        <p className="mt-2 max-w-2xl text-gray-600">
+          Use the <strong className="font-medium text-gray-800">left menu</strong> to open
+          the full user app, admin, auth flows, and tools — the same layouts as production,
+          with dummy data only. This page is a shortcut grid; the menu is the primary way to
+          explore.
         </p>
-        <Button asChild variant="outline" className="mt-4">
-          <Link href="/dashboard">
-            <ExternalLink className="size-4" />
-            Back to live dashboard
-          </Link>
-        </Button>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Button asChild size="lg" className="bg-indigo-600 hover:bg-indigo-700">
+            <Link href="/demo/ai/dashboard">Open user app (dashboard)</Link>
+          </Button>
+          <Button asChild variant="outline" size="lg">
+            <Link href="/demo/ai/admin">Open admin demo</Link>
+          </Button>
+          <Button asChild variant="outline" size="lg">
+            <Link href="/dashboard">
+              <ExternalLink className="size-4" />
+              Live dashboard
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
