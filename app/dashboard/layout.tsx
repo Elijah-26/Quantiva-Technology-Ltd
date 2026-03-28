@@ -18,6 +18,7 @@ import {
   Menu,
   X,
   User,
+  LayoutGrid,
   Mail,
   Lock,
   Shield,
@@ -61,6 +62,12 @@ const baseNavigation = [
     name: 'Regulatory Guardrail',
     href: '/dashboard/regulatory-guardrail',
     icon: Shield,
+    adminOnly: false,
+  },
+  {
+    name: 'Product demos',
+    href: '/demo',
+    icon: LayoutGrid,
     adminOnly: false,
   },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings, adminOnly: true },
@@ -165,7 +172,10 @@ export default function DashboardLayout({
       {/* Navigation */}
       <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
         {navigation.map((item) => {
-          const isActive = pathname === item.href
+          const isActive =
+            item.href === '/demo'
+              ? pathname === '/demo' || pathname.startsWith('/demo/')
+              : pathname === item.href || pathname.startsWith(`${item.href}/`)
           const Icon = item.icon
           
           return (

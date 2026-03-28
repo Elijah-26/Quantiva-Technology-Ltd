@@ -1,0 +1,499 @@
+{
+  "ruleset_id": "FCA",
+  "ruleset_name": "Financial Conduct Authority (UK)",
+  "version": "1.0.0",
+  "last_updated": "2026-03-26",
+  "description": "FCA financial promotion rules for investment communications",
+  "source_url": "https://www.fca.org.uk/publication/corporate/fg15-4.pdf",
+  "disclaimer": "This is a flag for review, not a compliance verdict. Consult a qualified compliance advisor for definitive guidance.",
+  "rules": [
+    {
+      "rule_id": "FCA-001",
+      "regulatory_body": "FCA",
+      "rule_title": "Guaranteed Returns Prohibition",
+      "rule_text": "Financial promotions must not state or imply that an investment is guaranteed or that returns are certain.",
+      "trigger_patterns": [
+        "guaranteed return",
+        "guaranteed returns",
+        "guaranteed profit",
+        "guaranteed profits",
+        "guaranteed income",
+        "no risk of loss",
+        "risk-free return",
+        "risk free return",
+        "100% safe",
+        "completely safe",
+        "absolutely safe",
+        "cannot lose",
+        "won't lose",
+        "no way to lose"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "violation",
+      "explanation_template": "The phrase '{phrase}' suggests guaranteed returns, which is prohibited by FCA rules. All investments carry risk and returns cannot be guaranteed.",
+      "source_url": "https://www.fca.org.uk/publication/corporate/fg15-4.pdf",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-002",
+      "regulatory_body": "FCA",
+      "rule_title": "Past Performance Without Disclaimer",
+      "rule_text": "References to past performance must include a clear disclaimer that past performance is not indicative of future results.",
+      "trigger_patterns": [
+        "past performance",
+        "historical returns",
+        "previous performance",
+        "track record",
+        "performed well",
+        "outperformed",
+        "beat the market"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "warning",
+      "explanation_template": "References to past performance like '{phrase}' require a disclaimer stating that past performance is not indicative of future results.",
+      "source_url": "https://www.fca.org.uk/publication/corporate/fg15-4.pdf",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-003",
+      "regulatory_body": "FCA",
+      "rule_title": "Unregulated Collective Investment Scheme",
+      "rule_text": "Promotions must not refer to unregulated collective investment schemes without appropriate warnings.",
+      "trigger_patterns": [
+        "collective investment",
+        "pooled investment",
+        "group investment",
+        "investment pool",
+        "fund of funds"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "advisory",
+      "explanation_template": "Mention of '{phrase}' may relate to collective investment schemes. Verify the scheme is appropriately regulated and include required warnings.",
+      "source_url": "https://www.fca.org.uk/publication/corporate/cobs.pdf",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-004",
+      "regulatory_body": "FCA",
+      "rule_title": "Misleading Comparison",
+      "rule_text": "Comparisons with other investments must be fair, balanced, and not misleading.",
+      "trigger_patterns": [
+        "better than",
+        "superior to",
+        "beats",
+        "outperforms",
+        "higher returns than",
+        "more profitable than",
+        "unlike other investments"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "warning",
+      "explanation_template": "The comparison '{phrase}' must be fair, balanced, and substantiated. Unsubstantiated comparisons may be misleading.",
+      "source_url": "https://www.fca.org.uk/publication/corporate/fg15-4.pdf",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-005",
+      "regulatory_body": "FCA",
+      "rule_title": "Missing Risk Warning",
+      "rule_text": "All investment promotions must include appropriate risk warnings.",
+      "trigger_patterns": [
+        "investment opportunity",
+        "invest now",
+        "invest today",
+        "high return",
+        "high returns",
+        "lucrative opportunity",
+        "excellent opportunity"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "warning",
+      "explanation_template": "The phrase '{phrase}' suggests an investment opportunity. Ensure appropriate risk warnings are included in the communication.",
+      "source_url": "https://www.fca.org.uk/publication/corporate/fg15-4.pdf",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-006",
+      "regulatory_body": "FCA",
+      "rule_title": "Tax Benefits Without Context",
+      "rule_text": "References to tax benefits must include context about individual circumstances and potential changes to tax law.",
+      "trigger_patterns": [
+        "tax free",
+        "tax-free",
+        "tax efficient",
+        "tax-efficient",
+        "no tax",
+        "avoid tax",
+        "tax savings",
+        "tax benefit"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "warning",
+      "explanation_template": "Tax-related claims like '{phrase}' must include context that tax treatment depends on individual circumstances and may change.",
+      "source_url": "https://www.fca.org.uk/publication/corporate/fg15-4.pdf",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-007",
+      "regulatory_body": "FCA",
+      "rule_title": "Urgency Pressure Tactics",
+      "rule_text": "Promotions must not create false urgency or pressure to invest quickly.",
+      "trigger_patterns": [
+        "act now",
+        "limited time",
+        "urgent",
+        "don't miss out",
+        "last chance",
+        "only a few left",
+        "time is running out",
+        "offer expires",
+        "closing soon"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "warning",
+      "explanation_template": "Urgency language like '{phrase}' may create inappropriate pressure. Ensure any time limits are genuine and clearly explained.",
+      "source_url": "https://www.fca.org.uk/publication/corporate/fg15-4.pdf",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-008",
+      "regulatory_body": "FCA",
+      "rule_title": "Get Rich Quick Claims",
+      "rule_text": "Promotions must not suggest that wealth can be achieved quickly or easily.",
+      "trigger_patterns": [
+        "get rich",
+        "get wealthy",
+        "make millions",
+        "financial freedom",
+        "quit your job",
+        "retire early",
+        "passive income",
+        "easy money"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "violation",
+      "explanation_template": "Claims like '{phrase}' suggesting easy wealth creation are prohibited. Investment requires time, knowledge, and carries risk.",
+      "source_url": "https://www.fca.org.uk/publication/corporate/fg15-4.pdf",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-009",
+      "regulatory_body": "FCA",
+      "rule_title": "Unauthorised Investment Advice",
+      "rule_text": "Only authorised persons may give investment advice. Promotions must not constitute regulated advice.",
+      "trigger_patterns": [
+        "you should invest",
+        "I recommend",
+        "my advice is",
+        "investment advice",
+        "financial advice"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "violation",
+      "explanation_template": "The phrase '{phrase}' may constitute regulated investment advice. Only authorised advisers may provide investment advice.",
+      "source_url": "https://www.fca.org.uk/publication/corporate/perg.pdf",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-010",
+      "regulatory_body": "FCA",
+      "rule_title": "Inflated Return Projections",
+      "rule_text": "Return projections must be realistic, based on reasonable assumptions, and include downside scenarios.",
+      "trigger_patterns": [
+        "up to",
+        "as much as",
+        "potential return",
+        "could return",
+        "expected return",
+        "projected return"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "advisory",
+      "explanation_template": "Return projections like '{phrase}' must be realistic, based on reasonable assumptions, and include downside scenarios.",
+      "source_url": "https://www.fca.org.uk/publication/corporate/fg15-4.pdf",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-011",
+      "regulatory_body": "FCA",
+      "rule_title": "Celebrity Endorsement Without Disclosure",
+      "rule_text": "Celebrity endorsements must include clear disclosure of any commercial relationship.",
+      "trigger_patterns": [
+        "celebrity",
+        "famous",
+        "influencer",
+        "endorsed by",
+        "as seen on"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "advisory",
+      "explanation_template": "Celebrity or influencer references like '{phrase}' require clear disclosure of any commercial relationship.",
+      "source_url": "https://www.fca.org.uk/publication/corporate/fg15-4.pdf",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-012",
+      "regulatory_body": "FCA",
+      "rule_title": "Complex Product Without Explanation",
+      "rule_text": "Complex financial products must be explained in clear, understandable terms.",
+      "trigger_patterns": [
+        "derivative",
+        "structured product",
+        "leveraged",
+        "CFD",
+        "spread betting",
+        "binary option",
+        "complex instrument"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "warning",
+      "explanation_template": "Complex products like '{phrase}' must be explained in clear, understandable terms with appropriate risk warnings.",
+      "source_url": "https://www.fca.org.uk/publication/corporate/cobs.pdf",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-013",
+      "regulatory_body": "FCA",
+      "rule_title": "FCA Authorisation Claims",
+      "rule_text": "Claims of FCA authorisation must be accurate and not misleading.",
+      "trigger_patterns": [
+        "FCA authorised",
+        "FCA authorized",
+        "FCA regulated",
+        "FCA approved",
+        "authorised by the FCA",
+        "regulated by the FCA"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "violation",
+      "explanation_template": "Claims of FCA authorisation like '{phrase}' must be accurate. Only make such claims if genuinely authorised.",
+      "source_url": "https://www.fca.org.uk/firms/authorisation",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-014",
+      "regulatory_body": "FCA",
+      "rule_title": "Testimonials Without Verification",
+      "rule_text": "Customer testimonials must be genuine, verifiable, and representative.",
+      "trigger_patterns": [
+        "amazing results",
+        "life changing",
+        "changed my life",
+        "best investment",
+        "highly recommend"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "advisory",
+      "explanation_template": "Testimonials like '{phrase}' must be genuine, verifiable, and representative of typical customer experience.",
+      "source_url": "https://www.fca.org.uk/publication/corporate/fg15-4.pdf",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-015",
+      "regulatory_body": "FCA",
+      "rule_title": "Minimum Investment Amount Disclosure",
+      "rule_text": "Minimum investment amounts must be clearly stated.",
+      "trigger_patterns": [
+        "minimum investment",
+        "minimum deposit",
+        "minimum contribution"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "advisory",
+      "explanation_template": "When mentioning '{phrase}', ensure the specific amount is clearly stated nearby.",
+      "source_url": "https://www.fca.org.uk/publication/corporate/cobs.pdf",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-016",
+      "regulatory_body": "FCA",
+      "rule_title": "Fee and Charge Disclosure",
+      "rule_text": "All fees and charges must be clearly disclosed.",
+      "trigger_patterns": [
+        "no fees",
+        "zero fees",
+        "free of charge",
+        "no commission",
+        "low fees"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "warning",
+      "explanation_template": "Claims like '{phrase}' must be accurate. All fees and charges must be clearly disclosed, including any hidden costs.",
+      "source_url": "https://www.fca.org.uk/publication/corporate/cobs.pdf",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-017",
+      "regulatory_body": "FCA",
+      "rule_title": "Cooling Off Period Information",
+      "rule_text": "Information about cooling off periods must be provided where applicable.",
+      "trigger_patterns": [
+        "cooling off",
+        "cooling-off",
+        "cancellation period",
+        "right to cancel"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "advisory",
+      "explanation_template": "When mentioning '{phrase}', ensure full details of the cooling off period are provided.",
+      "source_url": "https://www.fca.org.uk/publication/corporate/cobs.pdf",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-018",
+      "regulatory_body": "FCA",
+      "rule_title": "Pension Transfer Warnings",
+      "rule_text": "Pension transfers require specific warnings and may require advice.",
+      "trigger_patterns": [
+        "pension transfer",
+        "transfer your pension",
+        "pension release",
+        "access your pension"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "violation",
+      "explanation_template": "Pension-related content like '{phrase}' requires specific warnings. Pension transfers may require regulated advice.",
+      "source_url": "https://www.fca.org.uk/publication/corporate/fg15-4.pdf",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-019",
+      "regulatory_body": "FCA",
+      "rule_title": "Cryptoasset Risk Warnings",
+      "rule_text": "Cryptoasset promotions must include specific risk warnings.",
+      "trigger_patterns": [
+        "cryptocurrency",
+        "crypto",
+        "bitcoin",
+        "ethereum",
+        "digital asset",
+        "blockchain investment"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "warning",
+      "explanation_template": "Cryptoasset references like '{phrase}' require specific risk warnings about volatility and potential for total loss.",
+      "source_url": "https://www.fca.org.uk/publication/corporate/ps23-11.pdf",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-020",
+      "regulatory_body": "FCA",
+      "rule_title": "Suitability Assessment Reference",
+      "rule_text": "References to suitability assessments must be accurate.",
+      "trigger_patterns": [
+        "suitable for you",
+        "right for you",
+        "meets your needs",
+        "matches your profile"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "warning",
+      "explanation_template": "Claims like '{phrase}' require a proper suitability assessment. Do not make such claims without assessment.",
+      "source_url": "https://www.fca.org.uk/publication/corporate/cobs.pdf",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-021",
+      "regulatory_body": "FCA",
+      "rule_title": "Capital At Risk Warning",
+      "rule_text": "All investment promotions must state that capital is at risk.",
+      "trigger_patterns": [
+        "invest",
+        "investment",
+        "investing"
+      ],
+      "trigger_type": "regex",
+      "severity": "advisory",
+      "explanation_template": "Investment references like '{phrase}' should be accompanied by a clear statement that capital is at risk.",
+      "source_url": "https://www.fca.org.uk/publication/corporate/fg15-4.pdf",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-022",
+      "regulatory_body": "FCA",
+      "rule_title": "Professional Investor Only Products",
+      "rule_text": "Products for professional/qualified investors only must be clearly marked.",
+      "trigger_patterns": [
+        "professional investor",
+        "qualified investor",
+        "sophisticated investor",
+        "high net worth"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "warning",
+      "explanation_template": "References to '{phrase}' must clearly indicate if the product is restricted to such investors only.",
+      "source_url": "https://www.fca.org.uk/publication/corporate/cobs.pdf",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-023",
+      "regulatory_body": "FCA",
+      "rule_title": "Anti-Money Laundering Reference",
+      "rule_text": "AML checks must be mentioned where required.",
+      "trigger_patterns": [
+        "no KYC",
+        "no verification",
+        "anonymous investment"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "violation",
+      "explanation_template": "Claims like '{phrase}' suggesting no verification are serious compliance concerns. AML checks are mandatory.",
+      "source_url": "https://www.fca.org.uk/firms/aml",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-024",
+      "regulatory_body": "FCA",
+      "rule_title": "Insider Information Claims",
+      "rule_text": "Claims of insider information or special knowledge are prohibited.",
+      "trigger_patterns": [
+        "insider information",
+        "inside information",
+        "confidential tip",
+        "exclusive information",
+        "not yet public"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "violation",
+      "explanation_template": "References to '{phrase}' are serious compliance violations. Insider trading is illegal.",
+      "source_url": "https://www.fca.org.uk/markets/market-abuse",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-025",
+      "regulatory_body": "FCA",
+      "rule_title": "Market Timing Claims",
+      "rule_text": "Claims about perfect market timing are misleading.",
+      "trigger_patterns": [
+        "perfect time",
+        "right time to buy",
+        "market bottom",
+        "can't lose",
+        "sure thing"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "warning",
+      "explanation_template": "Claims like '{phrase}' about market timing are misleading. No one can predict market movements with certainty.",
+      "source_url": "https://www.fca.org.uk/publication/corporate/fg15-4.pdf",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "FCA-026",
+      "regulatory_body": "FCA",
+      "rule_title": "Regulatory Status Misrepresentation",
+      "rule_text": "The firm's regulatory status must not be misrepresented.",
+      "trigger_patterns": [
+        "fully regulated",
+        "fully authorised",
+        "fully licensed",
+        "government backed",
+        "government approved"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "violation",
+      "explanation_template": "Claims like '{phrase}' must be accurate. Do not overstate regulatory protections or approvals.",
+      "source_url": "https://www.fca.org.uk/publication/corporate/fg15-4.pdf",
+      "last_updated": "2026-03-26"
+    }
+  ]
+}

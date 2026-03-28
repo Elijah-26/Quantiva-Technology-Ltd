@@ -1,0 +1,298 @@
+{
+  "ruleset_id": "CQC",
+  "ruleset_name": "Care Quality Commission (UK)",
+  "version": "1.0.0",
+  "last_updated": "2026-03-26",
+  "description": "CQC regulations for health and social care communications",
+  "source_url": "https://www.cqc.org.uk/guidance-providers",
+  "disclaimer": "This is a flag for review, not a compliance verdict. Consult a qualified compliance advisor for definitive guidance.",
+  "rules": [
+    {
+      "rule_id": "CQC-001",
+      "regulatory_body": "CQC",
+      "rule_title": "Unsubstantiated Health Outcome Claims",
+      "rule_text": "Claims about health outcomes must be evidence-based and not misleading.",
+      "trigger_patterns": [
+        "guaranteed cure",
+        "guaranteed recovery",
+        "100% effective",
+        "always works",
+        "never fails",
+        "complete cure",
+        "total recovery"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "violation",
+      "explanation_template": "Claims like '{phrase}' about guaranteed health outcomes must be supported by robust evidence. Individual results vary.",
+      "source_url": "https://www.cqc.org.uk/guidance-providers/regulations-enforcement",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "CQC-002",
+      "regulatory_body": "CQC",
+      "rule_title": "Unregistered Medical Advice",
+      "rule_text": "Only registered healthcare professionals may provide medical advice.",
+      "trigger_patterns": [
+        "you should take",
+        "I recommend this medication",
+        "prescribe",
+        "diagnose",
+        "medical advice",
+        "health advice",
+        "treatment plan"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "violation",
+      "explanation_template": "The phrase '{phrase}' may constitute medical advice. Only registered healthcare professionals should provide medical advice.",
+      "source_url": "https://www.cqc.org.uk/guidance-providers/regulations-enforcement",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "CQC-003",
+      "regulatory_body": "CQC",
+      "rule_title": "Patient Confidentiality Breach",
+      "rule_text": "Patient information must be kept confidential and not disclosed without consent.",
+      "trigger_patterns": [
+        "patient name",
+        "client name",
+        "resident name",
+        "NHS number",
+        "medical record",
+        "health record",
+        "personal health information"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "warning",
+      "explanation_template": "References to '{phrase}' may involve patient data. Ensure compliance with confidentiality requirements and GDPR.",
+      "source_url": "https://www.cqc.org.uk/guidance-providers/confidentiality",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "CQC-004",
+      "regulatory_body": "CQC",
+      "rule_title": "Miracle Cure Claims",
+      "rule_text": "Claims about miracle cures or breakthrough treatments must be substantiated.",
+      "trigger_patterns": [
+        "miracle cure",
+        "miracle treatment",
+        "breakthrough treatment",
+        "revolutionary cure",
+        "game changer",
+        "medical breakthrough"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "violation",
+      "explanation_template": "Claims like '{phrase}' must be substantiated by peer-reviewed evidence. Avoid sensational language.",
+      "source_url": "https://www.cqc.org.uk/guidance-providers/regulations-enforcement",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "CQC-005",
+      "regulatory_body": "CQC",
+      "rule_title": "Unqualified Staff Claims",
+      "rule_text": "Claims about staff qualifications must be accurate and verifiable.",
+      "trigger_patterns": [
+        "fully qualified",
+        "highly trained",
+        "expert care",
+        "specialist team",
+        "leading experts"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "warning",
+      "explanation_template": "Claims like '{phrase}' about staff must be accurate and verifiable. Maintain records of qualifications.",
+      "source_url": "https://www.cqc.org.uk/guidance-providers/regulations-enforcement",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "CQC-006",
+      "regulatory_body": "CQC",
+      "rule_title": "Safeguarding Reference Without Protocol",
+      "rule_text": "Safeguarding concerns must be handled according to proper protocols.",
+      "trigger_patterns": [
+        "safeguarding concern",
+        "vulnerable adult",
+        "at risk",
+        "safeguarding issue",
+        "protection concern"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "advisory",
+      "explanation_template": "References to '{phrase}' indicate safeguarding matters. Ensure proper protocols are followed and documented.",
+      "source_url": "https://www.cqc.org.uk/guidance-providers/safeguarding",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "CQC-007",
+      "regulatory_body": "CQC",
+      "rule_title": "Consent Requirements",
+      "rule_text": "Consent must be obtained and documented for treatments and data sharing.",
+      "trigger_patterns": [
+        "without consent",
+        "no consent needed",
+        "implied consent",
+        "verbal consent"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "warning",
+      "explanation_template": "References to '{phrase}' require careful consideration. Proper consent procedures must be followed and documented.",
+      "source_url": "https://www.cqc.org.uk/guidance-providers/consent",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "CQC-008",
+      "regulatory_body": "CQC",
+      "rule_title": "Medication Management Claims",
+      "rule_text": "Claims about medication management must be accurate and within scope of practice.",
+      "trigger_patterns": [
+        "medication error",
+        "wrong dose",
+        "missed medication",
+        "medication incident"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "advisory",
+      "explanation_template": "References to '{phrase}' indicate medication issues. Ensure proper incident reporting and documentation.",
+      "source_url": "https://www.cqc.org.uk/guidance-providers/medicines",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "CQC-009",
+      "regulatory_body": "CQC",
+      "rule_title": "Dignity and Respect Language",
+      "rule_text": "Communications must maintain dignity and respect for service users.",
+      "trigger_patterns": [
+        "difficult patient",
+        "problem resident",
+        "challenging behaviour",
+        "non-compliant"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "advisory",
+      "explanation_template": "Language like '{phrase}' may not reflect person-centred care principles. Use respectful, dignified language.",
+      "source_url": "https://www.cqc.org.uk/guidance-providers/dignity-respect",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "CQC-010",
+      "regulatory_body": "CQC",
+      "rule_title": "CQC Registration Claims",
+      "rule_text": "Claims of CQC registration must be accurate and up to date.",
+      "trigger_patterns": [
+        "CQC registered",
+        "CQC approved",
+        "CQC rated",
+        "inspected by CQC"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "warning",
+      "explanation_template": "Claims like '{phrase}' must be accurate and current. Registration status can be verified on the CQC website.",
+      "source_url": "https://www.cqc.org.uk/about-us/contact-us",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "CQC-011",
+      "regulatory_body": "CQC",
+      "rule_title": "Mental Capacity References",
+      "rule_text": "References to mental capacity must be handled sensitively and legally.",
+      "trigger_patterns": [
+        "lacks capacity",
+        "mental capacity",
+        "capacity assessment",
+        "best interest decision"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "advisory",
+      "explanation_template": "References to '{phrase}' involve Mental Capacity Act requirements. Ensure proper assessment and documentation.",
+      "source_url": "https://www.cqc.org.uk/guidance-providers/mental-capacity",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "CQC-012",
+      "regulatory_body": "CQC",
+      "rule_title": "Deprivation of Liberty References",
+      "rule_text": "Deprivation of Liberty Safeguards (DoLS) references require proper authorization.",
+      "trigger_patterns": [
+        "deprivation of liberty",
+        "DOLS",
+        "DoLS",
+        "restraint",
+        "restricts freedom"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "warning",
+      "explanation_template": "References to '{phrase}' involve DoLS requirements. Ensure proper authorization and regular review.",
+      "source_url": "https://www.cqc.org.uk/guidance-providers/deprivation-liberty",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "CQC-013",
+      "regulatory_body": "CQC",
+      "rule_title": "Whistleblowing Protection",
+      "rule_text": "Whistleblowing concerns must be handled according to proper procedures.",
+      "trigger_patterns": [
+        "whistleblowing",
+        "raised concerns",
+        "reported issue",
+        "internal complaint"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "advisory",
+      "explanation_template": "References to '{phrase}' indicate concerns have been raised. Ensure proper whistleblowing procedures are followed.",
+      "source_url": "https://www.cqc.org.uk/guidance-providers/whistleblowing",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "CQC-014",
+      "regulatory_body": "CQC",
+      "rule_title": "Infection Control Claims",
+      "rule_text": "Claims about infection control must be accurate and evidence-based.",
+      "trigger_patterns": [
+        "infection free",
+        "zero infections",
+        "no infections",
+        "completely sterile"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "warning",
+      "explanation_template": "Claims like '{phrase}' must be supported by evidence. Infection control requires continuous monitoring.",
+      "source_url": "https://www.cqc.org.uk/guidance-providers/infection-prevention",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "CQC-015",
+      "regulatory_body": "CQC",
+      "rule_title": "End of Life Care References",
+      "rule_text": "End of life care communications must be sensitive and appropriate.",
+      "trigger_patterns": [
+        "end of life",
+        "terminal care",
+        "palliative care",
+        "dying",
+        "death"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "advisory",
+      "explanation_template": "References to '{phrase}' require sensitive handling. Ensure appropriate training and support for staff.",
+      "source_url": "https://www.cqc.org.uk/guidance-providers/end-life-care",
+      "last_updated": "2026-03-26"
+    },
+    {
+      "rule_id": "CQC-016",
+      "regulatory_body": "CQC",
+      "rule_title": "Data Protection References",
+      "rule_text": "References to data handling must comply with GDPR and data protection laws.",
+      "trigger_patterns": [
+        "share data",
+        "data sharing",
+        "third party access",
+        "external sharing"
+      ],
+      "trigger_type": "exact_match",
+      "severity": "advisory",
+      "explanation_template": "References to '{phrase}' involve data protection requirements. Ensure GDPR compliance and proper data sharing agreements.",
+      "source_url": "https://www.cqc.org.uk/guidance-providers/data-protection",
+      "last_updated": "2026-03-26"
+    }
+  ]
+}
