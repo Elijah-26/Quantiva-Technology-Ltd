@@ -57,6 +57,12 @@ const baseNavigation = [
   { name: 'New Research', href: '/dashboard/new-research', icon: FileSearch, adminOnly: false },
   { name: 'Reports', href: '/dashboard/reports', icon: FileText, adminOnly: false },
   { name: 'Schedules', href: '/dashboard/schedules', icon: Calendar, adminOnly: false },
+  {
+    name: 'Regulatory Guardrail',
+    href: '/dashboard/regulatory-guardrail',
+    icon: Shield,
+    adminOnly: false,
+  },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings, adminOnly: true },
 ]
 
