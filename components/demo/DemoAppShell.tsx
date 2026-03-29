@@ -201,7 +201,7 @@ export function DemoAppShell({ children }: { children: React.ReactNode }) {
       <aside
         className={cn(
           'z-50 flex w-[min(280px,88vw)] shrink-0 flex-col border-r border-slate-200 bg-white shadow-lg transition-transform duration-200',
-          'fixed bottom-0 left-0 top-11 lg:static lg:top-auto lg:h-auto lg:w-64 lg:translate-x-0 lg:shadow-none',
+          'fixed bottom-0 left-0 top-0 lg:static lg:top-auto lg:h-auto lg:w-64 lg:translate-x-0 lg:shadow-none',
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
@@ -211,7 +211,7 @@ export function DemoAppShell({ children }: { children: React.ReactNode }) {
       {mobileOpen ? (
         <button
           type="button"
-          className="fixed bottom-0 left-0 right-0 top-11 z-40 bg-slate-900/40 lg:hidden"
+          className="fixed inset-0 z-40 bg-slate-900/40 lg:hidden"
           aria-label="Close menu overlay"
           onClick={() => setMobileOpen(false)}
         />
