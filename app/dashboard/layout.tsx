@@ -38,7 +38,6 @@ const sidebarLinks = [
   { href: '/dashboard/billing', label: 'Billing', icon: CreditCard },
   { href: '/dashboard/research', label: 'Research module', icon: Library },
   { href: '/dashboard/admin', label: 'Admin', icon: Shield },
-  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ]
 
 export default function DashboardLayout({
@@ -88,7 +87,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen flex bg-black text-white">
+    <div className="dark min-h-screen flex bg-black text-white">
       <motion.aside
         initial={{ width: 280 }}
         animate={{ width: isSidebarOpen ? 280 : 80 }}

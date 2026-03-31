@@ -42,7 +42,7 @@ export default function AdminLayout({
   const initial = (user?.email?.[0] ?? 'A').toUpperCase()
 
   return (
-    <div className="min-h-screen flex bg-black text-white">
+    <div className="dark min-h-screen flex bg-black text-white">
       <motion.aside
         initial={{ width: 280 }}
         animate={{ width: isSidebarOpen ? 280 : 80 }}
