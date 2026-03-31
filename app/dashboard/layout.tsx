@@ -81,20 +81,20 @@ export default function DashboardLayout({
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen bg-navy-900 text-white grid place-items-center">
+      <div className="min-h-screen bg-black text-white grid place-items-center">
         <p className="text-white/70">Loading...</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-black text-white">
       <motion.aside
         initial={{ width: 280 }}
         animate={{ width: isSidebarOpen ? 280 : 80 }}
         transition={{ duration: 0.3 }}
         className={cn(
-          'fixed left-0 top-0 h-full bg-navy-800/80 backdrop-blur-xl border-r border-white/5 z-40',
+          'fixed left-0 top-0 h-full bg-black/95 backdrop-blur-xl border-r border-white/5 z-40',
           !isSidebarOpen && 'items-center'
         )}
       >
@@ -139,11 +139,11 @@ export default function DashboardLayout({
 
       <div
         className={cn(
-          'flex-1 flex flex-col min-h-screen transition-all duration-300',
+          'flex-1 flex flex-col min-h-screen transition-all duration-300 bg-black',
           isSidebarOpen ? 'ml-[280px]' : 'ml-[80px]'
         )}
       >
-        <header className="h-16 flex items-center justify-between px-6 border-b border-white/5 bg-navy-900/50 backdrop-blur-xl sticky top-0 z-30">
+        <header className="h-16 flex items-center justify-between px-6 border-b border-white/5 bg-black/90 backdrop-blur-xl sticky top-0 z-30">
           <div className="flex-1 max-w-md">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
@@ -214,7 +214,7 @@ export default function DashboardLayout({
           </div>
         </header>
 
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-6 bg-black">{children}</main>
       </div>
     </div>
   )

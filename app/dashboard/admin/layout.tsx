@@ -42,12 +42,12 @@ export default function AdminLayout({
   const initial = (user?.email?.[0] ?? 'A').toUpperCase()
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-black text-white">
       <motion.aside
         initial={{ width: 280 }}
         animate={{ width: isSidebarOpen ? 280 : 80 }}
         transition={{ duration: 0.3 }}
-        className="fixed left-0 top-0 h-full bg-navy-900 border-r border-white/5 z-40"
+        className="fixed left-0 top-0 h-full bg-black border-r border-white/5 z-40"
       >
         <div className="h-16 flex items-center px-6 border-b border-white/5">
           <Link href="/dashboard/admin" className="flex items-center gap-3">
@@ -92,11 +92,11 @@ export default function AdminLayout({
 
       <div
         className={cn(
-          'flex-1 flex flex-col min-h-screen transition-all duration-300',
+          'flex-1 flex flex-col min-h-screen transition-all duration-300 bg-black',
           isSidebarOpen ? 'ml-[280px]' : 'ml-[80px]'
         )}
       >
-        <header className="h-16 flex items-center justify-between px-6 border-b border-white/5 bg-navy-900 sticky top-0 z-30">
+        <header className="h-16 flex items-center justify-between px-6 border-b border-white/5 bg-black sticky top-0 z-30">
           <h1 className="text-xl font-semibold text-white">Admin Panel</h1>
           <div className="flex items-center gap-3">
             <Avatar className="w-8 h-8">
@@ -110,7 +110,7 @@ export default function AdminLayout({
           </div>
         </header>
 
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-6 bg-black">{children}</main>
       </div>
     </div>
   )
