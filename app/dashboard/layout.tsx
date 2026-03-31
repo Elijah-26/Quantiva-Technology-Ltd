@@ -86,6 +86,11 @@ export default function DashboardLayout({
     )
   }
 
+  // Admin routes render their own full shell; avoid double sidebars/headers.
+  if (pathname.startsWith('/dashboard/admin')) {
+    return <div className="dark min-h-screen bg-black text-white">{children}</div>
+  }
+
   return (
     <div className="dark min-h-screen flex bg-black text-white">
       <motion.aside

@@ -11,15 +11,13 @@ import {
   FileText,
   Settings,
   BarChart3,
-  ChevronDown,
   Menu,
   X,
   ClipboardList,
   Library,
+  ArrowLeft,
 } from 'lucide-react'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
-import { useAuth } from '@/lib/auth/auth-context'
 
 const sidebarLinks = [
   { href: '/dashboard/admin', label: 'Dashboard', icon: LayoutDashboard },
@@ -38,8 +36,6 @@ export default function AdminLayout({
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const pathname = usePathname()
-  const { user } = useAuth()
-  const initial = (user?.email?.[0] ?? 'A').toUpperCase()
 
   return (
     <div className="dark min-h-screen flex bg-black text-white">
@@ -98,16 +94,13 @@ export default function AdminLayout({
       >
         <header className="h-16 flex items-center justify-between px-6 border-b border-white/5 bg-black sticky top-0 z-30">
           <h1 className="text-xl font-semibold text-white">Admin Panel</h1>
-          <div className="flex items-center gap-3">
-            <Avatar className="w-8 h-8">
-              <AvatarFallback className="bg-rose-500/20 text-rose-400 text-sm">{initial}</AvatarFallback>
-            </Avatar>
-            <div className="text-left">
-              <p className="text-sm font-medium text-white">Admin User</p>
-              <p className="text-xs text-white/50">Super Admin</p>
-            </div>
-            <ChevronDown className="w-4 h-4 text-white/40" />
-          </div>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-white/80 hover:bg-white/5 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to dashboard
+          </Link>
         </header>
 
         <main className="flex-1 p-6 bg-black">{children}</main>
