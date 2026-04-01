@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { supabaseAdmin } from '@/lib/supabase/server'
+import { recordAuditEvent } from '@/lib/audit'
 
 /** Save a library template into the user's workspace. */
 export async function POST(request: NextRequest) {
@@ -73,6 +75,14 @@ export async function POST(request: NextRequest) {
     if (insErr) {
       return NextResponse.json({ error: insErr.message }, { status: 500 })
     }
+
+    await recordAuditEvent(supabaseAdmin, {
+      actorUserId: user.id,
+      action: 'workspace.saved_from_library',
+      entityType: 'workspace_item',
+      entityId: item.id,
+      metadata: { libraryDocumentId, title: libDoc.title },
+    })
 
     return NextResponse.json({ item }, { status: 201 })
   } catch (e) {

@@ -7,6 +7,7 @@ import { supabaseAdmin } from '@/lib/supabase/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { getUserPlanAndLimits } from '@/lib/plan-helper'
+import { recordAuditEvent } from '@/lib/audit'
 
 const UPGRADE_URL = '/pricing'
 
@@ -173,6 +174,18 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('✅ Report saved successfully:', execution_id)
+
+    await recordAuditEvent(supabaseAdmin, {
+      actorUserId: user.id,
+      action: 'report.created',
+      entityType: 'report',
+      entityId: execution_id,
+      metadata: {
+        industry: body.industry,
+        sub_niche: body.sub_niche,
+        frequency: reportFrequency,
+      },
+    })
 
     return NextResponse.json({
       success: true,

@@ -4,6 +4,14 @@ import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { getUserPlanAndLimits } from '@/lib/plan-helper'
 import { isPlatformAdmin } from '@/lib/auth/admin'
+import { recordAuditEvent } from '@/lib/audit'
+
+const ACADEMIC_DOC_TYPES = new Set([
+  'research_proposal',
+  'dissertation_outline',
+  'research_ethics',
+  'academic_paper',
+])
 
 async function synthesizeDocument(body: {
   documentType: string
@@ -15,11 +23,20 @@ async function synthesizeDocument(body: {
   additionalRequirements: string
 }): Promise<{ text: string; error?: string }> {
   const key = process.env.OPENAI_API_KEY
+  const isAcademic = ACADEMIC_DOC_TYPES.has(body.documentType)
   if (!key) {
     return {
-      text: `[Draft — add OPENAI_API_KEY for live AI generation]\n\n${body.companyName}\n${body.website}\n\n${body.description}\n\n${body.additionalRequirements || ''}\n\nDocument type: ${body.documentType} · Industry: ${body.industry} · Jurisdiction: ${body.jurisdiction}`,
+      text: `[Draft — add OPENAI_API_KEY for live AI generation]\n\n${body.companyName}\n${body.website}\n\n${body.description}\n\n${body.additionalRequirements || ''}\n\nDocument type: ${body.documentType} · Field/context: ${body.industry} · Jurisdiction: ${body.jurisdiction}`,
     }
   }
+
+  const systemContent = isAcademic
+    ? 'You help researchers structure academic writing: proposals, thesis outlines, ethics statements, and paper scaffolding. Use clear headings, bullet points, and methodology-aware language. Do not fabricate citations; use placeholder tags like [Author, Year] where needed.'
+    : 'You draft professional legal/compliance-oriented document sections. Use clear headings and bullet points where helpful.'
+
+  const userContent = isAcademic
+    ? `Produce a structured outline or draft for: ${body.documentType.replace(/_/g, ' ')}.\nInstitution / project name: ${body.companyName}\nSite or lab page (optional): ${body.website}\nField or programme: ${body.industry}\nRegulatory or ethics context (jurisdiction): ${body.jurisdiction}\nTopic summary: ${body.description}\nSupervisor or committee requirements: ${body.additionalRequirements || 'None'}`
+    : `Produce a structured draft for a ${body.documentType} document.\nCompany: ${body.companyName}\nWebsite: ${body.website}\nIndustry: ${body.industry}\nJurisdiction: ${body.jurisdiction}\nRequirements: ${body.description}\nAdditional: ${body.additionalRequirements || 'None'}`
 
   try {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -33,12 +50,11 @@ async function synthesizeDocument(body: {
         messages: [
           {
             role: 'system',
-            content:
-              'You draft professional legal/compliance-oriented document sections. Use clear headings and bullet points where helpful.',
+            content: systemContent,
           },
           {
             role: 'user',
-            content: `Produce a structured draft for a ${body.documentType} document.\nCompany: ${body.companyName}\nWebsite: ${body.website}\nIndustry: ${body.industry}\nJurisdiction: ${body.jurisdiction}\nRequirements: ${body.description}\nAdditional: ${body.additionalRequirements || 'None'}`,
+            content: userContent,
           },
         ],
         max_tokens: 2500,
@@ -203,6 +219,14 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', job.id)
 
+      await recordAuditEvent(supabaseAdmin, {
+        actorUserId: user.id,
+        action: 'generation.failed',
+        entityType: 'generation_job',
+        entityId: job.id,
+        metadata: { documentType, companyName, error: result.error },
+      })
+
       return NextResponse.json(
         { job: { ...job, status: 'failed', error_message: result.error } },
         { status: 200 }
@@ -218,12 +242,45 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', job.id)
 
+    let workspaceItemId: string | null = null
+    const { data: wsItem, error: wsErr } = await supabaseAdmin
+      .from('workspace_items')
+      .insert({
+        user_id: user.id,
+        title: `${documentType} — ${companyName}`,
+        doc_type: documentType,
+        status: 'completed',
+        content_text: result.text,
+        generation_job_id: job.id,
+      })
+      .select('id')
+      .single()
+
+    if (wsErr) {
+      console.error('workspace_items insert after generation', wsErr)
+    } else if (wsItem) {
+      workspaceItemId = wsItem.id
+    }
+
+    await recordAuditEvent(supabaseAdmin, {
+      actorUserId: user.id,
+      action: 'generation.completed',
+      entityType: 'generation_job',
+      entityId: job.id,
+      metadata: {
+        documentType,
+        companyName,
+        workspaceItemId,
+      },
+    })
+
     return NextResponse.json({
       job: {
         ...job,
         status: 'completed',
         result_text: result.text,
       },
+      workspaceItemId,
     })
   } catch (e) {
     console.error(e)

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -34,6 +35,7 @@ import {
   Loader2,
   Users,
   ShieldCheck,
+  Shield,
   User,
   AlertCircle
 } from 'lucide-react'
@@ -231,6 +233,12 @@ function SettingsPage() {
           <p className="text-sm md:text-base text-gray-600">
             Manage webhooks, users, and application configuration
           </p>
+          <Button variant="outline" size="sm" className="mt-4 gap-2" asChild>
+            <Link href="/dashboard/settings/enterprise">
+              <Shield className="w-4 h-4" />
+              Enterprise &amp; security
+            </Link>
+          </Button>
         </div>
 
         {/* Tabs */}

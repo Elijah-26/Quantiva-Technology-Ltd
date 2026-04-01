@@ -62,6 +62,8 @@ export async function GET() {
       status: row.status,
       folderId: row.folder_id,
       libraryDocumentId: row.library_document_id,
+      generationJobId: row.generation_job_id ?? null,
+      hasStoredContent: Boolean(row.content_text),
     }))
 
     return NextResponse.json({ items: mapped })

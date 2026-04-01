@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import {
   FolderOpen,
   FileText,
@@ -32,9 +33,13 @@ type WsDoc = {
   date: string
   isFavorite: boolean
   status: string
+  generationJobId?: string | null
+  hasStoredContent?: boolean
 }
 
 export default function WorkspacePage() {
+  const pathname = usePathname()
+  const wsBase = pathname.startsWith("/dashboard") ? "/dashboard/workspace" : "/demo/ai/dashboard/workspace"
   const [viewMode, setViewMode] = useState<"grid" | "list">("list")
   const [selectedFolder, setSelectedFolder] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
@@ -68,6 +73,24 @@ export default function WorkspacePage() {
       cancelled = true
     }
   }, [])
+
+  async function downloadStoredContent(docId: string, title: string) {
+    try {
+      const res = await fetch(`/api/workspace/items/${encodeURIComponent(docId)}`, {
+        credentials: "include",
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.item?.contentText) return
+      const blob = new Blob([data.item.contentText], { type: "text/markdown" })
+      const a = document.createElement("a")
+      a.href = URL.createObjectURL(blob)
+      a.download = `${title.replace(/[^\w\-]+/g, "_").slice(0, 80) || "document"}.md`
+      a.click()
+      URL.revokeObjectURL(a.href)
+    } catch {
+      /* ignore */
+    }
+  }
 
   const folders = useMemo(() => {
     const favCount = documents.filter((d) => d.isFavorite).length
@@ -238,9 +261,12 @@ export default function WorkspacePage() {
                           <FileText className="w-5 h-5 text-indigo-400" />
                         </div>
                         <div>
-                          <h4 className="text-white font-medium group-hover:text-indigo-400 transition-colors">
+                          <Link
+                            href={`${wsBase}/${doc.id}`}
+                            className="text-white font-medium group-hover:text-indigo-400 transition-colors block"
+                          >
                             {doc.title}
-                          </h4>
+                          </Link>
                           <div className="flex items-center gap-2 mt-1">
                             <Badge variant="secondary" className="text-xs">
                               {doc.type}
@@ -267,7 +293,13 @@ export default function WorkspacePage() {
                         <button className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors">
                           <Edit3 className="w-4 h-4" />
                         </button>
-                        <button className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors">
+                        <button
+                          type="button"
+                          disabled={!doc.hasStoredContent}
+                          title={doc.hasStoredContent ? "Download draft (.md)" : "No stored draft"}
+                          onClick={() => downloadStoredContent(doc.id, doc.title)}
+                          className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors disabled:opacity-30"
+                        >
                           <Download className="w-4 h-4" />
                         </button>
                         <button className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-rose-400 transition-colors">
@@ -294,9 +326,12 @@ export default function WorkspacePage() {
                           />
                         </button>
                       </div>
-                      <h4 className="text-white font-medium mb-1 group-hover:text-indigo-400 transition-colors">
+                      <Link
+                        href={`${wsBase}/${doc.id}`}
+                        className="text-white font-medium mb-1 group-hover:text-indigo-400 transition-colors block"
+                      >
                         {doc.title}
-                      </h4>
+                      </Link>
                       <p className="text-white/50 text-sm mb-2">{doc.type}</p>
                       <div className="flex items-center justify-between">
                         <span className="text-white/40 text-xs">{doc.date}</span>
