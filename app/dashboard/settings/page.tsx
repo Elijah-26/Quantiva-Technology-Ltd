@@ -29,19 +29,14 @@ import {
 import { 
   Settings, 
   Plus, 
-  Webhook, 
   Edit, 
   Trash2, 
-  TestTube2,
   Loader2,
-  Zap,
-  Repeat,
   Users,
   ShieldCheck,
   User,
   AlertCircle
 } from 'lucide-react'
-import { WebhookConfig, WebhookType, getWebhooks } from '@/lib/webhooks'
 import { toast } from 'sonner'
 import { withAuth } from '@/lib/auth/protected-route'
 import { getCurrentUserProfile, getAllUsers, createUser, updateUser, deleteUser, UserProfile } from '@/lib/auth/user-service'

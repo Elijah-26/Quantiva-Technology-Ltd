@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import {
@@ -24,79 +24,82 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
-// Mock data
-const folders = [
-  { id: "all", name: "All Documents", count: 24, icon: "📁" },
-  { id: "favorites", name: "Favorites", count: 5, icon: "⭐" },
-  { id: "gdpr", name: "GDPR Compliance", count: 8, icon: "🔒" },
-  { id: "contracts", name: "Contracts", count: 6, icon: "✍️" },
-  { id: "hr", name: "HR Documents", count: 5, icon: "👥" },
-]
-
-const documents = [
-  {
-    id: 1,
-    title: "GDPR Privacy Policy - Acme Inc",
-    type: "Privacy Policy",
-    folder: "gdpr",
-    date: "Mar 26, 2024",
-    isFavorite: true,
-    status: "completed",
-  },
-  {
-    id: 2,
-    title: "Terms of Service - SaaS Platform",
-    type: "Terms of Service",
-    folder: "contracts",
-    date: "Mar 25, 2024",
-    isFavorite: false,
-    status: "completed",
-  },
-  {
-    id: 3,
-    title: "Employment Contract - Template",
-    type: "Contract",
-    folder: "hr",
-    date: "Mar 24, 2024",
-    isFavorite: true,
-    status: "draft",
-  },
-  {
-    id: 4,
-    title: "Cookie Policy - Website",
-    type: "Privacy Policy",
-    folder: "gdpr",
-    date: "Mar 22, 2024",
-    isFavorite: false,
-    status: "completed",
-  },
-  {
-    id: 5,
-    title: "NDA - Vendor Agreement",
-    type: "Contract",
-    folder: "contracts",
-    date: "Mar 20, 2024",
-    isFavorite: true,
-    status: "completed",
-  },
-  {
-    id: 6,
-    title: "Employee Handbook 2024",
-    type: "HR Document",
-    folder: "hr",
-    date: "Mar 18, 2024",
-    isFavorite: false,
-    status: "draft",
-  },
-]
+type WsDoc = {
+  id: string
+  title: string
+  type: string
+  folder: string
+  date: string
+  isFavorite: boolean
+  status: string
+}
 
 export default function WorkspacePage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("list")
   const [selectedFolder, setSelectedFolder] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
+  const [documents, setDocuments] = useState<WsDoc[]>([])
+  const [folderRows, setFolderRows] = useState<
+    { id: string; name: string; slug: string; icon_emoji: string }[]
+  >([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const [fr, ir] = await Promise.all([
+          fetch("/api/workspace/folders", { credentials: "include" }),
+          fetch("/api/workspace/items", { credentials: "include" }),
+        ])
+        const fj = await fr.json().catch(() => ({}))
+        const ij = await ir.json().catch(() => ({}))
+        if (!cancelled) {
+          setFolderRows(fj.folders || [])
+          setDocuments(ij.items || [])
+        }
+      } catch {
+        if (!cancelled) setDocuments([])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const folders = useMemo(() => {
+    const favCount = documents.filter((d) => d.isFavorite).length
+    const bySlug = (slug: string) => documents.filter((d) => d.folder === slug).length
+    const base = [
+      { id: "all", name: "All Documents", count: documents.length, icon: "📁" },
+      { id: "favorites", name: "Favorites", count: favCount, icon: "⭐" },
+    ]
+    const dynamic = folderRows.map((f) => ({
+      id: f.slug,
+      name: f.name,
+      count: bySlug(f.slug),
+      icon: f.icon_emoji || "📁",
+    }))
+    return [...base, ...dynamic]
+  }, [documents, folderRows])
+
+  const stats = useMemo(() => {
+    const drafts = documents.filter((d) => d.status === "draft").length
+    const completed = documents.filter((d) => d.status === "completed" || d.status === "saved").length
+    const fav = documents.filter((d) => d.isFavorite).length
+    return [
+      { label: "Total Documents", value: documents.length },
+      { label: "Favorites", value: fav },
+      { label: "Drafts", value: drafts },
+      { label: "Completed", value: completed },
+    ]
+  }, [documents])
 
   const filteredDocuments = documents.filter((doc) => {
-    const matchesFolder = selectedFolder === "all" || 
+    const matchesFolder =
+      selectedFolder === "all" ||
       (selectedFolder === "favorites" ? doc.isFavorite : doc.folder === selectedFolder)
     const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase())
     return matchesFolder && matchesSearch
@@ -112,7 +115,7 @@ export default function WorkspacePage() {
       >
         <h1 className="text-3xl font-bold text-white mb-2">My Workspace</h1>
         <p className="text-white/60">
-          Manage your generated documents and organize them into folders.
+          {loading ? "Loading workspace from Supabase…" : "Manage saved templates and generated items."}
         </p>
       </motion.div>
 
@@ -123,12 +126,7 @@ export default function WorkspacePage() {
         transition={{ duration: 0.5, delay: 0.1 }}
         className="grid sm:grid-cols-4 gap-4"
       >
-        {[
-          { label: "Total Documents", value: 24 },
-          { label: "Favorites", value: 5 },
-          { label: "Drafts", value: 3 },
-          { label: "Completed", value: 21 },
-        ].map((stat, index) => (
+        {stats.map((stat, index) => (
           <div key={index} className="glass-card p-4">
             <p className="text-white/50 text-sm">{stat.label}</p>
             <p className="text-2xl font-bold text-white">{stat.value}</p>

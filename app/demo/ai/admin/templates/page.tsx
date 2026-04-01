@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Library, Upload } from 'lucide-react'
 import { toast } from 'sonner'
@@ -53,6 +53,21 @@ export default function AdminTemplatesDemoPage() {
   const [categoryId, setCategoryId] = useState('gdpr')
   const [title, setTitle] = useState(PRESETS.gdpr.title)
   const [body, setBody] = useState(PRESETS.gdpr.body)
+  const [libraryTemplates, setLibraryTemplates] = useState<
+    { id: string; title: string; category: string; jurisdiction: string; access_level: string }[]
+  >([])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const res = await fetch('/api/admin/templates', { credentials: 'include' })
+      const data = await res.json().catch(() => ({}))
+      if (!cancelled && res.ok) setLibraryTemplates(data.templates || [])
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const onCategoryChange = (v: string) => {
     setCategoryId(v)
@@ -70,9 +85,31 @@ export default function AdminTemplatesDemoPage() {
       <div>
         <h1 className="text-3xl font-bold text-white">Template CMS</h1>
         <p className="text-white/60">
-          Demo editor — saves are toasts only; nothing is written to a database.
+          Library rows from <code className="text-xs">library_documents</code> (read-only here). Editor
+          below is for drafting; persist via Supabase dashboard or a future POST API.
         </p>
       </div>
+
+      <Card className="border-white/10 bg-white/5">
+        <CardHeader>
+          <CardTitle className="text-white">Live library (Supabase)</CardTitle>
+          <CardDescription className="text-white/50">{libraryTemplates.length} templates</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-white/70 max-h-48 overflow-y-auto">
+          {libraryTemplates.length === 0 ? (
+            <p>No templates loaded (admin only).</p>
+          ) : (
+            libraryTemplates.map((t) => (
+              <div key={t.id} className="flex justify-between gap-2 border-b border-white/10 py-2">
+                <span className="text-white">{t.title}</span>
+                <span className="text-white/50 shrink-0">
+                  {t.category} · {t.jurisdiction} · {t.access_level}
+                </span>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="border-white/10 bg-white/5">
         <CardHeader>

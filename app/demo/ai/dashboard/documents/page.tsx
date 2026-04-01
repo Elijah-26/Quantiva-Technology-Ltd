@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import {
   FileText,
   Search,
@@ -21,29 +22,25 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import { DEMO_LIBRARY_DOCUMENTS } from "@/lib/demo/documents-mock"
 
-const documents = DEMO_LIBRARY_DOCUMENTS
-
-// Mock data
-const categories = [
-  { id: "all", name: "All Documents", count: 1247 },
-  { id: "privacy", name: "Privacy & GDPR", count: 156 },
-  { id: "contracts", name: "Contracts", count: 234 },
-  { id: "hr", name: "HR & Employment", count: 189 },
-  { id: "corporate", name: "Corporate", count: 145 },
-  { id: "ip", name: "Intellectual Property", count: 98 },
-  { id: "compliance", name: "Compliance", count: 267 },
-  { id: "finance", name: "Finance", count: 158 },
-]
-
-const jurisdictions = [
-  { id: "uk", name: "United Kingdom", code: "GB" },
-  { id: "us", name: "United States", code: "US" },
-  { id: "eu", name: "European Union", code: "EU" },
-  { id: "ca", name: "Canada", code: "CA" },
-  { id: "au", name: "Australia", code: "AU" },
-]
+type LibraryDoc = {
+  id: string
+  title: string
+  description: string
+  category: string
+  jurisdiction: string
+  accessLevel: string
+  wordCount: number
+  downloadCount: number
+  rating: number
+  isFavorite: boolean
+  lastUpdated: string
+  preview: string
+  readMinutes: number
+  complexity: "Low" | "Moderate" | "High"
+  versions: { version: string; date: string; note: string }[]
+  relatedIds: string[]
+}
 
 const accessLevels = [
   { id: "all", name: "All Access Levels" },
@@ -53,12 +50,61 @@ const accessLevels = [
 ]
 
 export default function DocumentsPage() {
+  const pathname = usePathname()
+  const docBase =
+    pathname.startsWith("/dashboard") ? "/dashboard/documents" : "/demo/ai/dashboard/documents"
+
+  const [documents, setDocuments] = useState<LibraryDoc[]>([])
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [showFilters, setShowFilters] = useState(false)
   const [selectedJurisdictions, setSelectedJurisdictions] = useState<string[]>([])
   const [selectedAccessLevel, setSelectedAccessLevel] = useState("all")
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch("/api/library-documents", { credentials: "include" })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data.error || "Failed to load documents")
+        if (!cancelled) setDocuments(data.documents || [])
+      } catch (e) {
+        if (!cancelled) setLoadError(e instanceof Error ? e.message : "Failed to load")
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const categories = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const d of documents) {
+      counts[d.category] = (counts[d.category] || 0) + 1
+    }
+    const rest = Object.entries(counts).map(([id, count]) => ({
+      id,
+      name: id.charAt(0).toUpperCase() + id.slice(1),
+      count,
+    }))
+    return [{ id: "all", name: "All Documents", count: documents.length }, ...rest]
+  }, [documents])
+
+  const jurisdictions = useMemo(() => {
+    const ids = [...new Set(documents.map((d) => d.jurisdiction))].filter(Boolean)
+    return ids.map((id) => ({
+      id,
+      name: id.toUpperCase(),
+      code: id,
+    }))
+  }, [documents])
 
   const toggleJurisdiction = (id: string) => {
     setSelectedJurisdictions((prev) =>
@@ -88,9 +134,19 @@ export default function DocumentsPage() {
       >
         <h1 className="text-3xl font-bold text-white mb-2">Document Library</h1>
         <p className="text-white/60">
-          Browse and search our collection of {categories[0].count}+ regulatory document templates.
+          {loading
+            ? "Loading templates from your workspace…"
+            : `Browse and search ${documents.length} regulatory document templates (Supabase).`}
         </p>
       </motion.div>
+
+      {loadError && (
+        <p className="text-rose-400 text-sm rounded-lg border border-rose-500/30 bg-rose-500/10 p-3">
+          {loadError}. Apply{" "}
+          <code className="text-xs">supabase/migrations/20260401120000_core_product_tables.sql</code> if
+          needed.
+        </p>
+      )}
 
       {/* Search and Filters */}
       <motion.div
@@ -294,7 +350,7 @@ export default function DocumentsPage() {
                     </div>
                   </div>
                   <Link
-                    href={`/demo/ai/dashboard/documents/${doc.id}`}
+                    href={`${docBase}/${doc.id}`}
                     className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg"
                   >
                     <h3 className="text-white font-semibold mb-1 group-hover:text-indigo-400 transition-colors">
@@ -330,7 +386,7 @@ export default function DocumentsPage() {
                     </span>
                   </div>
                   <Link
-                    href={`/demo/ai/dashboard/documents/${doc.id}`}
+                    href={`${docBase}/${doc.id}`}
                     className="mt-3 inline-flex text-sm font-medium text-indigo-400 hover:text-indigo-300"
                   >
                     View template details
@@ -351,7 +407,7 @@ export default function DocumentsPage() {
                     <FileText className="w-5 h-5 text-indigo-400" />
                   </div>
                   <Link
-                    href={`/demo/ai/dashboard/documents/${doc.id}`}
+                    href={`${docBase}/${doc.id}`}
                     className="min-w-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg"
                   >
                     <h3 className="text-white font-medium group-hover:text-indigo-400 transition-colors">

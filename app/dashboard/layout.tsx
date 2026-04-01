@@ -36,7 +36,7 @@ const sidebarLinks = [
   { href: '/dashboard/generate', label: 'AI Generate', icon: Sparkles },
   { href: '/dashboard/workspace', label: 'My Workspace', icon: FolderOpen },
   { href: '/dashboard/billing', label: 'Billing', icon: CreditCard },
-  { href: '/dashboard/research', label: 'Research module', icon: Library },
+  { href: '/dashboard/research', label: 'Market Research Intelligence', icon: Library },
   { href: '/dashboard/admin', label: 'Admin', icon: Shield },
 ]
 

@@ -36,9 +36,9 @@ export default function ResearchModulePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-white">Research module</h1>
+        <h1 className="text-3xl font-bold text-white">Market Research Intelligence</h1>
         <p className="text-white/60">
-          Existing live system features are preserved here under one module menu.
+          On-demand and recurring research, reports, schedules, and compliance tools in one place.
         </p>
       </div>
       <div className="grid gap-4 md:grid-cols-2">

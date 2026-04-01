@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { toast } from "sonner"
 import { motion } from "framer-motion"
 import {
   Sparkles,
@@ -55,6 +56,7 @@ export default function GeneratePage() {
   const [step, setStep] = useState(1)
   const [isGenerating, setIsGenerating] = useState(false)
   const [isComplete, setIsComplete] = useState(false)
+  const [generatedText, setGeneratedText] = useState("")
   const [formData, setFormData] = useState({
     documentType: "",
     industry: "",
@@ -83,10 +85,45 @@ export default function GeneratePage() {
 
   const handleGenerate = async () => {
     setIsGenerating(true)
-    // Simulate AI generation
-    await new Promise((resolve) => setTimeout(resolve, 5000))
-    setIsGenerating(false)
-    setIsComplete(true)
+    setGeneratedText("")
+    try {
+      const res = await fetch("/api/generation-jobs", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          documentType: formData.documentType,
+          industry: formData.industry,
+          jurisdiction: formData.jurisdiction,
+          companyName: formData.companyName,
+          website: formData.website,
+          description: formData.description,
+          additionalRequirements: formData.additionalRequirements,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        if (res.status === 403 && data.code === "GEN_LIMIT") {
+          toast.error(data.error || "Plan limit reached")
+        } else {
+          toast.error(data.error || "Generation failed")
+        }
+        setIsGenerating(false)
+        return
+      }
+      const text = data.job?.result_text || data.job?.error_message || ""
+      if (data.job?.status === "failed") {
+        toast.error(text || "Generation failed")
+        setIsGenerating(false)
+        return
+      }
+      setGeneratedText(text)
+      setIsComplete(true)
+    } catch {
+      toast.error("Network error")
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
   const canProceed = () => {
@@ -134,23 +171,9 @@ export default function GeneratePage() {
               <Badge variant="success">Completed</Badge>
             </div>
             <div className="p-4 rounded-xl bg-white/5 mb-4 max-h-64 overflow-y-auto">
-              <p className="text-white/70 text-sm leading-relaxed">
-                {/* Mock generated content */}
-                <strong className="text-white">PRIVACY POLICY</strong>
-                <br /><br />
-                Last updated: March 26, 2024
-                <br /><br />
-                <strong className="text-white">1. Introduction</strong>
-                <br />
-                {formData.companyName} ("we," "our," or "us") is committed to protecting your privacy. 
-                This Privacy Policy explains how we collect, use, disclose, and safeguard your information 
-                when you visit our website {formData.website || "www.example.com"}.
-                <br /><br />
-                <strong className="text-white">2. Information We Collect</strong>
-                <br />
-                We may collect information about you in a variety of ways. The information we may collect 
-                includes personal data you voluntarily provide to us when you register on our website, 
-                express interest in obtaining information about us or our products and services...
+              <p className="text-white/70 text-sm leading-relaxed whitespace-pre-wrap">
+                {generatedText ||
+                  `${formData.companyName} — draft will appear here after generation (stored in Supabase).`}
               </p>
             </div>
             <div className="flex gap-3">

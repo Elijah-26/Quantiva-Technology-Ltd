@@ -12,19 +12,18 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import {
-  type ModerationItem,
-  loadModerationQueue,
-} from '@/lib/demo/moderation-mock'
+
+type ModerationItem = {
+  id: string
+  title: string
+  submittedBy: string
+  status: 'pending' | 'approved' | 'rejected' | 'changes_requested'
+  submittedAt: string
+  snippet: string
+  category: string
+}
 
 function statusBadge(status: ModerationItem['status']) {
   switch (status) {
@@ -41,12 +40,28 @@ function statusBadge(status: ModerationItem['status']) {
   }
 }
 
-export default function AdminModerationDemoPage() {
+export default function AdminModerationPage() {
   const pathname = usePathname()
-  const [items, setItems] = useState<ModerationItem[]>(() => loadModerationQueue())
+  const base = pathname.includes('/dashboard/admin') ? '/dashboard/admin/moderation' : '/demo/ai/admin/moderation'
+
+  const [items, setItems] = useState<ModerationItem[]>([])
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    setItems(loadModerationQueue())
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/admin/moderation', { credentials: 'include' })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data.error || 'Failed to load')
+        if (!cancelled) setItems(data.items || [])
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Error')
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [pathname])
 
   return (
@@ -58,8 +73,9 @@ export default function AdminModerationDemoPage() {
       <div>
         <h1 className="text-3xl font-bold text-white">Moderation queue</h1>
         <p className="text-white/60">
-          Demo submissions — actions persist for this browser tab session only.
+          Submissions from Supabase (<code className="text-xs">moderation_items</code>). Admin only.
         </p>
+        {error && <p className="mt-2 text-sm text-rose-400">{error}</p>}
       </div>
 
       <Card className="border-white/10 bg-white/5">
@@ -80,7 +96,7 @@ export default function AdminModerationDemoPage() {
                 <TableHead className="text-white/70">Submitter</TableHead>
                 <TableHead className="text-white/70">Category</TableHead>
                 <TableHead className="text-white/70">Status</TableHead>
-                <TableHead className="text-white/70 text-right">Action</TableHead>
+                <TableHead className="text-right text-white/70">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -88,7 +104,7 @@ export default function AdminModerationDemoPage() {
                 <TableRow key={row.id} className="border-white/10">
                   <TableCell className="font-medium text-white">
                     <Link
-                      href={`/demo/ai/admin/moderation/${encodeURIComponent(row.id)}`}
+                      href={`${base}/${encodeURIComponent(row.id)}`}
                       className="hover:text-rose-400 hover:underline"
                     >
                       {row.title}
@@ -99,7 +115,7 @@ export default function AdminModerationDemoPage() {
                   <TableCell>{statusBadge(row.status)}</TableCell>
                   <TableCell className="text-right">
                     <Link
-                      href={`/demo/ai/admin/moderation/${encodeURIComponent(row.id)}`}
+                      href={`${base}/${encodeURIComponent(row.id)}`}
                       className="text-sm text-rose-400 hover:underline"
                     >
                       Review

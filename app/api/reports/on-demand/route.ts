@@ -30,6 +30,10 @@ export interface OnDemandReportRequest {
   final_report: string
   email_report?: string
   notes?: string
+  /** When set, links the report to a recurring schedule (public.schedules.schedule_id). */
+  schedule_id?: string | null
+  /** Stored on the report row (e.g. recurring frequency or 'on-demand'). */
+  frequency?: string
 }
 
 export async function POST(request: NextRequest) {
@@ -134,16 +138,19 @@ export async function POST(request: NextRequest) {
     // Generate unique execution ID
     const execution_id = `ondemand_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     
+    const reportFrequency = body.frequency?.trim() || 'on-demand'
+    const scheduleId = body.schedule_id ?? null
+
     // Save to Supabase reports table with user_id
     const { data: report, error: insertError } = await supabaseAdmin
       .from('reports')
       .insert({
         execution_id,
-        schedule_id: null, // On-demand reports don't have a schedule
+        schedule_id: scheduleId,
         user_id: body.user_id, // CRITICAL: User isolation
         industry: body.industry,
         sub_niche: body.sub_niche,
-        frequency: 'on-demand',
+        frequency: reportFrequency,
         run_at: new Date().toISOString(),
         is_first_run: true,
         final_report: body.final_report,

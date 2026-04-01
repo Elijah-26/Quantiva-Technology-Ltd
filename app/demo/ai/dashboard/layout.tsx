@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils"
 const sidebarLinks = [
   { href: "/demo/ai/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/demo/ai/dashboard/documents", label: "Documents", icon: FileText },
-  { href: "/demo/ai/dashboard/research", label: "Research", icon: GraduationCap },
+  { href: "/demo/ai/dashboard/research", label: "Market research wizard", icon: GraduationCap },
   {
     href: "/demo/ai/dashboard/research/projects",
     label: "Research projects",

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 const UPGRADE_MESSAGE = "You've reached your plan limit. Please upgrade to continue."
@@ -16,114 +16,15 @@ import { FileSearch, Calendar, Zap, Repeat } from 'lucide-react'
 import { getActiveWebhooksByType } from '@/lib/webhooks'
 import { toast } from 'sonner'
 import { LoadingOverlay } from '@/components/LoadingOverlay'
-import { createScheduleFromForm, saveSchedule } from '@/lib/schedules'
 import { supabase } from '@/lib/supabase/client'
 import { Spinner } from '@/components/ui/spinner'
 import { withAuth } from '@/lib/auth/protected-route'
-
-const marketCategories = [
-  'Technology & Software',
-  'Healthcare & Pharmaceuticals',
-  'Financial Services',
-  'E-commerce & Retail',
-  'Manufacturing & Industrial',
-  'Food & Beverage',
-  'Real Estate',
-  'Education & E-learning',
-  'Entertainment & Media',
-  'Automotive',
-  'Energy & Utilities',
-  'Telecommunications',
-]
 
 const frequencies = [
   { value: 'daily', label: 'Daily' },
   { value: 'weekly', label: 'Weekly' },
   { value: 'biweekly', label: 'Bi-weekly' },
   { value: 'monthly', label: 'Monthly' },
-]
-
-// Geographic locations for searchable dropdown
-const geographicLocations: ComboboxOption[] = [
-  // Global & Multi-region
-  { value: 'global', label: 'Global' },
-  { value: 'worldwide', label: 'Worldwide' },
-  { value: 'international', label: 'International' },
-  
-  // Continents & Regions
-  { value: 'north-america', label: 'North America' },
-  { value: 'south-america', label: 'South America' },
-  { value: 'latin-america', label: 'Latin America' },
-  { value: 'central-america', label: 'Central America' },
-  { value: 'europe', label: 'Europe' },
-  { value: 'western-europe', label: 'Western Europe' },
-  { value: 'eastern-europe', label: 'Eastern Europe' },
-  { value: 'asia', label: 'Asia' },
-  { value: 'asia-pacific', label: 'Asia Pacific (APAC)' },
-  { value: 'southeast-asia', label: 'Southeast Asia' },
-  { value: 'east-asia', label: 'East Asia' },
-  { value: 'south-asia', label: 'South Asia' },
-  { value: 'middle-east', label: 'Middle East' },
-  { value: 'mena', label: 'Middle East & North Africa (MENA)' },
-  { value: 'africa', label: 'Africa' },
-  { value: 'north-africa', label: 'North Africa' },
-  { value: 'sub-saharan-africa', label: 'Sub-Saharan Africa' },
-  { value: 'oceania', label: 'Oceania' },
-  
-  // Major Countries (alphabetical)
-  { value: 'australia', label: 'Australia' },
-  { value: 'austria', label: 'Austria' },
-  { value: 'belgium', label: 'Belgium' },
-  { value: 'brazil', label: 'Brazil' },
-  { value: 'canada', label: 'Canada' },
-  { value: 'china', label: 'China' },
-  { value: 'denmark', label: 'Denmark' },
-  { value: 'finland', label: 'Finland' },
-  { value: 'france', label: 'France' },
-  { value: 'germany', label: 'Germany' },
-  { value: 'hong-kong', label: 'Hong Kong' },
-  { value: 'india', label: 'India' },
-  { value: 'indonesia', label: 'Indonesia' },
-  { value: 'ireland', label: 'Ireland' },
-  { value: 'israel', label: 'Israel' },
-  { value: 'italy', label: 'Italy' },
-  { value: 'japan', label: 'Japan' },
-  { value: 'malaysia', label: 'Malaysia' },
-  { value: 'mexico', label: 'Mexico' },
-  { value: 'netherlands', label: 'Netherlands' },
-  { value: 'new-zealand', label: 'New Zealand' },
-  { value: 'nigeria', label: 'Nigeria' },
-  { value: 'norway', label: 'Norway' },
-  { value: 'philippines', label: 'Philippines' },
-  { value: 'poland', label: 'Poland' },
-  { value: 'portugal', label: 'Portugal' },
-  { value: 'russia', label: 'Russia' },
-  { value: 'saudi-arabia', label: 'Saudi Arabia' },
-  { value: 'singapore', label: 'Singapore' },
-  { value: 'south-africa', label: 'South Africa' },
-  { value: 'south-korea', label: 'South Korea' },
-  { value: 'spain', label: 'Spain' },
-  { value: 'sweden', label: 'Sweden' },
-  { value: 'switzerland', label: 'Switzerland' },
-  { value: 'taiwan', label: 'Taiwan' },
-  { value: 'thailand', label: 'Thailand' },
-  { value: 'turkey', label: 'Turkey' },
-  { value: 'uae', label: 'United Arab Emirates (UAE)' },
-  { value: 'uk', label: 'United Kingdom (UK)' },
-  { value: 'usa', label: 'United States (USA)' },
-  { value: 'vietnam', label: 'Vietnam' },
-  
-  // US Regions & States (Major markets)
-  { value: 'us-northeast', label: 'US - Northeast' },
-  { value: 'us-southeast', label: 'US - Southeast' },
-  { value: 'us-midwest', label: 'US - Midwest' },
-  { value: 'us-southwest', label: 'US - Southwest' },
-  { value: 'us-west', label: 'US - West Coast' },
-  { value: 'california', label: 'California, USA' },
-  { value: 'texas', label: 'Texas, USA' },
-  { value: 'florida', label: 'Florida, USA' },
-  { value: 'new-york', label: 'New York, USA' },
-  { value: 'illinois', label: 'Illinois, USA' },
 ]
 
 function NewResearchPage() {
@@ -149,6 +50,36 @@ function NewResearchPage() {
   
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [activeTab, setActiveTab] = useState('on-demand')
+  const [refLoading, setRefLoading] = useState(true)
+  const [marketCategoryOptions, setMarketCategoryOptions] = useState<{ value: string; label: string }[]>([])
+  const [geographicLocations, setGeographicLocations] = useState<ComboboxOption[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/reference/market-research-options', { credentials: 'include' })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data.error || 'Failed to load options')
+        if (cancelled) return
+        setMarketCategoryOptions(data.marketCategories || [])
+        const geo = (data.geographies || []) as { value: string; label: string }[]
+        setGeographicLocations(geo.map((g) => ({ value: g.label, label: g.label })))
+      } catch (e) {
+        if (!cancelled) {
+          console.error(e)
+          toast.error('Could not load market research options', {
+            description: 'Apply the Supabase migration for reference_options or try again.',
+          })
+        }
+      } finally {
+        if (!cancelled) setRefLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const showUpgradeToast = () => {
     toast.error(UPGRADE_MESSAGE, {
@@ -510,17 +441,33 @@ function NewResearchPage() {
       }
       
       if (successCount > 0) {
-        let scheduleId: string | null = null
         let savedReportId: string | null = null
-        
-        // Create schedule for recurring reports
-        const schedule = createScheduleFromForm(recurringForm)
-        saveSchedule(schedule)
-        scheduleId = schedule.id
-        
-        console.log('✅ Recurring research request logged')
-        console.log('✅ Schedule created with ID:', schedule.id)
-        console.log('📆 Next run:', schedule.nextRun)
+        let persistedScheduleId: string | null = null
+
+        const createRes = await fetch('/api/schedules', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            marketCategory: recurringForm.marketCategory,
+            subNiche: recurringForm.subNiche,
+            geography: recurringForm.geography,
+            email: recurringForm.email,
+            frequency: recurringForm.frequency,
+            notes: recurringForm.notes,
+          }),
+        })
+        if (!createRes.ok) {
+          const err = await createRes.json().catch(() => ({}))
+          console.error('❌ Failed to persist schedule to Supabase:', err)
+          toast.error('Webhook succeeded but schedule was not saved', {
+            description: typeof err.details === 'string' ? err.details : 'Check Supabase schedules table and RLS.',
+          })
+        } else {
+          const createData = await createRes.json()
+          persistedScheduleId = createData.schedule?.schedule_id ?? null
+          console.log('✅ Schedule saved to Supabase:', persistedScheduleId)
+        }
 
         // Save the initial report to database if webhook returned data
         if (webhookResponseData) {
@@ -554,6 +501,8 @@ function NewResearchPage() {
                   final_report: webReport,
                   email_report: emailReport,
                   notes: recurringForm.notes,
+                  schedule_id: persistedScheduleId,
+                  frequency: recurringForm.frequency,
                 }),
               })
               
@@ -705,9 +654,9 @@ function NewResearchPage() {
                       <SelectValue placeholder="Select a market category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {marketCategories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
+                      {marketCategoryOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.label}>
+                          {opt.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -870,9 +819,9 @@ function NewResearchPage() {
                       <SelectValue placeholder="Select a market category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {marketCategories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
+                      {marketCategoryOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.label}>
+                          {opt.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
