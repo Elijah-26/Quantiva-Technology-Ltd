@@ -1,72 +1,129 @@
 "use client"
 
+import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import {
   FileText,
   Sparkles,
-  Download,
-  Clock,
-  TrendingUp,
   Shield,
   ArrowRight,
-  MoreHorizontal,
   Star,
   GraduationCap,
+  FolderOpen,
+  BarChart3,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-
-// Mock data
-const stats = [
-  { label: "Documents Generated", value: 24, change: "+12%", icon: FileText },
-  { label: "AI Generations", value: 156, change: "+28%", icon: Sparkles },
-  { label: "Downloads", value: 89, change: "+5%", icon: Download },
-  { label: "Time Saved", value: "48h", change: "+15%", icon: Clock },
-]
-
-const recentDocuments = [
-  { id: 1, title: "GDPR Privacy Policy", type: "Privacy", date: "2 hours ago", status: "completed" },
-  { id: 2, title: "Terms of Service", type: "Legal", date: "Yesterday", status: "completed" },
-  { id: 3, title: "Employee Handbook", type: "HR", date: "3 days ago", status: "draft" },
-  { id: 4, title: "Cookie Policy", type: "Privacy", date: "1 week ago", status: "completed" },
-]
-
-const recommendedTemplates = [
-  { id: 1, title: "Data Processing Agreement", category: "GDPR", popularity: 98 },
-  { id: 2, title: "Non-Disclosure Agreement", category: "Contracts", popularity: 95 },
-  { id: 3, title: "Software License Agreement", category: "Technology", popularity: 92 },
-]
+import { Spinner } from "@/components/ui/spinner"
+import type { DashboardSummaryResponse } from "@/lib/dashboard-summary"
 
 const quickActions = [
-  { label: "Generate Document", icon: Sparkles, href: "/demo/ai/dashboard/generate", color: "from-indigo-500 to-indigo-600" },
-  { label: "Browse Templates", icon: FileText, href: "/demo/ai/dashboard/documents", color: "from-emerald-500 to-emerald-600" },
-  { label: "Research wizard", icon: GraduationCap, href: "/demo/ai/dashboard/research", color: "from-violet-500 to-violet-600" },
-  { label: "View Workspace", icon: Shield, href: "/demo/ai/dashboard/workspace", color: "from-amber-500 to-amber-600" },
+  { label: "Generate Document", icon: Sparkles, href: "/dashboard/generate", color: "from-indigo-500 to-indigo-600" },
+  { label: "Browse Templates", icon: FileText, href: "/dashboard/documents", color: "from-emerald-500 to-emerald-600" },
+  { label: "Research wizard", icon: GraduationCap, href: "/dashboard/new-research", color: "from-violet-500 to-violet-600" },
+  { label: "View Workspace", icon: FolderOpen, href: "/dashboard/workspace", color: "from-amber-500 to-amber-600" },
 ]
 
+function usageBarPercent(used: number, limit: number): number {
+  if (limit <= 0) return 0
+  return Math.min(100, Math.round((used / limit) * 100))
+}
+
 export default function DashboardPage() {
+  const [summary, setSummary] = useState<DashboardSummaryResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch("/api/dashboard/summary", { credentials: "include" })
+        if (!res.ok) {
+          if (res.status === 401) {
+            if (!cancelled) setError("Sign in to see your dashboard.")
+          } else {
+            if (!cancelled) setError("Could not load dashboard.")
+          }
+          if (!cancelled) setSummary(null)
+          return
+        }
+        const data = (await res.json()) as DashboardSummaryResponse
+        if (!cancelled) {
+          setSummary(data)
+          setError(null)
+        }
+      } catch {
+        if (!cancelled) {
+          setError("Could not load dashboard.")
+          setSummary(null)
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const statCards = useMemo(() => {
+    if (!summary) return []
+    return [
+      { label: "Library templates", value: summary.stats.libraryTemplates, icon: FileText, hint: "Available to browse" },
+      { label: "Workspace items", value: summary.stats.workspaceItems, icon: FolderOpen, hint: "Saved in your workspace" },
+      { label: "AI generations", value: summary.stats.aiGenerationsCompleted, icon: Sparkles, hint: "Completed jobs" },
+      { label: "Research reports", value: summary.stats.researchReports, icon: BarChart3, hint: "Total reports" },
+    ]
+  }, [summary])
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <Spinner className="h-8 w-8 text-indigo-400" />
+      </div>
+    )
+  }
+
+  if (error || !summary) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center">
+        <p className="text-white/80">{error || "Something went wrong."}</p>
+        {error === "Sign in to see your dashboard." && (
+          <Button variant="glass" className="mt-4" asChild>
+            <Link href="/login">Sign in</Link>
+          </Button>
+        )}
+      </div>
+    )
+  }
+
+  const { usage } = summary
+  const genUnlimited = usage.generationsLimit < 0
+  const repUnlimited = usage.reportsLimit < 0
+  const genPct = genUnlimited ? 0 : usageBarPercent(usage.generationsUsedThisMonth, usage.generationsLimit)
+  const repPct = repUnlimited ? 0 : usageBarPercent(usage.reportsUsedThisMonth, usage.reportsLimit)
+
   return (
     <div className="space-y-6">
-      {/* Welcome */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
         <h1 className="text-3xl font-bold text-white mb-2">
-          Welcome back, John! 👋
+          Welcome back, {summary.greetingName}
         </h1>
         <p className="text-white/60">
-          Here's what's happening with your compliance documents.
+          Here&apos;s what&apos;s happening with your compliance documents.
         </p>
       </motion.div>
 
-      {/* Stats Grid */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, index) => (
+        {statCards.map((stat, index) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 20 }}
@@ -84,18 +141,13 @@ export default function DashboardPage() {
                     <stat.icon className="w-5 h-5 text-indigo-400" />
                   </div>
                 </div>
-                <div className="flex items-center gap-1 mt-4">
-                  <TrendingUp className="w-4 h-4 text-emerald-400" />
-                  <span className="text-emerald-400 text-sm">{stat.change}</span>
-                  <span className="text-white/40 text-sm">vs last month</span>
-                </div>
+                <p className="text-white/40 text-sm mt-4">{stat.hint}</p>
               </CardContent>
             </Card>
           </motion.div>
         ))}
       </div>
 
-      {/* Quick Actions */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -103,7 +155,7 @@ export default function DashboardPage() {
       >
         <h2 className="text-lg font-semibold text-white mb-4">Quick Actions</h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickActions.map((action, index) => (
+          {quickActions.map((action) => (
             <Link
               key={action.label}
               href={action.href}
@@ -125,9 +177,7 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
-      {/* Two Column Layout */}
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Recent Documents */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -136,51 +186,68 @@ export default function DashboardPage() {
         >
           <Card className="glass-card border-0">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-white">Recent Documents</CardTitle>
+              <CardTitle className="text-white">Recent activity</CardTitle>
               <Button variant="glass" size="sm" asChild>
-                <Link href="/demo/ai/dashboard/workspace">View all</Link>
+                <Link href="/dashboard/workspace">View workspace</Link>
               </Button>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentDocuments.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center">
-                        <FileText className="w-5 h-5 text-indigo-400" />
-                      </div>
-                      <div>
-                        <h4 className="text-white font-medium">{doc.title}</h4>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="secondary" className="text-xs">
-                            {doc.type}
-                          </Badge>
-                          <span className="text-white/40 text-xs">{doc.date}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant={doc.status === "completed" ? "success" : "warning"}
-                        className="text-xs"
+                {summary.recentActivity.length === 0 ? (
+                  <p className="text-white/50 text-sm py-6 text-center">
+                    No recent activity yet. Generate a document or run research to see it here.
+                  </p>
+                ) : (
+                  summary.recentActivity.map((item) => {
+                    const href =
+                      item.kind === "report" && item.reportExecutionId
+                        ? `/dashboard/reports/${item.reportExecutionId}`
+                        : item.kind === "workspace"
+                          ? "/dashboard/workspace"
+                          : "/dashboard/generate"
+                    const typeLabel =
+                      item.kind === "report"
+                        ? "Research"
+                        : item.kind === "workspace"
+                          ? item.status || "Workspace"
+                          : "AI generate"
+                    const successish =
+                      item.status === "completed" || item.status === "success"
+                    return (
+                      <Link
+                        key={item.id}
+                        href={href}
+                        className="flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
                       >
-                        {doc.status}
-                      </Badge>
-                      <button className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                        <div className="flex items-center gap-4 min-w-0">
+                          <div className="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center shrink-0">
+                            <FileText className="w-5 h-5 text-indigo-400" />
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="text-white font-medium truncate">{item.title}</h4>
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              <Badge variant="secondary" className="text-xs">
+                                {typeLabel}
+                              </Badge>
+                              <span className="text-white/40 text-xs">{item.subtitle}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <Badge
+                          variant={successish ? "success" : "warning"}
+                          className="text-xs shrink-0 ml-2"
+                        >
+                          {item.status}
+                        </Badge>
+                      </Link>
+                    )
+                  })
+                )}
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Recommended Templates */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -192,33 +259,36 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recommendedTemplates.map((template, index) => (
-                  <div
-                    key={template.id}
-                    className="p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <Badge variant="secondary" className="text-xs">
-                        {template.category}
-                      </Badge>
-                      <div className="flex items-center gap-1 text-amber-400">
-                        <Star className="w-3 h-3 fill-current" />
-                        <span className="text-xs">{template.popularity}%</span>
+                {summary.recommendedTemplates.length === 0 ? (
+                  <p className="text-white/50 text-sm">No templates in the library yet.</p>
+                ) : (
+                  summary.recommendedTemplates.map((template) => (
+                    <div
+                      key={template.id}
+                      className="p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <Badge variant="secondary" className="text-xs">
+                          {template.category}
+                        </Badge>
+                        <div className="flex items-center gap-1 text-amber-400">
+                          <Star className="w-3 h-3 fill-current" />
+                          <span className="text-xs">{template.rating.toFixed(1)}</span>
+                        </div>
                       </div>
+                      <h4 className="text-white font-medium text-sm">{template.title}</h4>
+                      <Button variant="glass" size="sm" className="w-full mt-3" asChild>
+                        <Link href={`/dashboard/documents/${template.id}`}>Use template</Link>
+                      </Button>
                     </div>
-                    <h4 className="text-white font-medium text-sm">{template.title}</h4>
-                    <Button variant="glass" size="sm" className="w-full mt-3">
-                      Use Template
-                    </Button>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
         </motion.div>
       </div>
 
-      {/* Usage Stats */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -228,31 +298,53 @@ export default function DashboardPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-white font-semibold">Plan Usage</h3>
-                <p className="text-white/50 text-sm">Pro Plan - Monthly</p>
+                <h3 className="text-white font-semibold">Plan usage</h3>
+                <p className="text-white/50 text-sm">{summary.planLabel} · This month (UTC)</p>
               </div>
               <Button variant="glass" size="sm" asChild>
-                <Link href="/demo/ai/dashboard/billing">Upgrade</Link>
+                <Link href="/dashboard/billing">Billing</Link>
               </Button>
             </div>
             <div className="grid sm:grid-cols-2 gap-6">
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-white/60 text-sm">AI Generations</span>
-                  <span className="text-white text-sm">45 / 50</span>
+                  <span className="text-white/60 text-sm">AI generations</span>
+                  <span className="text-white text-sm">
+                    {genUnlimited
+                      ? `${usage.generationsUsedThisMonth} · Unlimited`
+                      : `${usage.generationsUsedThisMonth} / ${usage.generationsLimit}`}
+                  </span>
                 </div>
-                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full w-[90%] bg-gradient-to-r from-indigo-500 to-indigo-400 rounded-full" />
-                </div>
+                {genUnlimited ? (
+                  <p className="text-white/40 text-xs">No monthly cap on your plan.</p>
+                ) : (
+                  <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-indigo-500 to-indigo-400 rounded-full transition-all"
+                      style={{ width: `${genPct}%` }}
+                    />
+                  </div>
+                )}
               </div>
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-white/60 text-sm">Downloads</span>
-                  <span className="text-white text-sm">67 / 100</span>
+                  <span className="text-white/60 text-sm">Research reports</span>
+                  <span className="text-white text-sm">
+                    {repUnlimited
+                      ? `${usage.reportsUsedThisMonth} · Unlimited`
+                      : `${usage.reportsUsedThisMonth} / ${usage.reportsLimit}`}
+                  </span>
                 </div>
-                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full w-[67%] bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full" />
-                </div>
+                {repUnlimited ? (
+                  <p className="text-white/40 text-xs">No monthly cap on your plan.</p>
+                ) : (
+                  <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all"
+                      style={{ width: `${repPct}%` }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>
