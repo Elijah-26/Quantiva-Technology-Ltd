@@ -9,7 +9,11 @@ function safeJsonParseArray(raw: string): unknown[] {
   }
 }
 
-export async function openaiChat(system: string, user: string, maxTokens: number): Promise<{ text: string; error?: string }> {
+export async function openaiChat(
+  system: string,
+  user: string,
+  maxTokens: number
+): Promise<{ text: string; error?: string }> {
   const key = process.env.OPENAI_API_KEY
   if (!key) {
     return {
@@ -53,6 +57,22 @@ export function summarizeScraped(scraped: unknown): string {
   return lines.join('\n\n')
 }
 
+/** Catalog [S1].. with title + URL for in-text [Sn] citations. */
+export function formatSourceCatalog(scraped: unknown): string {
+  if (!Array.isArray(scraped) || scraped.length === 0) {
+    return '(No web sources — use generic placeholders like (Author, n.d.) only where needed, and note limitations in text.)'
+  }
+  return (scraped as { title?: string; url?: string; excerpt?: string }[])
+    .slice(0, 12)
+    .map((s, i) => {
+      const n = i + 1
+      const title = (s.title || 'Source').trim()
+      const url = (s.url || '').trim()
+      return `[S${n}] ${title}${url ? `\n    URL: ${url}` : ''}`
+    })
+    .join('\n\n')
+}
+
 function answersSummary(answers: Record<string, unknown>): string {
   const skip = new Set(['_meta', 'citation_style', 'word_target_band'])
   return Object.entries(answers)
@@ -62,7 +82,7 @@ function answersSummary(answers: Record<string, unknown>): string {
 }
 
 const OUTLINE_SYSTEM = `You are an academic writing assistant. Output ONLY valid JSON: an array of objects with keys "slug" (kebab-case id), "heading" (human title), "sort_order" (integer starting at 0). 
-No markdown fences. Sections must follow conventions for the document type requested. Do not invent citations or dataset results.`
+No markdown fences. Sections must follow conventions for the document type. Use 6–14 sections. Do not include a separate "References" section in the outline (references are added later). Do not invent empirical results.`
 
 export async function generateOutlineJson(input: {
   templateType: AcademicTemplateType
@@ -78,7 +98,7 @@ ${answersSummary(input.answers)}
 Web research excerpts (may be empty):
 ${scraped || '(none)'}
 
-Produce 6–14 outline sections appropriate for this type. For research_paper favour IMRaD-style headings where suitable. For dissertation_thesis include typical chapter-level blocks.`
+Produce outline sections appropriate for this type. For research_paper favour IMRaD-style. For dissertation_thesis use chapter-level blocks (Introduction, Literature review, Methodology, etc.).`
 
   const { text, error } = await openaiChat(OUTLINE_SYSTEM, user, 2000)
   if (error || !text) return { outline: [], error, raw: text }
@@ -96,9 +116,20 @@ Produce 6–14 outline sections appropriate for this type. For research_paper fa
   return { outline }
 }
 
-function sectionSystem(templateType: AcademicTemplateType, citationStyle: string): string {
-  return `You write rigorous academic prose in ${citationStyle || 'APA'}-style tone (narrative citations like (Author, Year) placeholders only — do not fabricate real references). 
-Document context: ${templateType}. Use clear headings within the section if needed (###). No boilerplate about being an AI. Full paragraphs, not bullet-only unless the section is inherently list-based.`
+function sectionSystem(
+  templateType: AcademicTemplateType,
+  citationStyle: string,
+  sectionNumber: number,
+  totalSections: number
+): string {
+  return `You write formal academic prose suitable for a thesis or major research document.
+
+Citation style target: ${citationStyle || 'APA'}.
+Use in-text citations as [S1], [S2], … matching the source catalog provided in the user message ONLY for web sources. Where no source fits, use a neutral formulation or (Author, n.d.) as a clear placeholder — do not invent real publication years or journal names.
+
+Section ${sectionNumber} of ${totalSections} (main body). Do NOT start the body with a duplicate "#" title line for the whole document. Use ### subheadings inside this section with decimal labels ${sectionNumber}.1, ${sectionNumber}.2, ${sectionNumber}.3, etc., for subsections.
+
+Document type context: ${templateType}. No meta-commentary about being an AI. Substantive paragraphs.`
 }
 
 export async function generateSectionBody(input: {
@@ -106,29 +137,65 @@ export async function generateSectionBody(input: {
   citationStyle: string
   answers: Record<string, unknown>
   scrapedSummary: string
+  sourceCatalog: string
   outline: OutlineItem[]
   sectionSlug: string
   sectionHeading: string
+  sectionNumber: number
+  totalSections: number
 }): Promise<{ body: string; error?: string }> {
-  const outlineStr = input.outline.map((o) => `- ${o.slug}: ${o.heading}`).join('\n')
-  const user = `Full document outline:
+  const outlineStr = input.outline
+    .map((o, idx) => `${idx + 1}. ${o.slug}: ${o.heading}`)
+    .join('\n')
+  const user = `SOURCE CATALOG (use [Sn] in-text only as appropriate):
+${input.sourceCatalog}
+
+Full document outline (you are writing section ${input.sectionNumber} only):
 ${outlineStr}
 
-Write the section titled "${input.sectionHeading}" (slug ${input.sectionSlug}). Cross-reference other sections only briefly where natural.
+Section to write — main heading label: "${input.sectionNumber}. ${input.sectionHeading}" (slug: ${input.sectionSlug})
 
 User inputs:
 ${answersSummary(input.answers)}
 
-Research excerpts:
+Research excerpts (condensed):
 ${input.scrapedSummary || '(none)'}
 
-Target: substantial section (roughly 400–900 words unless the section is intentionally short e.g. abstract).`
+Write this section only. Target roughly 400–900 words unless the section is intentionally short (e.g. abstract). Use ### ${input.sectionNumber}.1, ### ${input.sectionNumber}.2, … for internal subsections.`
 
   const { text, error } = await openaiChat(
-    sectionSystem(input.templateType, input.citationStyle),
+    sectionSystem(
+      input.templateType,
+      input.citationStyle,
+      input.sectionNumber,
+      input.totalSections
+    ),
     user,
     3500
   )
   if (error || !text) return { body: '', error }
   return { body: text }
+}
+
+const FINALIZE_SYSTEM = `You produce a References / Bibliography section only. Output plain text, one reference per line block (blank line between entries). 
+Every [Sn] cited in the draft must have a matching entry. Include the URL on its own line under each entry when a URL was provided in the source list. Follow the user's citation style approximately (APA-like, MLA-like, etc.). Do not invent DOIs or page numbers. No preamble or closing commentary.`
+
+export async function generateReferencesAppendix(input: {
+  citationStyle: string
+  combinedSectionBodies: string
+  sourceCatalog: string
+}): Promise<{ text: string; error?: string }> {
+  const user = `Citation style: ${input.citationStyle || 'APA'}
+
+SOURCE CATALOG:
+${input.sourceCatalog}
+
+BODY TEXT (excerpt; infer which [Sn] markers appear):
+${input.combinedSectionBodies.slice(0, 14_000)}${input.combinedSectionBodies.length > 14_000 ? '\n\n[…truncated…]' : ''}
+
+Produce the References section only.`
+
+  const { text, error } = await openaiChat(FINALIZE_SYSTEM, user, 2500)
+  if (error || !text) return { text: '', error }
+  return { text }
 }

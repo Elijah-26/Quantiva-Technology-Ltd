@@ -11,8 +11,6 @@ import {
   Copy,
   Download,
   Loader2,
-  RefreshCw,
-  Search,
   Sparkles,
   FileText,
 } from 'lucide-react'
@@ -33,6 +31,7 @@ import { cn } from '@/lib/utils'
 import type { FlowStep, FlowField } from '@/lib/academic-research/template-flows'
 import { getWizardStep } from '@/lib/academic-research/types'
 import type { OutlineItem } from '@/lib/academic-research/types'
+import { buildAssembledDocument } from '@/lib/academic-research/assemble'
 
 type SessionRow = {
   id: string
@@ -44,6 +43,7 @@ type SessionRow = {
   answers: Record<string, unknown>
   scraped_context: unknown
   outline: unknown
+  references_text?: string | null
   error_message: string | null
   updated_at: string
 }
@@ -55,6 +55,18 @@ type SectionRow = {
   sort_order: number
   body: string
 }
+
+function userFacingSessionError(msg: string | null): string | null {
+  if (!msg?.trim()) return null
+  if (
+    /OPENAI|FIRECRAWL|API_KEY|api\.openai|supabase|VERCEL|timeout|ECONNRESET/i.test(msg)
+  ) {
+    return 'Something went wrong while generating. You can try again, or go back and adjust your answers.'
+  }
+  return msg
+}
+
+type GeneratePhase = null | 'preparing' | 'structuring' | 'writing'
 
 function FieldInput({
   field,
@@ -115,7 +127,8 @@ export default function AcademicResearchSessionPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<Record<string, string>>({})
-  const [pipeBusy, setPipeBusy] = useState<string | null>(null)
+  const [pipeBusy, setPipeBusy] = useState(false)
+  const [generatePhase, setGeneratePhase] = useState<GeneratePhase>(null)
 
   const load = useCallback(async () => {
     if (!id) return
@@ -218,106 +231,79 @@ export default function AcademicResearchSessionPage() {
     }
   }
 
-  async function runResearch() {
-    setPipeBusy('research')
+  async function runGenerate() {
+    if (!id) return
+    setPipeBusy(true)
+    setGeneratePhase('preparing')
     try {
-      const res = await fetch(`/api/academic-research/sessions/${encodeURIComponent(id)}/research`, {
+      const resR = await fetch(`/api/academic-research/sessions/${encodeURIComponent(id)}/research`, {
         method: 'POST',
         credentials: 'include',
       })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error || 'Research failed')
+      const dataR = await resR.json().catch(() => ({}))
+      if (!resR.ok) throw new Error(dataR.error || 'Preparation step failed')
       toast.success(
-        data.sourceCount
-          ? `Collected ${data.sourceCount} source(s)`
-          : data.skippedReason || 'Research skipped'
+        typeof dataR.sourceCount === 'number' && dataR.sourceCount > 0
+          ? `Found ${dataR.sourceCount} web source(s) for context.`
+          : 'Continuing with your answers.'
       )
-      await load()
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed')
-    } finally {
-      setPipeBusy(null)
-    }
-  }
 
-  async function runOutline() {
-    setPipeBusy('outline')
-    try {
-      const res = await fetch(
+      setGeneratePhase('structuring')
+      const resO = await fetch(
         `/api/academic-research/sessions/${encodeURIComponent(id)}/outline?reset=1`,
         { method: 'POST', credentials: 'include' }
       )
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error || 'Outline failed')
-      toast.success(`Outline: ${data.outline?.length || 0} sections`)
-      await load()
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed')
-    } finally {
-      setPipeBusy(null)
-    }
-  }
+      const dataO = await resO.json().catch(() => ({}))
+      if (!resO.ok) throw new Error(dataO.error || 'Could not structure the document')
 
-  async function runNextSection() {
-    setPipeBusy('gen')
-    try {
-      const res = await fetch(`/api/academic-research/sessions/${encodeURIComponent(id)}/generate`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error || 'Generation failed')
-      if (data.completed) {
-        toast.success('Document complete')
-      } else {
-        toast.message(`Section: ${data.section?.heading || ''} (${data.progress?.current}/${data.progress?.total})`)
-      }
-      await load()
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed')
-    } finally {
-      setPipeBusy(null)
-    }
-  }
-
-  async function runAllSections() {
-    setPipeBusy('all')
-    try {
+      setGeneratePhase('writing')
       let guard = 0
-      while (guard < 40) {
+      while (guard < 48) {
         guard++
-        const res = await fetch(`/api/academic-research/sessions/${encodeURIComponent(id)}/generate`, {
+        const resG = await fetch(`/api/academic-research/sessions/${encodeURIComponent(id)}/generate`, {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({}),
         })
-        const data = await res.json().catch(() => ({}))
-        if (!res.ok) throw new Error(data.error || 'Generation failed')
-        await load()
-        if (data.completed) {
-          toast.success('All sections generated')
-          break
+        const dataG = await resG.json().catch(() => ({}))
+        if (!resG.ok) throw new Error(dataG.error || 'Writing failed')
+        if (dataG.completed) {
+          await load()
+          toast.success('Your document is ready.')
+          return
         }
+        await load()
       }
+      throw new Error('Generation stopped after too many steps. Try again or contact support.')
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed')
+      toast.error(e instanceof Error ? e.message : 'Generation failed')
+      await load()
     } finally {
-      setPipeBusy(null)
+      setPipeBusy(false)
+      setGeneratePhase(null)
     }
   }
 
   const outline = (session?.outline || []) as OutlineItem[]
   const scraped = Array.isArray(session?.scraped_context) ? session.scraped_context : []
-  const assembled = [...sections]
-    .sort((a, b) => a.sort_order - b.sort_order)
-    .map((s) => `## ${s.heading}\n\n${s.body}`)
-    .join('\n\n')
+
+  const assembled =
+    session &&
+    buildAssembledDocument({
+      title: session.title || 'Research',
+      outline,
+      sections: sections.map((s) => ({
+        section_slug: s.section_slug,
+        heading: s.heading,
+        sort_order: s.sort_order,
+        body: s.body,
+      })),
+      referencesText: String(session.references_text ?? ''),
+    })
 
   async function copyDoc() {
-    if (!assembled.trim()) {
+    if (!assembled?.trim()) {
       toast.error('Nothing to copy yet')
       return
     }
@@ -325,15 +311,41 @@ export default function AcademicResearchSessionPage() {
     toast.success('Copied')
   }
 
-  function downloadMd() {
-    if (!assembled.trim()) return
-    const blob = new Blob([assembled], { type: 'text/markdown' })
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = `${(session?.title || 'research').replace(/\s+/g, '_').slice(0, 60)}.md`
-    a.click()
-    URL.revokeObjectURL(a.href)
+  async function downloadExport(format: 'docx' | 'pdf') {
+    if (!id) return
+    try {
+      const res = await fetch(
+        `/api/academic-research/sessions/${encodeURIComponent(id)}/export?format=${format}`,
+        { credentials: 'include' }
+      )
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || 'Download failed')
+      }
+      const blob = await res.blob()
+      const ext = format === 'docx' ? 'docx' : 'pdf'
+      const base = (session?.title || 'research').replace(/\s+/g, '_').slice(0, 60)
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `${base}.${ext}`
+      a.click()
+      URL.revokeObjectURL(a.href)
+      toast.success(`Downloaded .${ext}`)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Download failed')
+    }
   }
+
+  const phaseLabel =
+    generatePhase === 'preparing'
+      ? 'Preparing…'
+      : generatePhase === 'structuring'
+        ? 'Structuring…'
+        : generatePhase === 'writing'
+          ? 'Writing…'
+          : null
+
+  const displayError = userFacingSessionError(session?.error_message ?? null)
 
   if (loading || !session) {
     return (
@@ -415,69 +427,40 @@ export default function AcademicResearchSessionPage() {
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
           <Card className="border-white/10 bg-white/5">
             <CardHeader>
-              <CardTitle className="text-white">Review & generate</CardTitle>
+              <CardTitle className="text-white">Generate document</CardTitle>
               <CardDescription className="text-white/50">
-                Run web research (optional), build an AI outline, then generate each section. Use “Generate all” to
-                run the full document in sequence.
+                When you are happy with your answers, generate a full draft with numbered sections and references.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {session.error_message && (
+              {displayError && (
                 <p className="text-sm text-amber-300/90 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
-                  {session.error_message}
+                  {displayError}
+                </p>
+              )}
+              {pipeBusy && phaseLabel && (
+                <p className="text-sm text-white/60 flex items-center gap-2">
+                  <Loader2 className="size-4 animate-spin shrink-0" />
+                  {phaseLabel}
                 </p>
               )}
               <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  className="border-white/20 text-white"
-                  disabled={!!pipeBusy}
-                  onClick={runResearch}
-                >
-                  {pipeBusy === 'research' ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Search className="size-4" />
-                  )}
-                  Web research
-                </Button>
-                <Button
-                  variant="outline"
-                  className="border-white/20 text-white"
-                  disabled={!!pipeBusy}
-                  onClick={runOutline}
-                >
-                  {pipeBusy === 'outline' ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <FileText className="size-4" />
-                  )}
-                  Generate outline
-                </Button>
-                <Button variant="gradient" disabled={!!pipeBusy} onClick={runNextSection}>
-                  {pipeBusy === 'gen' ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
-                  Next section
-                </Button>
-                <Button variant="glass" disabled={!!pipeBusy} onClick={runAllSections}>
-                  {pipeBusy === 'all' ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-                  Generate all
+                <Button variant="gradient" disabled={pipeBusy} onClick={runGenerate}>
+                  {pipeBusy ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+                  Generate
                 </Button>
               </div>
-              <p className="text-xs text-white/40">
-                Firecrawl: set <code className="text-indigo-300">FIRECRAWL_API_KEY</code> on the server. Without it,
-                research is skipped and outlines use your inputs only.
-              </p>
-              <Button variant="glass" type="button" onClick={goBack} disabled={!!pipeBusy}>
+              <Button variant="glass" type="button" onClick={goBack} disabled={pipeBusy}>
                 <ChevronLeft className="size-4" />
                 Back to edit answers
               </Button>
             </CardContent>
           </Card>
 
-          {scraped.length > 0 && (
+          {!pipeBusy && scraped.length > 0 && (
             <Card className="border-white/10 bg-white/5">
               <CardHeader>
-                <CardTitle className="text-white text-base">Web sources ({scraped.length})</CardTitle>
+                <CardTitle className="text-white text-base">Sources ({scraped.length})</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm text-white/65">
                 {(scraped as { title?: string; url?: string }[]).slice(0, 6).map((s, i) => (
@@ -492,7 +475,7 @@ export default function AcademicResearchSessionPage() {
             </Card>
           )}
 
-          {outline.length > 0 && (
+          {!pipeBusy && outline.length > 0 && (
             <Card className="border-white/10 bg-white/5">
               <CardHeader>
                 <CardTitle className="text-white text-base">Outline</CardTitle>
@@ -507,18 +490,22 @@ export default function AcademicResearchSessionPage() {
             </Card>
           )}
 
-          {sections.length > 0 && (
+          {sections.length > 0 && assembled && (
             <Card className="border-white/10 bg-white/5">
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-row items-center justify-between gap-2 flex-wrap">
                 <CardTitle className="text-white text-base">Document</CardTitle>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button variant="glass" size="sm" type="button" onClick={copyDoc}>
                     <Copy className="size-4" />
                     Copy
                   </Button>
-                  <Button variant="glass" size="sm" type="button" onClick={downloadMd}>
+                  <Button variant="glass" size="sm" type="button" onClick={() => downloadExport('docx')}>
+                    <FileText className="size-4" />
+                    DOCX
+                  </Button>
+                  <Button variant="glass" size="sm" type="button" onClick={() => downloadExport('pdf')}>
                     <Download className="size-4" />
-                    .md
+                    PDF
                   </Button>
                 </div>
               </CardHeader>

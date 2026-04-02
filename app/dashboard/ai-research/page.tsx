@@ -82,9 +82,8 @@ export default function AcademicResearchHubPage() {
           Academic research
         </h1>
         <p className="text-white/60 max-w-2xl">
-          Choose a template with a tailored step-by-step flow. Your work is saved to Supabase. Optional
-          Firecrawl web research grounds outlines in common academic structures. Generation is assistive—review
-          with your supervisor or committee; do not fabricate citations.
+          Choose a template and follow the steps. Your session is saved automatically. Generated text is a
+          draft—review and edit it with your supervisor or committee before submission.
         </p>
       </motion.div>
 

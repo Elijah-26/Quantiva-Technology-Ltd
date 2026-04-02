@@ -54,6 +54,7 @@ export async function POST(
       status: 'draft',
       error_message: null,
       updated_at: new Date().toISOString(),
+      ...(resetSections ? { references_text: '' } : {}),
     })
     .eq('id', id)
     .eq('user_id', auth.user.id)

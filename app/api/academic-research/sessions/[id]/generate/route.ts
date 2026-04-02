@@ -1,7 +1,70 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAndUser } from '../../../_auth'
-import { generateSectionBody, summarizeScraped } from '@/lib/academic-research/generate'
+import {
+  formatSourceCatalog,
+  generateReferencesAppendix,
+  generateSectionBody,
+  summarizeScraped,
+} from '@/lib/academic-research/generate'
 import type { AcademicTemplateType, OutlineItem } from '@/lib/academic-research/types'
+
+async function finalizeReferences(
+  supabase: SupabaseClient,
+  userId: string,
+  sessionId: string,
+  session: {
+    scraped_context: unknown
+    citation_style: string | null
+    answers: unknown
+  }
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data: sectionRows, error: secErr } = await supabase
+    .from('academic_research_sections')
+    .select('section_slug, heading, sort_order, body')
+    .eq('session_id', sessionId)
+    .order('sort_order', { ascending: true })
+
+  if (secErr) {
+    return { ok: false, error: secErr.message }
+  }
+
+  const combined =
+    (sectionRows || [])
+      .map((r) => String(r.body || ''))
+      .join('\n\n') || ''
+
+  const answers = (session.answers || {}) as Record<string, unknown>
+  const citationStyle =
+    session.citation_style || String(answers.citation_style || 'apa')
+  const sourceCatalog = formatSourceCatalog(session.scraped_context)
+
+  const { text: refText, error: fErr } = await generateReferencesAppendix({
+    citationStyle,
+    combinedSectionBodies: combined,
+    sourceCatalog,
+  })
+
+  if (fErr || !refText) {
+    return { ok: false, error: fErr || 'References generation failed' }
+  }
+
+  const { error: upErr } = await supabase
+    .from('academic_research_sessions')
+    .update({
+      references_text: refText,
+      status: 'completed',
+      error_message: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', sessionId)
+    .eq('user_id', userId)
+
+  if (upErr) {
+    return { ok: false, error: upErr.message }
+  }
+  return { ok: true }
+}
 
 export async function POST(
   request: NextRequest,
@@ -22,8 +85,9 @@ export async function POST(
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  const outline = (session.outline || []) as OutlineItem[]
-  if (!Array.isArray(outline) || outline.length === 0) {
+  const outlineRaw = (session.outline || []) as OutlineItem[]
+  const outlineSorted = [...outlineRaw].sort((a, b) => a.sort_order - b.sort_order)
+  if (!Array.isArray(outlineSorted) || outlineSorted.length === 0) {
     return NextResponse.json({ error: 'Generate an outline first' }, { status: 400 })
   }
 
@@ -46,15 +110,36 @@ export async function POST(
   const body = await request.json().catch(() => ({}))
   let target: OutlineItem | undefined
   if (typeof body.sectionSlug === 'string' && body.sectionSlug.trim()) {
-    target = outline.find((o) => o.slug === body.sectionSlug.trim())
+    target = outlineSorted.find((o) => o.slug === body.sectionSlug.trim())
     if (!target) {
       return NextResponse.json({ error: 'Unknown section slug' }, { status: 400 })
     }
   } else {
-    target = outline.find((o) => !filled.has(o.slug))
+    target = outlineSorted.find((o) => !filled.has(o.slug))
   }
 
   if (!target) {
+    const refEmpty = !String(session.references_text || '').trim()
+    if (refEmpty && outlineSorted.length > 0) {
+      const fin = await finalizeReferences(auth.supabase, auth.user.id, id, session)
+      if (!fin.ok) {
+        await auth.supabase
+          .from('academic_research_sessions')
+          .update({
+            status: 'failed',
+            error_message: fin.error,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', id)
+        return NextResponse.json({ error: fin.error }, { status: 500 })
+      }
+      return NextResponse.json({
+        completed: true,
+        progress: { current: outlineSorted.length, total: outlineSorted.length },
+        finalized: true,
+      })
+    }
+
     await auth.supabase
       .from('academic_research_sessions')
       .update({ status: 'completed', updated_at: new Date().toISOString() })
@@ -62,21 +147,28 @@ export async function POST(
     return NextResponse.json({
       completed: true,
       message: 'All sections already generated',
-      progress: { current: outline.length, total: outline.length },
+      progress: { current: outlineSorted.length, total: outlineSorted.length },
     })
   }
 
   const answers = (session.answers || {}) as Record<string, unknown>
   const scrapedSummary = summarizeScraped(session.scraped_context)
+  const sourceCatalog = formatSourceCatalog(session.scraped_context)
+  const idx = outlineSorted.findIndex((o) => o.slug === target.slug)
+  const sectionNumber = idx >= 0 ? idx + 1 : 1
+  const total = outlineSorted.length
 
   const { body: sectionBody, error: genErr } = await generateSectionBody({
     templateType: session.template_type as AcademicTemplateType,
     citationStyle: session.citation_style || String(answers.citation_style || 'apa'),
     answers,
     scrapedSummary,
-    outline,
+    sourceCatalog,
+    outline: outlineSorted,
     sectionSlug: target.slug,
     sectionHeading: target.heading,
+    sectionNumber,
+    totalSections: total,
   })
 
   if (genErr || !sectionBody) {
@@ -113,12 +205,21 @@ export async function POST(
 
   const nextFilled = new Set(filled)
   nextFilled.add(target.slug)
-  const done = outline.every((o) => nextFilled.has(o.slug))
+  const done = outlineSorted.every((o) => nextFilled.has(o.slug))
+
   if (done) {
-    await auth.supabase
-      .from('academic_research_sessions')
-      .update({ status: 'completed', updated_at: new Date().toISOString() })
-      .eq('id', id)
+    const fin = await finalizeReferences(auth.supabase, auth.user.id, id, session)
+    if (!fin.ok) {
+      await auth.supabase
+        .from('academic_research_sessions')
+        .update({
+          status: 'failed',
+          error_message: fin.error,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+      return NextResponse.json({ error: fin.error }, { status: 500 })
+    }
   } else {
     await auth.supabase
       .from('academic_research_sessions')
@@ -128,7 +229,7 @@ export async function POST(
 
   return NextResponse.json({
     completed: done,
-    progress: { current: nextFilled.size, total: outline.length },
+    progress: { current: nextFilled.size, total: outlineSorted.length },
     section: { slug: target.slug, heading: target.heading },
   })
 }

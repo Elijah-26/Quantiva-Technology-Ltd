@@ -47,7 +47,7 @@ export async function POST(
       scraped_context: result.sources,
       status: 'draft',
       updated_at: new Date().toISOString(),
-      error_message: result.skippedReason || null,
+      error_message: null,
     })
     .eq('id', id)
     .eq('user_id', auth.user.id)
