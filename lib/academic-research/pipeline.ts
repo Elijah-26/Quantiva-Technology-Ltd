@@ -32,6 +32,9 @@ export async function runAcademicResearchPipeline(
 
   const templateType = session.template_type as AcademicTemplateType
   const answers = (session.answers || {}) as Record<string, unknown>
+  const citationStyleForResearch =
+    String(session.citation_style || '').trim() ||
+    String(answers.citation_style || 'apa')
 
   // 1) Research
   await supabase
@@ -43,6 +46,11 @@ export async function runAcademicResearchPipeline(
     templateType,
     topicQuery: topicQueryFromAnswers(templateType, answers),
     contextHints: contextHintsFromAnswers(templateType, answers),
+    researchContext: {
+      supabase,
+      userId,
+      citationStyle: citationStyleForResearch,
+    },
   })
 
   const { error: rErr } = await supabase

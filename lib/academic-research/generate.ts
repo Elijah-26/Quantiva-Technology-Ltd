@@ -55,6 +55,9 @@ type ScrapedRow = {
   author?: string
   year?: string
   citeVerified?: boolean
+  url?: string
+  doi?: string
+  tldr?: string
 }
 
 export function summarizeScraped(scraped: unknown): string {
@@ -77,9 +80,11 @@ export function formatSourceCatalog(scraped: unknown): string {
     .map((s, i) => {
       const n = i + 1
       const title = (s.title || 'Source').trim()
-      const url = String((s as { url?: string }).url || '').trim()
+      const url = String(s.url || '').trim()
       const lines = [`Source ${n}: ${title}`]
       if (url) lines.push(`  URL: ${url}`)
+      if (s.doi?.trim()) lines.push(`  DOI: ${s.doi.trim()}`)
+      if (s.tldr?.trim()) lines.push(`  Summary: ${s.tldr.trim().slice(0, 400)}`)
       if (s.citeVerified && s.author && s.year) {
         lines.push(
           `  CITATION_OK: yes — you may cite in prose as (${s.author}, ${s.year}) when this source is relevant.`

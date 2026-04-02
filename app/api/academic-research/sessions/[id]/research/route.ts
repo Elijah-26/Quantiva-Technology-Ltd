@@ -28,6 +28,9 @@ export async function POST(
 
   const templateType = session.template_type as AcademicTemplateType
   const answers = (session.answers || {}) as Record<string, unknown>
+  const citationStyle =
+    String(session.citation_style || '').trim() ||
+    String(answers.citation_style || 'apa')
 
   await auth.supabase
     .from('academic_research_sessions')
@@ -38,6 +41,11 @@ export async function POST(
     templateType,
     topicQuery: topicQueryFromAnswers(templateType, answers),
     contextHints: contextHintsFromAnswers(templateType, answers),
+    researchContext: {
+      supabase: auth.supabase,
+      userId: auth.user.id,
+      citationStyle,
+    },
   })
 
   const { error: uErr } = await auth.supabase
