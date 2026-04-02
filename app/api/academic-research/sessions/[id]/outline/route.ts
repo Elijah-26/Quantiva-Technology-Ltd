@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAndUser } from '../../../_auth'
 import { generateOutlineJson } from '@/lib/academic-research/generate'
+import { resolveOutlineForSession } from '@/lib/academic-research/section-catalog'
 import type { AcademicTemplateType } from '@/lib/academic-research/types'
 
 export async function POST(
@@ -25,11 +26,22 @@ export async function POST(
   const searchParams = request.nextUrl.searchParams
   const resetSections = searchParams.get('reset') === '1'
 
-  const { outline, error: genErr } = await generateOutlineJson({
-    templateType: session.template_type as AcademicTemplateType,
-    answers: (session.answers || {}) as Record<string, unknown>,
-    scrapedContext: session.scraped_context,
-  })
+  const answers = (session.answers || {}) as Record<string, unknown>
+  const templateType = session.template_type as AcademicTemplateType
+
+  const fromPlan = resolveOutlineForSession(templateType, answers)
+  let outline = fromPlan || []
+  let genErr: string | undefined
+
+  if (outline.length === 0) {
+    const gen = await generateOutlineJson({
+      templateType,
+      answers,
+      scrapedContext: session.scraped_context,
+    })
+    outline = gen.outline
+    genErr = gen.error
+  }
 
   if (genErr || outline.length === 0) {
     await auth.supabase

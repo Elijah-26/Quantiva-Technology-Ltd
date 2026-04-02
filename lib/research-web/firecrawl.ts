@@ -1,5 +1,6 @@
 import type { ResearchWebProvider, TemplateGuidanceInput, TemplateGuidanceResult } from './types'
 import type { AcademicTemplateType } from '@/lib/academic-research/types'
+import { mergeEnrichment, parseCitationMetaFromHtml } from '@/lib/academic-research/source-metadata'
 
 const DEFAULT_API_BASE = 'https://api.firecrawl.dev'
 
@@ -51,7 +52,7 @@ export class FirecrawlResearchProvider implements ResearchWebProvider {
         body: JSON.stringify({
           query,
           limit: Math.min(5, parseInt(process.env.FIRECRAWL_SEARCH_LIMIT || '5', 10) || 5),
-          scrapeOptions: { formats: ['markdown'] },
+          scrapeOptions: { formats: ['markdown', 'html'] },
         }),
       })
       clearTimeout(t)
@@ -74,11 +75,18 @@ export class FirecrawlResearchProvider implements ResearchWebProvider {
         const url = String(r.url || r.link || '')
         const title = String(r.title || r.name || url || 'Source')
         const md = String(r.markdown || r.content || r.description || '')
+        const html = String(r.html || '')
+        const excerpt = excerptFromMarkdown(md || String(r.description || ''))
+        const meta = html ? parseCitationMetaFromHtml(html) : {}
+        const merged = mergeEnrichment({ title, excerpt }, meta)
         return {
           url: url || 'https://example.invalid',
           title,
-          excerpt: excerptFromMarkdown(md || String(r.description || '')),
+          excerpt,
           provider: 'firecrawl' as const,
+          ...(merged.author ? { author: merged.author } : {}),
+          ...(merged.year ? { year: merged.year } : {}),
+          ...(merged.citeVerified ? { citeVerified: true as const } : {}),
         }
       }).filter((s) => s.url && s.url !== 'https://example.invalid')
 

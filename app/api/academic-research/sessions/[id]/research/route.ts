@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAndUser } from '../../../_auth'
-import { getResearchWebProvider } from '@/lib/research-web'
+import { gatherResearchSources } from '@/lib/research-web/gather'
 import {
   contextHintsFromAnswers,
   topicQueryFromAnswers,
@@ -34,8 +34,7 @@ export async function POST(
     .update({ status: 'researching', updated_at: new Date().toISOString(), error_message: null })
     .eq('id', id)
 
-  const provider = getResearchWebProvider()
-  const result = await provider.fetchTemplateGuidance({
+  const result = await gatherResearchSources({
     templateType,
     topicQuery: topicQueryFromAnswers(templateType, answers),
     contextHints: contextHintsFromAnswers(templateType, answers),

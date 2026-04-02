@@ -11,8 +11,10 @@ import {
   Copy,
   Download,
   Loader2,
+  Plus,
   Sparkles,
   FileText,
+  Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -30,8 +32,16 @@ import {
 import { cn } from '@/lib/utils'
 import type { FlowStep, FlowField } from '@/lib/academic-research/template-flows'
 import { getWizardStep } from '@/lib/academic-research/types'
-import type { OutlineItem } from '@/lib/academic-research/types'
+import type { AcademicTemplateType, OutlineItem } from '@/lib/academic-research/types'
 import { buildAssembledDocument } from '@/lib/academic-research/assemble'
+import {
+  SECTION_CATALOG,
+  DOCUMENT_PLAN_KEY,
+  defaultDocumentPlan,
+  getDocumentPlanFromAnswers,
+  type DocumentPlan,
+} from '@/lib/academic-research/section-catalog'
+import { Checkbox } from '@/components/ui/checkbox'
 
 type SessionRow = {
   id: string
@@ -67,6 +77,55 @@ function userFacingSessionError(msg: string | null): string | null {
 }
 
 type GeneratePhase = null | 'preparing' | 'structuring' | 'writing'
+
+function GeneratingHandOverlay({ show, phase }: { show: boolean; phase: GeneratePhase }) {
+  if (!show) return null
+  const phaseLine =
+    phase === 'preparing'
+      ? 'Preparing…'
+      : phase === 'structuring'
+        ? 'Structuring your document…'
+        : phase === 'writing'
+          ? 'Writing sections…'
+          : ''
+  return (
+    <div
+      className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-6 bg-navy-950/93 px-6 backdrop-blur-md"
+      aria-busy
+      aria-live="polite"
+    >
+      <motion.div
+        className="text-indigo-300"
+        style={{ width: 112, height: 112 }}
+        animate={{ rotate: [0, 10, -8, 0], y: [0, -6, 0] }}
+        transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <svg viewBox="0 0 120 120" fill="none" className="size-full" aria-hidden>
+          <path
+            d="M52 18c-6 0-11 5-11 12v32l-10-8c-4-3-9-2-12 2s-2 10 3 13l22 15c3 2 6 3 10 3h26c8 0 14-5 16-12l5-22c2-7-3-14-10-15-3-1-6 0-9 2l-4 3V30c0-7-5-12-12-12-4 0-8 2-10 5"
+            stroke="currentColor"
+            strokeWidth={5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+            opacity={0.95}
+          />
+          <path
+            d="M78 48l18 8c4 2 6 7 4 11l-6 14"
+            stroke="currentColor"
+            strokeWidth={4}
+            strokeLinecap="round"
+            opacity={0.85}
+          />
+        </svg>
+      </motion.div>
+      <div className="max-w-md space-y-2 text-center">
+        <p className="text-lg text-white/95">Kindly wait while your document is being generated.</p>
+        {phaseLine ? <p className="text-sm text-white/55">{phaseLine}</p> : null}
+      </div>
+    </div>
+  )
+}
 
 function FieldInput({
   field,
@@ -129,39 +188,52 @@ export default function AcademicResearchSessionPage() {
   const [form, setForm] = useState<Record<string, string>>({})
   const [pipeBusy, setPipeBusy] = useState(false)
   const [generatePhase, setGeneratePhase] = useState<GeneratePhase>(null)
+  const [documentPlan, setDocumentPlan] = useState<DocumentPlan | null>(null)
+  const [customHeadingDraft, setCustomHeadingDraft] = useState('')
 
-  const load = useCallback(async () => {
-    if (!id) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/academic-research/sessions/${encodeURIComponent(id)}`, {
-        credentials: 'include',
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error || 'Not found')
-      const s = data.session as SessionRow
-      setSession(s)
-      setSections(data.sections || [])
+  const load = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      if (!id) return
+      if (!opts?.silent) setLoading(true)
+      try {
+        const res = await fetch(`/api/academic-research/sessions/${encodeURIComponent(id)}`, {
+          credentials: 'include',
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data.error || 'Not found')
+        const s = data.session as SessionRow
+        setSession(s)
+        setSections(data.sections || [])
 
-      const fRes = await fetch(`/api/academic-research/flow/${encodeURIComponent(s.template_type)}`)
-      const fData = await fRes.json().catch(() => ({}))
-      if (fRes.ok) setSteps(fData.steps || [])
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Load failed')
-      router.push('/dashboard/ai-research')
-    } finally {
-      setLoading(false)
-    }
-  }, [id, router])
+        const fRes = await fetch(`/api/academic-research/flow/${encodeURIComponent(s.template_type)}`)
+        const fData = await fRes.json().catch(() => ({}))
+        if (fRes.ok) setSteps(fData.steps || [])
+      } catch (e) {
+        if (!opts?.silent) {
+          toast.error(e instanceof Error ? e.message : 'Load failed')
+          router.push('/dashboard/ai-research')
+        }
+      } finally {
+        if (!opts?.silent) setLoading(false)
+      }
+    },
+    [id, router]
+  )
 
   useEffect(() => {
-    load()
+    void load()
   }, [load])
 
   const stepIndex = session ? getWizardStep(session.answers) : 0
   const currentStep = steps[stepIndex]
   const isReview = currentStep?.id === 'review'
   const totalSteps = steps.length
+
+  useEffect(() => {
+    if (!session || !isReview || pipeBusy) return
+    const tt = session.template_type as AcademicTemplateType
+    setDocumentPlan(getDocumentPlanFromAnswers(session.answers) ?? defaultDocumentPlan(tt))
+  }, [session, isReview, pipeBusy])
 
   useEffect(() => {
     if (!session || !currentStep) return
@@ -232,10 +304,20 @@ export default function AcademicResearchSessionPage() {
   }
 
   async function runGenerate() {
-    if (!id) return
+    if (!id || !session || !documentPlan) return
+    const hasSections =
+      documentPlan.selectedIds.length > 0 || documentPlan.customSections.length > 0
+    if (!hasSections) {
+      toast.error('Select at least one section, or add a custom section.')
+      return
+    }
     setPipeBusy(true)
     setGeneratePhase('preparing')
     try {
+      await patchSession({
+        answers: { ...session.answers, [DOCUMENT_PLAN_KEY]: documentPlan },
+      })
+
       const resR = await fetch(`/api/academic-research/sessions/${encodeURIComponent(id)}/research`, {
         method: 'POST',
         credentials: 'include',
@@ -269,16 +351,16 @@ export default function AcademicResearchSessionPage() {
         const dataG = await resG.json().catch(() => ({}))
         if (!resG.ok) throw new Error(dataG.error || 'Writing failed')
         if (dataG.completed) {
-          await load()
+          await load({ silent: true })
           toast.success('Your document is ready.')
           return
         }
-        await load()
+        await load({ silent: true })
       }
       throw new Error('Generation stopped after too many steps. Try again or contact support.')
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Generation failed')
-      await load()
+      await load({ silent: true })
     } finally {
       setPipeBusy(false)
       setGeneratePhase(null)
@@ -336,15 +418,6 @@ export default function AcademicResearchSessionPage() {
     }
   }
 
-  const phaseLabel =
-    generatePhase === 'preparing'
-      ? 'Preparing…'
-      : generatePhase === 'structuring'
-        ? 'Structuring…'
-        : generatePhase === 'writing'
-          ? 'Writing…'
-          : null
-
   const displayError = userFacingSessionError(session?.error_message ?? null)
 
   if (loading || !session) {
@@ -356,7 +429,11 @@ export default function AcademicResearchSessionPage() {
     )
   }
 
+  const templateType = session.template_type as AcademicTemplateType
+  const sectionCatalog = SECTION_CATALOG[templateType] || []
+
   return (
+    <>
     <div className="space-y-6 max-w-3xl">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild className="text-white/70">
@@ -425,6 +502,112 @@ export default function AcademicResearchSessionPage() {
 
       {isReview && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+          {documentPlan && (
+            <Card className="border-white/10 bg-white/5">
+              <CardHeader>
+                <CardTitle className="text-white">Document structure</CardTitle>
+                <CardDescription className="text-white/50">
+                  Select the sections to include in your draft. Add custom headings if you need extra sections.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  {sectionCatalog.map((entry) => (
+                    <label
+                      key={entry.id}
+                      className="flex cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white/85"
+                    >
+                      <Checkbox
+                        className="mt-0.5 border-white/30 data-[state=checked]:bg-indigo-500"
+                        checked={documentPlan.selectedIds.includes(entry.id)}
+                        disabled={pipeBusy}
+                        onCheckedChange={(c) => {
+                          const on = c === true
+                          setDocumentPlan((p) => {
+                            if (!p) return p
+                            const next = new Set(p.selectedIds)
+                            if (on) next.add(entry.id)
+                            else next.delete(entry.id)
+                            return { ...p, selectedIds: [...next] }
+                          })
+                        }}
+                      />
+                      <span>{entry.defaultHeading}</span>
+                    </label>
+                  ))}
+                </div>
+                {documentPlan.customSections.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-white/50">Custom sections</p>
+                    {documentPlan.customSections.map((cs, i) => (
+                      <div
+                        key={`${cs.heading}-${i}`}
+                        className="flex items-center justify-between gap-2 rounded-lg border border-indigo-500/25 bg-indigo-500/10 px-3 py-2 text-sm text-white/90"
+                      >
+                        <span>{cs.heading}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 text-white/60 hover:text-rose-300"
+                          disabled={pipeBusy}
+                          onClick={() =>
+                            setDocumentPlan((p) =>
+                              p
+                                ? {
+                                    ...p,
+                                    customSections: p.customSections.filter((_, j) => j !== i),
+                                  }
+                                : p
+                            )
+                          }
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Input
+                    value={customHeadingDraft}
+                    onChange={(e) => setCustomHeadingDraft(e.target.value)}
+                    placeholder="Custom section heading"
+                    disabled={pipeBusy}
+                    className="border-white/10 bg-white/5 text-white"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        const h = customHeadingDraft.trim()
+                        if (!h) return
+                        setDocumentPlan((p) =>
+                          p ? { ...p, customSections: [...p.customSections, { heading: h }] } : p
+                        )
+                        setCustomHeadingDraft('')
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="glass"
+                    disabled={pipeBusy || !customHeadingDraft.trim()}
+                    onClick={() => {
+                      const h = customHeadingDraft.trim()
+                      if (!h) return
+                      setDocumentPlan((p) =>
+                        p ? { ...p, customSections: [...p.customSections, { heading: h }] } : p
+                      )
+                      setCustomHeadingDraft('')
+                    }}
+                  >
+                    <Plus className="size-4" />
+                    Add section
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="border-white/10 bg-white/5">
             <CardHeader>
               <CardTitle className="text-white">Generate document</CardTitle>
@@ -436,12 +619,6 @@ export default function AcademicResearchSessionPage() {
               {displayError && (
                 <p className="text-sm text-amber-300/90 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
                   {displayError}
-                </p>
-              )}
-              {pipeBusy && phaseLabel && (
-                <p className="text-sm text-white/60 flex items-center gap-2">
-                  <Loader2 className="size-4 animate-spin shrink-0" />
-                  {phaseLabel}
                 </p>
               )}
               <div className="flex flex-wrap gap-2">
@@ -519,5 +696,7 @@ export default function AcademicResearchSessionPage() {
         </motion.div>
       )}
     </div>
+    <GeneratingHandOverlay show={pipeBusy} phase={generatePhase} />
+    </>
   )
 }

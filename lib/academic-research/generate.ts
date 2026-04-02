@@ -49,6 +49,14 @@ export async function openaiChat(
   }
 }
 
+type ScrapedRow = {
+  title?: string
+  excerpt?: string
+  author?: string
+  year?: string
+  citeVerified?: boolean
+}
+
 export function summarizeScraped(scraped: unknown): string {
   if (!Array.isArray(scraped)) return ''
   const lines = (scraped as { title?: string; excerpt?: string }[])
@@ -57,24 +65,37 @@ export function summarizeScraped(scraped: unknown): string {
   return lines.join('\n\n')
 }
 
-/** Catalog [S1].. with title + URL for in-text [Sn] citations. */
+/**
+ * Catalog for the model: only sources marked CITATION_OK may receive (Author, Year) in the body.
+ */
 export function formatSourceCatalog(scraped: unknown): string {
   if (!Array.isArray(scraped) || scraped.length === 0) {
-    return '(No web sources — use generic placeholders like (Author, n.d.) only where needed, and note limitations in text.)'
+    return `(No web sources. Do NOT use parenthetical (Author, Year) citations in the body. Use neutral attribution, e.g. "Previous work suggests…", without invented names or dates.)`
   }
-  return (scraped as { title?: string; url?: string; excerpt?: string }[])
-    .slice(0, 12)
+  return (scraped as ScrapedRow[])
+    .slice(0, 14)
     .map((s, i) => {
       const n = i + 1
       const title = (s.title || 'Source').trim()
-      const url = (s.url || '').trim()
-      return `[S${n}] ${title}${url ? `\n    URL: ${url}` : ''}`
+      const url = String((s as { url?: string }).url || '').trim()
+      const lines = [`Source ${n}: ${title}`]
+      if (url) lines.push(`  URL: ${url}`)
+      if (s.citeVerified && s.author && s.year) {
+        lines.push(
+          `  CITATION_OK: yes — you may cite in prose as (${s.author}, ${s.year}) when this source is relevant.`
+        )
+      } else {
+        lines.push(
+          `  CITATION_OK: no — do not use (Author, Year) for this source; paraphrase without a parenthetical citation.`
+        )
+      }
+      return lines.join('\n')
     })
     .join('\n\n')
 }
 
 function answersSummary(answers: Record<string, unknown>): string {
-  const skip = new Set(['_meta', 'citation_style', 'word_target_band'])
+  const skip = new Set(['_meta', 'citation_style', 'word_target_band', '_documentPlan'])
   return Object.entries(answers)
     .filter(([k]) => !skip.has(k))
     .map(([k, v]) => `${k}: ${String(v).slice(0, 800)}`)
@@ -124,8 +145,12 @@ function sectionSystem(
 ): string {
   return `You write formal academic prose suitable for a thesis or major research document.
 
-Citation style target: ${citationStyle || 'APA'}.
-Use in-text citations as [S1], [S2], … matching the source catalog provided in the user message ONLY for web sources. Where no source fits, use a neutral formulation or (Author, n.d.) as a clear placeholder — do not invent real publication years or journal names.
+Target citation style for any parenthetical cites: ${citationStyle || 'APA'}.
+
+STRICT RULES:
+- Use parenthetical (Author, Year) in the body ONLY for sources explicitly marked "CITATION_OK: yes" in the source list. Use the exact Author and Year given there.
+- Never use [S1], [S2], or similar tags. Never write (Author, n.d.) or invented author names or years.
+- For sources with CITATION_OK: no, integrate ideas without parenthetical citations (general attribution is fine).
 
 Section ${sectionNumber} of ${totalSections} (main body). Do NOT start the body with a duplicate "#" title line for the whole document. Use ### subheadings inside this section with decimal labels ${sectionNumber}.1, ${sectionNumber}.2, ${sectionNumber}.3, etc., for subsections.
 
@@ -147,7 +172,7 @@ export async function generateSectionBody(input: {
   const outlineStr = input.outline
     .map((o, idx) => `${idx + 1}. ${o.slug}: ${o.heading}`)
     .join('\n')
-  const user = `SOURCE CATALOG (use [Sn] in-text only as appropriate):
+  const user = `SOURCE LIST (follow CITATION_OK rules exactly):
 ${input.sourceCatalog}
 
 Full document outline (you are writing section ${input.sectionNumber} only):
@@ -177,8 +202,13 @@ Write this section only. Target roughly 400–900 words unless the section is in
   return { body: text }
 }
 
-const FINALIZE_SYSTEM = `You produce a References / Bibliography section only. Output plain text, one reference per line block (blank line between entries). 
-Every [Sn] cited in the draft must have a matching entry. Include the URL on its own line under each entry when a URL was provided in the source list. Follow the user's citation style approximately (APA-like, MLA-like, etc.). Do not invent DOIs or page numbers. No preamble or closing commentary.`
+const FINALIZE_SYSTEM = `You produce a References / Bibliography section only. Output plain text, one reference per block separated by a blank line.
+
+Include EVERY source from the SOURCE LIST below. For each source always include title and URL (when URL is present).
+When a source had CITATION_OK: yes, format the entry in the user's citation style using that author and year.
+When CITATION_OK: no, list title and URL only — do not invent authors or years.
+
+Do not use [Sn] markers. Do not invent DOIs or page numbers. No preamble or closing commentary.`
 
 export async function generateReferencesAppendix(input: {
   citationStyle: string
@@ -187,11 +217,11 @@ export async function generateReferencesAppendix(input: {
 }): Promise<{ text: string; error?: string }> {
   const user = `Citation style: ${input.citationStyle || 'APA'}
 
-SOURCE CATALOG:
+SOURCE LIST:
 ${input.sourceCatalog}
 
-BODY TEXT (excerpt; infer which [Sn] markers appear):
-${input.combinedSectionBodies.slice(0, 14_000)}${input.combinedSectionBodies.length > 14_000 ? '\n\n[…truncated…]' : ''}
+BODY TEXT (excerpt; for context only — list all sources from SOURCE LIST regardless):
+${input.combinedSectionBodies.slice(0, 12_000)}${input.combinedSectionBodies.length > 12_000 ? '\n\n[…truncated…]' : ''}
 
 Produce the References section only.`
 

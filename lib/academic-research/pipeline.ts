@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { getResearchWebProvider } from '@/lib/research-web'
+import { gatherResearchSources } from '@/lib/research-web/gather'
 import {
   contextHintsFromAnswers,
   topicQueryFromAnswers,
@@ -12,6 +12,7 @@ import {
   summarizeScraped,
   formatSourceCatalog,
 } from '@/lib/academic-research/generate'
+import { resolveOutlineForSession } from '@/lib/academic-research/section-catalog'
 
 export async function runAcademicResearchPipeline(
   supabase: SupabaseClient,
@@ -38,8 +39,7 @@ export async function runAcademicResearchPipeline(
     .update({ status: 'researching', error_message: null, updated_at: new Date().toISOString() })
     .eq('id', sessionId)
 
-  const provider = getResearchWebProvider()
-  const researchResult = await provider.fetchTemplateGuidance({
+  const researchResult = await gatherResearchSources({
     templateType,
     topicQuery: topicQueryFromAnswers(templateType, answers),
     contextHints: contextHintsFromAnswers(templateType, answers),
@@ -63,11 +63,18 @@ export async function runAcademicResearchPipeline(
   let current = { ...session, scraped_context: researchResult.sources }
 
   // 2) Outline + reset sections + references
-  const { outline, error: oErr } = await generateOutlineJson({
-    templateType,
-    answers: (current.answers || {}) as Record<string, unknown>,
-    scrapedContext: current.scraped_context,
-  })
+  const ans = (current.answers || {}) as Record<string, unknown>
+  let outline = resolveOutlineForSession(templateType, ans) || []
+  let oErr: string | undefined
+  if (outline.length === 0) {
+    const gen = await generateOutlineJson({
+      templateType,
+      answers: ans,
+      scrapedContext: current.scraped_context,
+    })
+    outline = gen.outline
+    oErr = gen.error
+  }
 
   if (oErr || outline.length === 0) {
     await supabase
