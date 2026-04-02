@@ -30,7 +30,9 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from('library_documents')
-      .select('*')
+      .select(
+        'id, title, description, category, jurisdiction, access_level, word_count, download_count, rating, last_updated, preview, read_minutes, complexity, versions, related_ids, created_at, updated_at, source, created_by_user_id'
+      )
       .order('title', { ascending: true })
 
     if (error) {
@@ -54,6 +56,8 @@ export async function GET() {
       complexity: row.complexity as 'Low' | 'Moderate' | 'High',
       versions: Array.isArray(row.versions) ? row.versions : [],
       relatedIds: (row.related_ids || []) as string[],
+      source: (row as { source?: string }).source ?? 'curated',
+      createdByUserId: (row as { created_by_user_id?: string | null }).created_by_user_id ?? null,
     }))
 
     return NextResponse.json({ documents })

@@ -40,6 +40,8 @@ type LibraryDoc = {
   complexity: "Low" | "Moderate" | "High"
   versions: { version: string; date: string; note: string }[]
   relatedIds: string[]
+  source?: string
+  createdByUserId?: string | null
 }
 
 const accessLevels = [
@@ -132,12 +134,19 @@ export default function DocumentsPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h1 className="text-3xl font-bold text-white mb-2">Document Library</h1>
-        <p className="text-white/60">
-          {loading
-            ? "Loading templates from your workspace…"
-            : `Browse and search ${documents.length} regulatory document templates (Supabase).`}
-        </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Document Library</h1>
+            <p className="text-white/60">
+              {loading
+                ? "Loading templates from your workspace…"
+                : `Browse and search ${documents.length} regulatory document templates (Supabase).`}
+            </p>
+          </div>
+          <Button variant="outline" asChild className="border-white/15 text-white hover:bg-white/10 shrink-0">
+            <Link href={`${docBase}/generate`}>Generate to library</Link>
+          </Button>
+        </div>
       </motion.div>
 
       {loadError && (
@@ -358,7 +367,7 @@ export default function DocumentsPage() {
                     </h3>
                     <p className="text-white/50 text-sm mb-3 line-clamp-2">{doc.description}</p>
                   </Link>
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
                     <Badge variant="secondary" className="text-xs">
                       {categories.find((c) => c.id === doc.category)?.name}
                     </Badge>
@@ -368,6 +377,16 @@ export default function DocumentsPage() {
                     >
                       {doc.accessLevel}
                     </Badge>
+                    {doc.source === "on_demand" && (
+                      <Badge variant="outline" className="text-xs border-indigo-400/40 text-indigo-300">
+                        On demand
+                      </Badge>
+                    )}
+                    {doc.source === "scheduled" && (
+                      <Badge variant="outline" className="text-xs border-violet-400/40 text-violet-300">
+                        Scheduled
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex items-center justify-between text-sm text-white/40">
                     <div className="flex items-center gap-3">
@@ -413,7 +432,7 @@ export default function DocumentsPage() {
                     <h3 className="text-white font-medium group-hover:text-indigo-400 transition-colors">
                       {doc.title}
                     </h3>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
                       <Badge variant="secondary" className="text-xs">
                         {categories.find((c) => c.id === doc.category)?.name}
                       </Badge>
@@ -423,6 +442,16 @@ export default function DocumentsPage() {
                       >
                         {doc.accessLevel}
                       </Badge>
+                      {doc.source === "on_demand" && (
+                        <Badge variant="outline" className="text-xs border-indigo-400/40 text-indigo-300">
+                          On demand
+                        </Badge>
+                      )}
+                      {doc.source === "scheduled" && (
+                        <Badge variant="outline" className="text-xs border-violet-400/40 text-violet-300">
+                          Scheduled
+                        </Badge>
+                      )}
                       <span className="text-white/40 text-xs">
                         {doc.wordCount.toLocaleString()} words
                       </span>

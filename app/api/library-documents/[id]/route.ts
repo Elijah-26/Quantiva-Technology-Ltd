@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 function mapRow(row: Record<string, unknown>) {
+  const full = typeof row.full_content === 'string' ? row.full_content : ''
   return {
     id: row.id,
     title: row.title,
@@ -16,10 +17,13 @@ function mapRow(row: Record<string, unknown>) {
     isFavorite: false,
     lastUpdated: row.last_updated || String(row.updated_at || '').slice(0, 10),
     preview: row.preview,
+    fullContent: full || String(row.preview || ''),
     readMinutes: row.read_minutes,
     complexity: row.complexity as 'Low' | 'Moderate' | 'High',
     versions: Array.isArray(row.versions) ? row.versions : [],
     relatedIds: (row.related_ids || []) as string[],
+    source: typeof row.source === 'string' ? row.source : 'curated',
+    createdByUserId: row.created_by_user_id ?? null,
   }
 }
 

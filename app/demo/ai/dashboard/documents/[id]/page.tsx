@@ -22,10 +22,13 @@ type LibraryDoc = {
   rating: number
   lastUpdated: string
   preview: string
+  fullContent: string
   readMinutes: number
   complexity: 'Low' | 'Moderate' | 'High'
   versions: { version: string; date: string; note: string }[]
   relatedIds: string[]
+  source?: string
+  createdByUserId?: string | null
 }
 
 export default function DocumentDetailPage() {
@@ -82,6 +85,14 @@ export default function DocumentDetailPage() {
     return doc.category.charAt(0).toUpperCase() + doc.category.slice(1)
   }, [doc])
 
+  const source = doc?.source ?? 'curated'
+  const showFullBody = useMemo(() => {
+    if (!doc) return false
+    const full = doc.fullContent?.trim() ?? ''
+    const prev = doc.preview?.trim() ?? ''
+    return full.length > 0 && (full.length > prev.length + 30 || full !== prev)
+  }, [doc])
+
   const saveToWorkspace = async () => {
     if (!doc) return
     const res = await fetch('/api/workspace/items/from-library', {
@@ -131,7 +142,19 @@ export default function DocumentDetailPage() {
             </Link>
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-white sm:text-3xl">{doc.title}</h1>
+            <div className="mb-1 flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold text-white sm:text-3xl">{doc.title}</h1>
+              {source === 'on_demand' && (
+                <Badge variant="secondary" className="text-xs capitalize">
+                  On demand
+                </Badge>
+              )}
+              {source === 'scheduled' && (
+                <Badge variant="outline" className="border-violet-400/40 text-violet-300 text-xs">
+                  Scheduled
+                </Badge>
+              )}
+            </div>
             <p className="text-sm text-white/50">{doc.description}</p>
           </div>
         </div>
@@ -163,17 +186,35 @@ export default function DocumentDetailPage() {
         >
           <Card className="border-white/10 bg-white/5">
             <CardHeader>
-              <CardTitle className="text-white">Preview</CardTitle>
+              <CardTitle className="text-white">{showFullBody ? 'Excerpt' : 'Content'}</CardTitle>
               <CardDescription className="text-white/50">
-                Excerpt from Supabase library template.
+                {showFullBody
+                  ? 'Short preview; full draft below when available.'
+                  : 'From your document library.'}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="rounded-xl border border-white/10 bg-navy-900/80 p-4 font-mono text-sm leading-relaxed whitespace-pre-wrap text-white/80">
+              <div className="rounded-xl border border-white/10 bg-navy-900/80 p-4 font-mono text-sm leading-relaxed whitespace-pre-wrap text-white/80 max-h-[min(50vh,28rem)] overflow-y-auto">
                 {doc.preview}
               </div>
             </CardContent>
           </Card>
+
+          {showFullBody && (
+            <Card className="border-white/10 bg-white/5">
+              <CardHeader>
+                <CardTitle className="text-white">Full document</CardTitle>
+                <CardDescription className="text-white/50">
+                  Complete generated or stored text for this library entry.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-xl border border-white/10 bg-navy-900/80 p-4 font-mono text-sm leading-relaxed whitespace-pre-wrap text-white/80 max-h-[min(70vh,40rem)] overflow-y-auto">
+                  {doc.fullContent}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {related.length > 0 && (
             <Card className="border-white/10 bg-white/5">
@@ -205,6 +246,16 @@ export default function DocumentDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm text-white/70">
+              <div className="flex justify-between">
+                <span>Source</span>
+                <span className="text-right capitalize text-white/90">
+                  {source === 'on_demand'
+                    ? 'On demand'
+                    : source === 'scheduled'
+                      ? 'Scheduled'
+                      : 'Curated'}
+                </span>
+              </div>
               <div className="flex justify-between">
                 <span>Category</span>
                 <Badge variant="secondary">{categoryLabel}</Badge>
