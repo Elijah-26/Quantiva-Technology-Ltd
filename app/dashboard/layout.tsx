@@ -20,7 +20,6 @@ import {
   LogOut,
   User,
   GraduationCap,
-  BookMarked,
   Library,
   ScrollText,
 } from 'lucide-react'
@@ -33,7 +32,6 @@ const sidebarLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/documents', label: 'Documents', icon: FileText },
   { href: '/dashboard/ai-research', label: 'Research wizard', icon: GraduationCap },
-  { href: '/dashboard/ai-research/projects', label: 'Research projects', icon: BookMarked },
   { href: '/dashboard/generate', label: 'AI Generate', icon: Sparkles },
   { href: '/dashboard/workspace', label: 'My Workspace', icon: FolderOpen },
   { href: '/dashboard/compliance/activity', label: 'Activity log', icon: ScrollText },

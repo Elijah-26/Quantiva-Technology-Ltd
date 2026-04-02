@@ -1,0 +1,536 @@
+'use client'
+
+import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
+import { useParams, useRouter } from 'next/navigation'
+import { motion } from 'framer-motion'
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Download,
+  Loader2,
+  RefreshCw,
+  Search,
+  Sparkles,
+  FileText,
+} from 'lucide-react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { cn } from '@/lib/utils'
+import type { FlowStep, FlowField } from '@/lib/academic-research/template-flows'
+import { getWizardStep } from '@/lib/academic-research/types'
+import type { OutlineItem } from '@/lib/academic-research/types'
+
+type SessionRow = {
+  id: string
+  template_type: string
+  status: string
+  title: string
+  citation_style: string
+  word_target_band: string
+  answers: Record<string, unknown>
+  scraped_context: unknown
+  outline: unknown
+  error_message: string | null
+  updated_at: string
+}
+
+type SectionRow = {
+  id: string
+  section_slug: string
+  heading: string
+  sort_order: number
+  body: string
+}
+
+function FieldInput({
+  field,
+  value,
+  onChange,
+}: {
+  field: FlowField
+  value: string
+  onChange: (v: string) => void
+}) {
+  if (field.type === 'textarea') {
+    return (
+      <textarea
+        id={field.name}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={field.placeholder}
+        rows={4}
+        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-indigo-500/50 resize-none"
+      />
+    )
+  }
+  if (field.type === 'select' && field.options?.length) {
+    return (
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="w-full border-white/15 bg-white/5 text-white">
+          <SelectValue placeholder={`Select ${field.label}`} />
+        </SelectTrigger>
+        <SelectContent className="border-white/10 bg-navy-900 text-white">
+          {field.options.map((o) => (
+            <SelectItem key={o.value} value={o.value}>
+              {o.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    )
+  }
+  return (
+    <Input
+      id={field.name}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={field.placeholder}
+      className="border-white/10 bg-white/5 text-white"
+    />
+  )
+}
+
+export default function AcademicResearchSessionPage() {
+  const params = useParams()
+  const router = useRouter()
+  const id = typeof params.id === 'string' ? params.id : ''
+
+  const [session, setSession] = useState<SessionRow | null>(null)
+  const [sections, setSections] = useState<SectionRow[]>([])
+  const [steps, setSteps] = useState<FlowStep[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState<Record<string, string>>({})
+  const [pipeBusy, setPipeBusy] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    if (!id) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/academic-research/sessions/${encodeURIComponent(id)}`, {
+        credentials: 'include',
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Not found')
+      const s = data.session as SessionRow
+      setSession(s)
+      setSections(data.sections || [])
+
+      const fRes = await fetch(`/api/academic-research/flow/${encodeURIComponent(s.template_type)}`)
+      const fData = await fRes.json().catch(() => ({}))
+      if (fRes.ok) setSteps(fData.steps || [])
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Load failed')
+      router.push('/dashboard/ai-research')
+    } finally {
+      setLoading(false)
+    }
+  }, [id, router])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const stepIndex = session ? getWizardStep(session.answers) : 0
+  const currentStep = steps[stepIndex]
+  const isReview = currentStep?.id === 'review'
+  const totalSteps = steps.length
+
+  useEffect(() => {
+    if (!session || !currentStep) return
+    const next: Record<string, string> = {}
+    for (const f of currentStep.fields) {
+      const v = session.answers[f.name]
+      next[f.name] = typeof v === 'string' ? v : v != null ? String(v) : ''
+    }
+    setForm(next)
+  }, [session, currentStep])
+
+  async function patchSession(body: Record<string, unknown>) {
+    const res = await fetch(`/api/academic-research/sessions/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || 'Save failed')
+    setSession(data.session as SessionRow)
+    return data.session as SessionRow
+  }
+
+  function validateStep(): boolean {
+    if (!currentStep) return true
+    for (const f of currentStep.fields) {
+      if (f.required && !String(form[f.name] || '').trim()) {
+        toast.error(`Please fill: ${f.label}`)
+        return false
+      }
+    }
+    return true
+  }
+
+  async function goNext() {
+    if (!session || !currentStep || isReview) return
+    if (!validateStep()) return
+    setSaving(true)
+    try {
+      const merged = { ...session.answers, ...form }
+      await patchSession({
+        answers: merged,
+        step: Math.min(stepIndex + 1, totalSteps - 1),
+      })
+      toast.success('Saved')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Save failed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function goBack() {
+    if (!session || stepIndex <= 0) return
+    setSaving(true)
+    try {
+      const merged = { ...session.answers, ...form }
+      await patchSession({
+        answers: merged,
+        step: stepIndex - 1,
+      })
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Save failed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function runResearch() {
+    setPipeBusy('research')
+    try {
+      const res = await fetch(`/api/academic-research/sessions/${encodeURIComponent(id)}/research`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Research failed')
+      toast.success(
+        data.sourceCount
+          ? `Collected ${data.sourceCount} source(s)`
+          : data.skippedReason || 'Research skipped'
+      )
+      await load()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setPipeBusy(null)
+    }
+  }
+
+  async function runOutline() {
+    setPipeBusy('outline')
+    try {
+      const res = await fetch(
+        `/api/academic-research/sessions/${encodeURIComponent(id)}/outline?reset=1`,
+        { method: 'POST', credentials: 'include' }
+      )
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Outline failed')
+      toast.success(`Outline: ${data.outline?.length || 0} sections`)
+      await load()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setPipeBusy(null)
+    }
+  }
+
+  async function runNextSection() {
+    setPipeBusy('gen')
+    try {
+      const res = await fetch(`/api/academic-research/sessions/${encodeURIComponent(id)}/generate`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Generation failed')
+      if (data.completed) {
+        toast.success('Document complete')
+      } else {
+        toast.message(`Section: ${data.section?.heading || ''} (${data.progress?.current}/${data.progress?.total})`)
+      }
+      await load()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setPipeBusy(null)
+    }
+  }
+
+  async function runAllSections() {
+    setPipeBusy('all')
+    try {
+      let guard = 0
+      while (guard < 40) {
+        guard++
+        const res = await fetch(`/api/academic-research/sessions/${encodeURIComponent(id)}/generate`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data.error || 'Generation failed')
+        await load()
+        if (data.completed) {
+          toast.success('All sections generated')
+          break
+        }
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setPipeBusy(null)
+    }
+  }
+
+  const outline = (session?.outline || []) as OutlineItem[]
+  const scraped = Array.isArray(session?.scraped_context) ? session.scraped_context : []
+  const assembled = [...sections]
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((s) => `## ${s.heading}\n\n${s.body}`)
+    .join('\n\n')
+
+  async function copyDoc() {
+    if (!assembled.trim()) {
+      toast.error('Nothing to copy yet')
+      return
+    }
+    await navigator.clipboard.writeText(assembled)
+    toast.success('Copied')
+  }
+
+  function downloadMd() {
+    if (!assembled.trim()) return
+    const blob = new Blob([assembled], { type: 'text/markdown' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `${(session?.title || 'research').replace(/\s+/g, '_').slice(0, 60)}.md`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
+
+  if (loading || !session) {
+    return (
+      <div className="flex items-center gap-2 py-20 text-white/50 justify-center">
+        <Loader2 className="size-6 animate-spin" />
+        Loading session…
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6 max-w-3xl">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" asChild className="text-white/70">
+          <Link href="/dashboard/ai-research">
+            <ArrowLeft className="size-5" />
+          </Link>
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-white">{session.title}</h1>
+          <p className="text-sm text-white/50">
+            {session.template_type.replace(/_/g, ' ')} ·{' '}
+            <Badge variant="outline" className="border-white/20 text-white/70">
+              {session.status}
+            </Badge>
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2 text-xs text-white/50">
+        {steps.map((s, i) => (
+          <span
+            key={s.id}
+            className={cn(
+              'rounded-full px-2.5 py-1',
+              i === stepIndex ? 'bg-indigo-500 text-white' : 'bg-white/10'
+            )}
+          >
+            {i + 1}. {s.title}
+          </span>
+        ))}
+      </div>
+
+      {!isReview && currentStep && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+          <Card className="border-white/10 bg-white/5">
+            <CardHeader>
+              <CardTitle className="text-white">{currentStep.title}</CardTitle>
+              {currentStep.description && (
+                <CardDescription className="text-white/50">{currentStep.description}</CardDescription>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {currentStep.fields.map((f) => (
+                <div key={f.name} className="space-y-2">
+                  <Label htmlFor={f.name} className="text-white/80">
+                    {f.label}
+                    {f.required && <span className="text-rose-400"> *</span>}
+                  </Label>
+                  <FieldInput field={f} value={form[f.name] || ''} onChange={(v) => setForm((p) => ({ ...p, [f.name]: v }))} />
+                </div>
+              ))}
+              <div className="flex gap-2 pt-4 border-t border-white/10">
+                <Button variant="glass" type="button" onClick={goBack} disabled={stepIndex === 0 || saving}>
+                  <ChevronLeft className="size-4" />
+                  Back
+                </Button>
+                <Button variant="gradient" type="button" onClick={goNext} disabled={saving}>
+                  {saving ? <Loader2 className="size-4 animate-spin" /> : 'Save & continue'}
+                  <ChevronRight className="size-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+      {isReview && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+          <Card className="border-white/10 bg-white/5">
+            <CardHeader>
+              <CardTitle className="text-white">Review & generate</CardTitle>
+              <CardDescription className="text-white/50">
+                Run web research (optional), build an AI outline, then generate each section. Use “Generate all” to
+                run the full document in sequence.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {session.error_message && (
+                <p className="text-sm text-amber-300/90 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                  {session.error_message}
+                </p>
+              )}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  className="border-white/20 text-white"
+                  disabled={!!pipeBusy}
+                  onClick={runResearch}
+                >
+                  {pipeBusy === 'research' ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Search className="size-4" />
+                  )}
+                  Web research
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-white/20 text-white"
+                  disabled={!!pipeBusy}
+                  onClick={runOutline}
+                >
+                  {pipeBusy === 'outline' ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <FileText className="size-4" />
+                  )}
+                  Generate outline
+                </Button>
+                <Button variant="gradient" disabled={!!pipeBusy} onClick={runNextSection}>
+                  {pipeBusy === 'gen' ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+                  Next section
+                </Button>
+                <Button variant="glass" disabled={!!pipeBusy} onClick={runAllSections}>
+                  {pipeBusy === 'all' ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+                  Generate all
+                </Button>
+              </div>
+              <p className="text-xs text-white/40">
+                Firecrawl: set <code className="text-indigo-300">FIRECRAWL_API_KEY</code> on the server. Without it,
+                research is skipped and outlines use your inputs only.
+              </p>
+              <Button variant="glass" type="button" onClick={goBack} disabled={!!pipeBusy}>
+                <ChevronLeft className="size-4" />
+                Back to edit answers
+              </Button>
+            </CardContent>
+          </Card>
+
+          {scraped.length > 0 && (
+            <Card className="border-white/10 bg-white/5">
+              <CardHeader>
+                <CardTitle className="text-white text-base">Web sources ({scraped.length})</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm text-white/65">
+                {(scraped as { title?: string; url?: string }[]).slice(0, 6).map((s, i) => (
+                  <div key={i} className="border border-white/10 rounded-lg p-2">
+                    <p className="font-medium text-white/90">{s.title || 'Source'}</p>
+                    <a href={s.url} className="text-indigo-400 text-xs break-all" target="_blank" rel="noreferrer">
+                      {s.url}
+                    </a>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {outline.length > 0 && (
+            <Card className="border-white/10 bg-white/5">
+              <CardHeader>
+                <CardTitle className="text-white text-base">Outline</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ol className="list-decimal list-inside space-y-1 text-sm text-white/75">
+                  {outline.map((o) => (
+                    <li key={o.slug}>{o.heading}</li>
+                  ))}
+                </ol>
+              </CardContent>
+            </Card>
+          )}
+
+          {sections.length > 0 && (
+            <Card className="border-white/10 bg-white/5">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-white text-base">Document</CardTitle>
+                <div className="flex gap-2">
+                  <Button variant="glass" size="sm" type="button" onClick={copyDoc}>
+                    <Copy className="size-4" />
+                    Copy
+                  </Button>
+                  <Button variant="glass" size="sm" type="button" onClick={downloadMd}>
+                    <Download className="size-4" />
+                    .md
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="max-h-[480px] overflow-y-auto rounded-xl border border-white/10 bg-navy-950/80 p-4 text-sm text-white/80 whitespace-pre-wrap font-mono">
+                  {assembled || '—'}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </motion.div>
+      )}
+    </div>
+  )
+}

@@ -64,14 +64,8 @@ const sections = [
   },
   {
     title: 'Quantiva AI — Research wizard',
-    description: 'Multi-step demo: template, citation, word target, static outlines.',
+    description: 'Academic templates: Supabase-backed flows and document generation.',
     href: '/demo/ai/dashboard/research',
-    icon: LayoutGrid,
-  },
-  {
-    title: 'Quantiva AI — Research projects',
-    description: 'Local project list with add/remove (session only).',
-    href: '/demo/ai/dashboard/research/projects',
     icon: LayoutGrid,
   },
   {

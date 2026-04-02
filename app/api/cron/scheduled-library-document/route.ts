@@ -1,20 +1,12 @@
-// Scheduled random library document — protect with CRON_SECRET (Vercel Cron or external ping)
+// Scheduled random library document(s) — CRON_SECRET; batch size from app_config / env
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import { recordAuditEvent } from '@/lib/audit'
-import { documentTypesForMarketCategory } from '@/lib/library-document-taxonomy'
 import {
-  synthesizeLibraryDocument,
-  buildLibraryDocumentTitle,
-  insertGeneratedLibraryRow,
-  previewFromBody,
-} from '@/lib/library-document-generation'
-
-function pickRandom<T>(arr: T[]): T | undefined {
-  if (!arr.length) return undefined
-  return arr[Math.floor(Math.random() * arr.length)]
-}
+  getScheduledLibraryDocumentsPerDay,
+  runOneScheduledLibraryDocument,
+  runScheduledLibraryHealthChecks,
+} from '@/lib/scheduled-library-cron'
 
 function authorizeCron(request: NextRequest): boolean {
   const secret = process.env.CRON_SECRET
@@ -42,86 +34,62 @@ async function runScheduled(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: refRows, error: refErr } = await supabaseAdmin
-      .from('reference_options')
-      .select('kind, value, label')
-      .in('kind', ['market_category', 'geography'])
-
-    if (refErr) {
-      return NextResponse.json({ error: refErr.message }, { status: 500 })
+    if (request.nextUrl.searchParams.get('validate') === '1') {
+      const [health, perDay] = await Promise.all([
+        runScheduledLibraryHealthChecks(supabaseAdmin),
+        getScheduledLibraryDocumentsPerDay(supabaseAdmin),
+      ])
+      return NextResponse.json({
+        ok: true,
+        mode: 'validate',
+        health,
+        documentsPerDay: perDay.count,
+        documentsPerDaySource: perDay.source,
+        maxDocumentsPerRun: perDay.maxCap,
+      })
     }
 
-    const categories = (refRows || []).filter((r) => r.kind === 'market_category')
-    const geos = (refRows || []).filter((r) => r.kind === 'geography')
+    const dateSuffix = new Date().toISOString().slice(0, 10)
+    const { count } = await getScheduledLibraryDocumentsPerDay(supabaseAdmin)
 
-    const cat = pickRandom(categories)
-    const geo = pickRandom(geos)
-    if (!cat || !geo) {
+    const created: Array<{
+      id: string
+      title: string
+      marketCategory: string
+      documentType: string
+      geography: string
+    }> = []
+    const errors: Array<{ index: number; error: string }> = []
+
+    for (let i = 0; i < count; i++) {
+      const result = await runOneScheduledLibraryDocument(supabaseAdmin, dateSuffix)
+      if (result.ok) {
+        created.push({
+          id: result.id,
+          title: result.title,
+          marketCategory: result.marketCategory,
+          documentType: result.documentType,
+          geography: result.geography,
+        })
+      } else {
+        errors.push({ index: i, error: result.error })
+      }
+    }
+
+    if (created.length === 0 && errors.length > 0) {
       return NextResponse.json(
-        { error: 'Missing reference_options for market_category or geography' },
+        { ok: false, error: errors[0]?.error || 'Generation failed', errors },
         { status: 500 }
       )
     }
 
-    const types = documentTypesForMarketCategory(cat.value)
-    const docType = pickRandom(types)
-    if (!docType) {
-      return NextResponse.json({ error: 'No document types for category' }, { status: 500 })
-    }
-
-    const genInput = {
-      marketCategoryValue: cat.value,
-      marketCategoryLabel: cat.label,
-      documentTypeId: docType.id,
-      geographyValue: geo.value,
-      geographyLabel: geo.label,
-    }
-
-    const dateSuffix = new Date().toISOString().slice(0, 10)
-    const { text, error: synErr } = await synthesizeLibraryDocument(genInput)
-    if (synErr || !text) {
-      return NextResponse.json({ error: synErr || 'Generation failed' }, { status: 500 })
-    }
-
-    const title = buildLibraryDocumentTitle(genInput, dateSuffix)
-    const preview = previewFromBody(text)
-
-    const inserted = await insertGeneratedLibraryRow(supabaseAdmin, {
-      title,
-      fullContent: text,
-      preview,
-      marketCategoryValue: cat.value,
-      geographyValue: geo.value,
-      source: 'scheduled',
-      createdByUserId: null,
-    })
-
-    if ('error' in inserted) {
-      return NextResponse.json({ error: inserted.error }, { status: 500 })
-    }
-
-    const auditActor = process.env.CRON_AUDIT_USER_ID
-    if (auditActor) {
-      await recordAuditEvent(supabaseAdmin, {
-        actorUserId: auditActor,
-        action: 'library.document_generated_scheduled',
-        entityType: 'library_document',
-        entityId: inserted.id,
-        metadata: {
-          marketCategory: cat.value,
-          documentType: docType.id,
-          geography: geo.value,
-        },
-      })
-    }
-
     return NextResponse.json({
       ok: true,
-      id: inserted.id,
-      title,
-      marketCategory: cat.value,
-      documentType: docType.id,
-      geography: geo.value,
+      requested: count,
+      createdCount: created.length,
+      partial: created.length < count,
+      created,
+      errors: errors.length ? errors : undefined,
     })
   } catch (e) {
     console.error(e)

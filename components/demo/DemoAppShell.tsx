@@ -24,7 +24,6 @@ import {
   CreditCard,
   Settings,
   GraduationCap,
-  BookMarked,
   Users,
   ClipboardList,
   Library,
@@ -64,8 +63,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: '/demo/ai/dashboard/workspace', label: 'Workspace', icon: FolderOpen },
       { href: '/demo/ai/dashboard/billing', label: 'Billing', icon: CreditCard },
       { href: '/demo/ai/dashboard/settings', label: 'Settings', icon: Settings },
-      { href: '/demo/ai/dashboard/research', label: 'Research', icon: GraduationCap },
-      { href: '/demo/ai/dashboard/research/projects', label: 'Research projects', icon: BookMarked },
+      { href: '/demo/ai/dashboard/research', label: 'Research wizard', icon: GraduationCap },
     ],
   },
   {
