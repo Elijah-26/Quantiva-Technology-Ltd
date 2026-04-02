@@ -23,7 +23,6 @@ import {
   BookMarked,
   Library,
   ScrollText,
-  Wand2,
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
@@ -33,7 +32,6 @@ import { getCurrentUserProfile } from '@/lib/auth/user-service'
 const sidebarLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/documents', label: 'Documents', icon: FileText },
-  { href: '/dashboard/documents/generate', label: 'Generate to library', icon: Wand2 },
   { href: '/dashboard/ai-research', label: 'Research wizard', icon: GraduationCap },
   { href: '/dashboard/ai-research/projects', label: 'Research projects', icon: BookMarked },
   { href: '/dashboard/generate', label: 'AI Generate', icon: Sparkles },
@@ -119,14 +117,8 @@ export default function DashboardLayout({
 
         <nav className="p-4 space-y-1">
           {sidebarLinks.map((link) => {
-            const underPrefix = pathname.startsWith(`${link.href}/`)
-            const isDocLibrary = link.href === '/dashboard/documents'
-            const onGenerateLibrary = pathname.startsWith('/dashboard/documents/generate')
             const isActive =
-              pathname === link.href ||
-              (link.href !== '/dashboard' &&
-                underPrefix &&
-                !(isDocLibrary && onGenerateLibrary))
+              pathname === link.href || (link.href !== '/dashboard' && pathname.startsWith(`${link.href}/`))
             return (
               <Link
                 key={link.href}

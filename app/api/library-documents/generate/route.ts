@@ -157,6 +157,7 @@ export async function POST(request: NextRequest) {
             .select('id', { count: 'exact', head: true })
             .eq('created_by_user_id', user.id)
             .eq('source', 'on_demand')
+            .is('generation_job_id', null)
             .gte('created_at', startOfMonth),
         ])
         if (genRes.error || libRes.error) {

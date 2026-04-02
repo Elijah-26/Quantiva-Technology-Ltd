@@ -5,6 +5,21 @@ import { supabaseAdmin } from '@/lib/supabase/server'
 import { getUserPlanAndLimits } from '@/lib/plan-helper'
 import { isPlatformAdmin } from '@/lib/auth/admin'
 import { recordAuditEvent } from '@/lib/audit'
+import { insertGeneratedLibraryRow, previewFromBody } from '@/lib/library-document-generation'
+
+const WIZARD_DOC_LABELS: Record<string, string> = {
+  privacy: 'Privacy Policy',
+  dpa: 'Data Processing Agreement (DPA)',
+  terms: 'Terms of Service',
+  contract: 'Contract',
+  compliance: 'Compliance Doc',
+  hr: 'HR Document',
+  research_proposal: 'Research proposal',
+  dissertation_outline: 'Dissertation outline',
+  research_ethics: 'Research ethics statement',
+  academic_paper: 'Academic paper scaffold',
+  custom: 'Custom Document',
+}
 
 const ACADEMIC_DOC_TYPES = new Set([
   'research_proposal',
@@ -262,6 +277,36 @@ export async function POST(request: NextRequest) {
       workspaceItemId = wsItem.id
     }
 
+    const docLabel = WIZARD_DOC_LABELS[documentType] || documentType.replace(/_/g, ' ')
+    const libraryTitle = `${docLabel} — ${companyName}`
+    const libraryDescription = `AI Generate draft for ${companyName}. Industry: ${industry}. Jurisdiction: ${jurisdiction}.`
+
+    let libraryDocumentId: string | null = null
+    const libInsert = await insertGeneratedLibraryRow(supabaseAdmin, {
+      title: libraryTitle,
+      fullContent: result.text,
+      preview: previewFromBody(result.text),
+      marketCategoryValue: documentType,
+      geographyValue: jurisdiction,
+      source: 'on_demand',
+      createdByUserId: user.id,
+      generationJobId: job.id,
+      description: libraryDescription,
+    })
+
+    if ('error' in libInsert) {
+      console.error('library_documents insert after generation', libInsert.error)
+    } else {
+      libraryDocumentId = libInsert.id
+      await recordAuditEvent(supabaseAdmin, {
+        actorUserId: user.id,
+        action: 'library.document_generated_on_demand',
+        entityType: 'library_document',
+        entityId: libInsert.id,
+        metadata: { documentType, companyName, generationJobId: job.id },
+      })
+    }
+
     await recordAuditEvent(supabaseAdmin, {
       actorUserId: user.id,
       action: 'generation.completed',
@@ -271,6 +316,7 @@ export async function POST(request: NextRequest) {
         documentType,
         companyName,
         workspaceItemId,
+        libraryDocumentId,
       },
     })
 
@@ -281,6 +327,7 @@ export async function POST(request: NextRequest) {
         result_text: result.text,
       },
       workspaceItemId,
+      libraryDocumentId,
     })
   } catch (e) {
     console.error(e)

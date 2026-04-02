@@ -87,31 +87,39 @@ export async function insertGeneratedLibraryRow(
     geographyValue: string
     source: LibraryDocSource
     createdByUserId: string | null
+    /** When set, monthly quota counts the job only (not this row as extra on_demand). */
+    generationJobId?: string | null
+    description?: string
   }
 ): Promise<{ id: string } | { error: string }> {
   const wc = wordCount(params.fullContent)
   const now = new Date().toISOString().slice(0, 10)
-  const { data, error } = await admin
-    .from('library_documents')
-    .insert({
-      title: params.title,
-      description: `Generated ${params.source} document for category ${params.marketCategoryValue}.`,
-      category: params.marketCategoryValue,
-      jurisdiction: params.geographyValue,
-      access_level: 'free',
-      word_count: wc,
-      download_count: 0,
-      rating: 0,
-      last_updated: now,
-      preview: params.preview,
-      full_content: params.fullContent,
-      read_minutes: Math.max(1, Math.ceil(wc / 200)),
-      complexity: 'Moderate',
-      versions: [{ version: '1.0', date: now, note: `Auto-generated (${params.source})` }],
-      related_ids: [],
-      source: params.source,
-      created_by_user_id: params.createdByUserId,
-    })
+  const description =
+    params.description ??
+    `Generated ${params.source} document for category ${params.marketCategoryValue}.`
+  const row: Record<string, unknown> = {
+    title: params.title,
+    description,
+    category: params.marketCategoryValue,
+    jurisdiction: params.geographyValue,
+    access_level: 'free',
+    word_count: wc,
+    download_count: 0,
+    rating: 0,
+    last_updated: now,
+    preview: params.preview,
+    full_content: params.fullContent,
+    read_minutes: Math.max(1, Math.ceil(wc / 200)),
+    complexity: 'Moderate',
+    versions: [{ version: '1.0', date: now, note: `Auto-generated (${params.source})` }],
+    related_ids: [],
+    source: params.source,
+    created_by_user_id: params.createdByUserId,
+  }
+  if (params.generationJobId) {
+    row.generation_job_id = params.generationJobId
+  }
+  const { data, error } = await admin.from('library_documents').insert(row)
     .select('id')
     .single()
 

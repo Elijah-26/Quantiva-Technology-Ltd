@@ -134,18 +134,13 @@ export default function DocumentsPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Document Library</h1>
-            <p className="text-white/60">
-              {loading
-                ? "Loading templates from your workspace…"
-                : `Browse and search ${documents.length} regulatory document templates (Supabase).`}
-            </p>
-          </div>
-          <Button variant="outline" asChild className="border-white/15 text-white hover:bg-white/10 shrink-0">
-            <Link href={`${docBase}/generate`}>Generate to library</Link>
-          </Button>
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Document Library</h1>
+          <p className="text-white/60">
+            {loading
+              ? "Loading templates from your workspace…"
+              : `Browse and search ${documents.length} regulatory document templates (Supabase). New drafts from AI Generate appear here automatically.`}
+          </p>
         </div>
       </motion.div>
 

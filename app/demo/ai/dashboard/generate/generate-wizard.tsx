@@ -66,6 +66,7 @@ export function GenerateWizard() {
   const [isComplete, setIsComplete] = useState(false)
   const [generatedText, setGeneratedText] = useState("")
   const [workspaceItemId, setWorkspaceItemId] = useState<string | null>(null)
+  const [libraryDocumentId, setLibraryDocumentId] = useState<string | null>(null)
   const [appliedQuery, setAppliedQuery] = useState(false)
   const [formData, setFormData] = useState({
     documentType: "",
@@ -119,6 +120,7 @@ export function GenerateWizard() {
     setIsGenerating(true)
     setGeneratedText("")
     setWorkspaceItemId(null)
+    setLibraryDocumentId(null)
     try {
       const res = await fetch("/api/generation-jobs", {
         method: "POST",
@@ -152,8 +154,13 @@ export function GenerateWizard() {
       }
       setGeneratedText(text)
       setWorkspaceItemId(typeof data.workspaceItemId === "string" ? data.workspaceItemId : null)
+      setLibraryDocumentId(typeof data.libraryDocumentId === "string" ? data.libraryDocumentId : null)
       setIsComplete(true)
-      if (data.workspaceItemId) {
+      if (data.libraryDocumentId && data.workspaceItemId) {
+        toast.success("Saved to your library and workspace")
+      } else if (data.libraryDocumentId) {
+        toast.success("Saved to your document library")
+      } else if (data.workspaceItemId) {
         toast.success("Saved a copy to your workspace")
       }
     } catch {
@@ -201,11 +208,12 @@ export function GenerateWizard() {
   }
 
   if (isComplete) {
-    const wsPath =
+    const isDash =
       typeof window !== "undefined" && window.location.pathname.startsWith("/dashboard")
-        ? "/dashboard/workspace"
-        : "/demo/ai/dashboard/workspace"
+    const wsPath = isDash ? "/dashboard/workspace" : "/demo/ai/dashboard/workspace"
+    const docPath = isDash ? "/dashboard/documents" : "/demo/ai/dashboard/documents"
     const itemPath = workspaceItemId ? `${wsPath}/${workspaceItemId}` : wsPath
+    const libraryItemPath = libraryDocumentId ? `${docPath}/${libraryDocumentId}` : docPath
 
     return (
       <div className="max-w-3xl mx-auto">
@@ -220,9 +228,11 @@ export function GenerateWizard() {
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">Document generated</h1>
           <p className="text-white/60">
-            {workspaceItemId
-              ? "A draft was saved to your workspace. Download or copy below. This is not legal advice—have counsel review before use."
-              : "Download or copy your draft below. If workspace save failed, your job is still stored under AI Generate history."}
+            {libraryDocumentId
+              ? "Your draft is in the document library (and workspace when available). Download or copy below. This is not legal advice—have counsel review before use."
+              : workspaceItemId
+                ? "A draft was saved to your workspace. Download or copy below. This is not legal advice—have counsel review before use."
+                : "Download or copy your draft below. If saves failed, your job is still stored under AI Generate history."}
           </p>
         </motion.div>
 
@@ -255,6 +265,9 @@ export function GenerateWizard() {
               <Button variant="glass" type="button" onClick={copyText}>
                 <Copy className="w-4 h-4 mr-2" />
                 Copy
+              </Button>
+              <Button variant="glass" type="button" asChild>
+                <a href={libraryItemPath}>Document library</a>
               </Button>
               <Button variant="glass" type="button" asChild>
                 <a href={itemPath}>Workspace</a>
