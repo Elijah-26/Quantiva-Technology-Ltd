@@ -6,7 +6,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { getUserPlanAndLimits } from '@/lib/plan-helper'
-import { isPlatformAdmin } from '@/lib/auth/admin'
+import { isUserPlatformAdmin } from '@/lib/auth/admin'
 import { recordAuditEvent } from '@/lib/audit'
 import { documentTypesForMarketCategory, isDocTypeAllowedForCategory } from '@/lib/library-document-taxonomy'
 import {
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
     const geoLabel =
       refRows?.find((r) => r.kind === 'geography' && r.value === geography)?.label || geography
 
-    if (!isPlatformAdmin(user)) {
+    if (!(await isUserPlatformAdmin(user, supabaseAdmin))) {
       const { limits } = await getUserPlanAndLimits(user.id)
       if (limits.reportsPerMonth !== Infinity) {
         const now = new Date()

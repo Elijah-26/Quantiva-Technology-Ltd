@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { User } from '@supabase/supabase-js'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import { isPlatformAdmin } from '@/lib/auth/admin'
+import { isUserPlatformAdmin } from '@/lib/auth/admin'
 
 type AdminAuth =
   | { ok: true; user: User }
@@ -35,7 +35,7 @@ async function requireAdmin(): Promise<AdminAuth> {
   if (authError || !user) {
     return { ok: false, response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
   }
-  if (!isPlatformAdmin(user)) {
+  if (!(await isUserPlatformAdmin(user, supabaseAdmin))) {
     return { ok: false, response: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
   }
   return { ok: true, user }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import { isPlatformAdmin } from '@/lib/auth/admin'
+import { isUserPlatformAdmin } from '@/lib/auth/admin'
 
 function csvEscape(s: string): string {
   if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     const format = searchParams.get('format')
     const limit = Math.min(500, Math.max(1, parseInt(searchParams.get('limit') || '100', 10) || 100))
 
-    const admin = isPlatformAdmin(user)
+    const admin = await isUserPlatformAdmin(user, supabaseAdmin)
     const client = admin ? supabaseAdmin : supabase
 
     let query = client

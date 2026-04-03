@@ -15,8 +15,6 @@ import {
   LogOut,
   Menu,
   X,
-  ClipboardList,
-  Library,
   Calendar,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -28,8 +26,6 @@ const sidebarLinks = [
   { href: "/demo/ai/admin/users", label: "Users", icon: Users },
   { href: "/demo/ai/admin/documents", label: "Documents", icon: FileText },
   { href: "/demo/ai/admin/scheduled-documents", label: "Scheduled documents", icon: Calendar },
-  { href: "/demo/ai/admin/moderation", label: "Moderation", icon: ClipboardList },
-  { href: "/demo/ai/admin/templates", label: "Templates", icon: Library },
   { href: "/demo/ai/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/demo/ai/admin/settings", label: "Settings", icon: Settings },
 ]

@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { getUserPlanAndLimits } from '@/lib/plan-helper'
-import { isPlatformAdmin } from '@/lib/auth/admin'
+import { isUserPlatformAdmin } from '@/lib/auth/admin'
 import { recordAuditEvent } from '@/lib/audit'
 import { insertGeneratedLibraryRow, previewFromBody } from '@/lib/library-document-generation'
 import { isOnDemandDocId, sanitizeWizardContext } from '@/lib/on-demand-generation/wizard-flows'
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing industry or jurisdiction' }, { status: 400 })
     }
 
-    if (!isPlatformAdmin(user)) {
+    if (!(await isUserPlatformAdmin(user, supabaseAdmin))) {
       const { limits } = await getUserPlanAndLimits(user.id)
       if (limits.reportsPerMonth !== Infinity) {
         const now = new Date()

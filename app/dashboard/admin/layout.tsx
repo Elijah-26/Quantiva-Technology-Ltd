@@ -13,8 +13,6 @@ import {
   BarChart3,
   Menu,
   X,
-  ClipboardList,
-  Library,
   ArrowLeft,
   Calendar,
 } from 'lucide-react'
@@ -25,8 +23,6 @@ const sidebarLinks = [
   { href: '/dashboard/admin/users', label: 'Users', icon: Users },
   { href: '/dashboard/admin/documents', label: 'Documents', icon: FileText },
   { href: '/dashboard/admin/scheduled-documents', label: 'Scheduled documents', icon: Calendar },
-  { href: '/dashboard/admin/moderation', label: 'Moderation', icon: ClipboardList },
-  { href: '/dashboard/admin/templates', label: 'Templates', icon: Library },
   { href: '/dashboard/admin/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/dashboard/admin/settings', label: 'Settings', icon: Settings },
 ]

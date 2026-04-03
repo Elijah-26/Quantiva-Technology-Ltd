@@ -67,13 +67,14 @@ export async function GET() {
 
     const uid = user.id
     const som = startOfMonthUtc()
-    const admin = isPlatformAdmin(user)
 
     const { data: profile } = await supabaseAdmin
       .from('users')
       .select('full_name, plan, role')
       .eq('id', uid)
       .maybeSingle()
+
+    const admin = isPlatformAdmin(user) || profile?.role === 'admin'
 
     const greetingName =
       profile?.full_name?.trim() ||

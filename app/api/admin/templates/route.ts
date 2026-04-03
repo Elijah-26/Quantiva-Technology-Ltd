@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import { isPlatformAdmin } from '@/lib/auth/admin'
+import { isUserPlatformAdmin } from '@/lib/auth/admin'
 
 export async function GET() {
   try {
@@ -30,7 +30,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!isPlatformAdmin(user)) {
+    if (!(await isUserPlatformAdmin(user, supabaseAdmin))) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
