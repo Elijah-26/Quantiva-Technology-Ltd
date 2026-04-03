@@ -525,6 +525,36 @@ export function topicQueryFromAnswers(
   return parts.join(' — ') || String(answers.working_title || answers.review_title || 'research')
 }
 
+const PRIMARY_TITLE_FIELD: Record<AcademicTemplateType, string> = {
+  dissertation_thesis: 'working_title',
+  literature_review: 'review_title',
+  case_study: 'case_title',
+  research_proposal: 'proposal_title',
+  research_paper: 'paper_title',
+}
+
+/** User-facing working title from answers (first template-specific title field). */
+export function primaryWorkingTitleFromAnswers(
+  templateType: AcademicTemplateType,
+  answers: Record<string, unknown>
+): string | null {
+  const key = PRIMARY_TITLE_FIELD[templateType]
+  const raw = String(answers[key] || '').trim()
+  if (raw) return raw.slice(0, 400)
+  const fb = String(answers.working_title || answers.review_title || '').trim()
+  return fb ? fb.slice(0, 400) : null
+}
+
+/** Session list / header: "Working title — Template label" or template label only. */
+export function formatSessionListTitle(
+  workingTitle: string | null,
+  templateType: AcademicTemplateType
+): string {
+  const label = TEMPLATE_UI_META[templateType].label
+  if (!workingTitle) return label
+  return `${workingTitle} — ${label}`
+}
+
 export function contextHintsFromAnswers(
   templateType: AcademicTemplateType,
   answers: Record<string, unknown>

@@ -42,6 +42,8 @@ type LibraryDoc = {
   relatedIds: string[]
   source?: string
   createdByUserId?: string | null
+  /** When academic, deep-link to Academic Research session instead of library detail. */
+  documentKind?: "library" | "academic"
 }
 
 const accessLevels = [
@@ -55,6 +57,13 @@ export default function DocumentsPage() {
   const pathname = usePathname()
   const docBase =
     pathname.startsWith("/dashboard") ? "/dashboard/documents" : "/demo/ai/dashboard/documents"
+
+  const hrefForDoc = (doc: LibraryDoc) => {
+    if (doc.documentKind === "academic") {
+      return "/dashboard/ai-research/session/" + doc.id
+    }
+    return `${docBase}/${doc.id}`
+  }
 
   const [documents, setDocuments] = useState<LibraryDoc[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -139,7 +148,7 @@ export default function DocumentsPage() {
           <p className="text-white/60">
             {loading
               ? "Loading templates from your workspace…"
-              : `Browse and search ${documents.length} regulatory document templates (Supabase). New drafts from AI Generate appear here automatically.`}
+              : `Browse and search ${documents.length} items: library templates, AI Generate output, and your Academic Research sessions.`}
           </p>
         </div>
       </motion.div>
@@ -354,7 +363,7 @@ export default function DocumentsPage() {
                     </div>
                   </div>
                   <Link
-                    href={`${docBase}/${doc.id}`}
+                    href={hrefForDoc(doc)}
                     className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg"
                   >
                     <h3 className="text-white font-semibold mb-1 group-hover:text-indigo-400 transition-colors">
@@ -372,6 +381,11 @@ export default function DocumentsPage() {
                     >
                       {doc.accessLevel}
                     </Badge>
+                    {doc.documentKind === "academic" && (
+                      <Badge variant="outline" className="text-xs border-emerald-400/40 text-emerald-300">
+                        Academic
+                      </Badge>
+                    )}
                     {doc.source === "on_demand" && (
                       <Badge variant="outline" className="text-xs border-indigo-400/40 text-indigo-300">
                         On demand
@@ -400,10 +414,10 @@ export default function DocumentsPage() {
                     </span>
                   </div>
                   <Link
-                    href={`${docBase}/${doc.id}`}
+                    href={hrefForDoc(doc)}
                     className="mt-3 inline-flex text-sm font-medium text-indigo-400 hover:text-indigo-300"
                   >
-                    View template details
+                    {doc.documentKind === "academic" ? "Open session" : "View template details"}
                   </Link>
                 </CardContent>
               </Card>
@@ -421,7 +435,7 @@ export default function DocumentsPage() {
                     <FileText className="w-5 h-5 text-indigo-400" />
                   </div>
                   <Link
-                    href={`${docBase}/${doc.id}`}
+                    href={hrefForDoc(doc)}
                     className="min-w-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg"
                   >
                     <h3 className="text-white font-medium group-hover:text-indigo-400 transition-colors">
@@ -437,6 +451,11 @@ export default function DocumentsPage() {
                       >
                         {doc.accessLevel}
                       </Badge>
+                      {doc.documentKind === "academic" && (
+                        <Badge variant="outline" className="text-xs border-emerald-400/40 text-emerald-300">
+                          Academic
+                        </Badge>
+                      )}
                       {doc.source === "on_demand" && (
                         <Badge variant="outline" className="text-xs border-indigo-400/40 text-indigo-300">
                           On demand

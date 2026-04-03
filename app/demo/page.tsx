@@ -63,7 +63,7 @@ const sections = [
     icon: LayoutGrid,
   },
   {
-    title: 'Quantiva AI — Research wizard',
+    title: 'Quantiva AI — Academic Research',
     description: 'Academic templates: Supabase-backed flows and document generation.',
     href: '/demo/ai/dashboard/research',
     icon: LayoutGrid,

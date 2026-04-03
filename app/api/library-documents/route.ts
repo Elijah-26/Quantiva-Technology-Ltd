@@ -2,6 +2,17 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
+function approxWordsFromTargetBand(band: string): number {
+  const m: Record<string, number> = {
+    '5k': 5000,
+    '8k': 8000,
+    '12k': 12000,
+    '15k': 15000,
+    '80k': 80000,
+  }
+  return m[band] || 0
+}
+
 export async function GET() {
   try {
     const cookieStore = await cookies()
@@ -39,7 +50,7 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    const documents = (data || []).map((row) => ({
+    const libraryDocs = (data || []).map((row) => ({
       id: row.id,
       title: row.title,
       description: row.description,
@@ -58,7 +69,54 @@ export async function GET() {
       relatedIds: (row.related_ids || []) as string[],
       source: (row as { source?: string }).source ?? 'curated',
       createdByUserId: (row as { created_by_user_id?: string | null }).created_by_user_id ?? null,
+      documentKind: 'library' as const,
     }))
+
+    const { data: sessions, error: sesErr } = await supabase
+      .from('academic_research_sessions')
+      .select(
+        'id, title, template_type, status, citation_style, word_target_band, updated_at, created_at'
+      )
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false })
+      .limit(100)
+
+    if (sesErr) {
+      return NextResponse.json({ error: sesErr.message }, { status: 500 })
+    }
+
+    const academicDocs = (sessions || []).map((s) => {
+      const tpl = String(s.template_type || '').replace(/_/g, ' ')
+      const status = String(s.status || 'draft')
+      const band = String(s.word_target_band || '')
+      const approx = approxWordsFromTargetBand(band)
+      const updated = s.updated_at?.slice(0, 10) || ''
+      return {
+        id: s.id,
+        title: s.title || tpl,
+        description: `Academic research (${tpl}) · ${status}`,
+        category: 'academic',
+        jurisdiction: '',
+        accessLevel: 'free',
+        wordCount: approx,
+        downloadCount: 0,
+        rating: 0,
+        isFavorite: false,
+        lastUpdated: updated,
+        preview: `Session status: ${status}. Open in Academic Research to view or export.`,
+        readMinutes: approx > 0 ? Math.max(1, Math.ceil(approx / 200)) : 1,
+        complexity: 'Moderate' as const,
+        versions: [] as { version: string; date: string; note: string }[],
+        relatedIds: [] as string[],
+        source: 'academic_research' as const,
+        createdByUserId: user.id,
+        documentKind: 'academic' as const,
+      }
+    })
+
+    const documents = [...libraryDocs, ...academicDocs].sort((a, b) =>
+      String(b.lastUpdated).localeCompare(String(a.lastUpdated))
+    )
 
     return NextResponse.json({ documents })
   } catch (e) {

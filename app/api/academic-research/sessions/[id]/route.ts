@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAndUser } from '../../_auth'
-import { setWizardStep } from '@/lib/academic-research/types'
+import { setWizardStep, type AcademicTemplateType } from '@/lib/academic-research/types'
+import {
+  formatSessionListTitle,
+  primaryWorkingTitleFromAnswers,
+} from '@/lib/academic-research/template-flows'
 
 export async function GET(
   _request: NextRequest,
@@ -58,8 +62,6 @@ export async function PATCH(
     updated_at: new Date().toISOString(),
   }
 
-  if (typeof body.title === 'string') patch.title = body.title.trim().slice(0, 500)
-
   let answers = (existing.answers || {}) as Record<string, unknown>
   if (body.answers && typeof body.answers === 'object' && body.answers !== null) {
     answers = { ...answers, ...(body.answers as Record<string, unknown>) }
@@ -68,6 +70,16 @@ export async function PATCH(
     answers = setWizardStep(answers, Math.floor(body.step))
   }
   patch.answers = answers
+
+  const templateType = existing.template_type as AcademicTemplateType
+  if (typeof body.title === 'string') {
+    patch.title = body.title.trim().slice(0, 500)
+  } else {
+    const wt = primaryWorkingTitleFromAnswers(templateType, answers)
+    if (wt !== null) {
+      patch.title = formatSessionListTitle(wt, templateType).slice(0, 500)
+    }
+  }
 
   const cs = answers.citation_style
   const wb = answers.word_target_band

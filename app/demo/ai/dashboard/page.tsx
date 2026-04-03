@@ -23,7 +23,7 @@ import type { DashboardSummaryResponse } from "@/lib/dashboard-summary"
 const quickActions = [
   { label: "Generate Document", icon: Sparkles, href: "/dashboard/generate", color: "from-indigo-500 to-indigo-600" },
   { label: "Browse Templates", icon: FileText, href: "/dashboard/documents", color: "from-emerald-500 to-emerald-600" },
-  { label: "Research wizard", icon: GraduationCap, href: "/dashboard/new-research", color: "from-violet-500 to-violet-600" },
+  { label: "Academic Research", icon: GraduationCap, href: "/dashboard/new-research", color: "from-violet-500 to-violet-600" },
   { label: "View Workspace", icon: FolderOpen, href: "/dashboard/workspace", color: "from-amber-500 to-amber-600" },
 ]
 

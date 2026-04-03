@@ -13,6 +13,10 @@ import {
   formatSourceCatalog,
 } from '@/lib/academic-research/generate'
 import { resolveOutlineForSession } from '@/lib/academic-research/section-catalog'
+import {
+  formatSessionListTitle,
+  primaryWorkingTitleFromAnswers,
+} from '@/lib/academic-research/template-flows'
 
 export async function runAcademicResearchPipeline(
   supabase: SupabaseClient,
@@ -209,6 +213,10 @@ export async function runAcademicResearchPipeline(
     return { ok: false, error: fErr || 'References failed', stage: 'finalize' }
   }
 
+  const titleAnswers = (current.answers || {}) as Record<string, unknown>
+  const wt = primaryWorkingTitleFromAnswers(templateType, titleAnswers)
+  const listTitle = wt !== null ? formatSessionListTitle(wt, templateType).slice(0, 500) : undefined
+
   const { error: finErr } = await supabase
     .from('academic_research_sessions')
     .update({
@@ -216,6 +224,7 @@ export async function runAcademicResearchPipeline(
       status: 'completed',
       error_message: null,
       updated_at: new Date().toISOString(),
+      ...(listTitle ? { title: listTitle } : {}),
     })
     .eq('id', sessionId)
     .eq('user_id', userId)
