@@ -5,6 +5,8 @@ import type { User } from '@supabase/supabase-js'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { isUserPlatformAdmin } from '@/lib/auth/admin'
 
+const STORAGE_BUCKET = 'library-documents'
+
 type AdminAuth = { ok: true; user: User } | { ok: false; response: NextResponse }
 
 async function requireAdmin(): Promise<AdminAuth> {
@@ -107,6 +109,18 @@ export async function DELETE(
   const auth = await requireAdmin()
   if (!auth.ok) return auth.response
   const { id } = await params
+
+  const { data: existing } = await supabaseAdmin
+    .from('library_documents')
+    .select('file_storage_path')
+    .eq('id', id)
+    .maybeSingle()
+
+  const path = existing && typeof existing.file_storage_path === 'string' ? existing.file_storage_path : null
+  if (path) {
+    const { error: rmErr } = await supabaseAdmin.storage.from(STORAGE_BUCKET).remove([path])
+    if (rmErr) console.warn('storage remove', rmErr.message)
+  }
 
   const { error } = await supabaseAdmin.from('library_documents').delete().eq('id', id)
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -20,11 +20,28 @@ import {
   User,
   GraduationCap,
   Library,
+  BarChart3,
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth/auth-context'
 import { getCurrentUserProfile } from '@/lib/auth/user-service'
+import type { DashboardActivityItem, DashboardSummaryResponse } from '@/lib/dashboard-summary'
+
+function activityHref(a: DashboardActivityItem): string {
+  if (a.kind === 'report' && a.reportExecutionId) {
+    return `/dashboard/reports/${encodeURIComponent(a.reportExecutionId)}`
+  }
+  if (a.kind === 'workspace') return '/dashboard/workspace'
+  if (a.kind === 'generation') return '/dashboard/generate'
+  return '/dashboard'
+}
+
+function ActivityIcon({ kind }: { kind: DashboardActivityItem['kind'] }) {
+  if (kind === 'report') return <BarChart3 className="w-4 h-4 text-violet-400 shrink-0" />
+  if (kind === 'workspace') return <FolderOpen className="w-4 h-4 text-emerald-400 shrink-0" />
+  return <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+}
 
 const sidebarLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -49,6 +66,43 @@ export default function DashboardLayout({
   const { user, loading, signOut } = useAuth()
   const [displayName, setDisplayName] = useState('User')
   const [planLabel, setPlanLabel] = useState('Pro Plan')
+  const [summary, setSummary] = useState<DashboardSummaryResponse | null>(null)
+  const [summaryLoading, setSummaryLoading] = useState(false)
+  const [notifOpen, setNotifOpen] = useState(false)
+  const notifWrapRef = useRef<HTMLDivElement>(null)
+
+  const loadSummary = useCallback(async () => {
+    setSummaryLoading(true)
+    try {
+      const res = await fetch('/api/dashboard/summary', { credentials: 'include' })
+      const data = await res.json().catch(() => null)
+      if (res.ok && data && !data.error) setSummary(data as DashboardSummaryResponse)
+    } catch {
+      /* ignore */
+    } finally {
+      setSummaryLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!user) return
+    void loadSummary()
+  }, [user, loadSummary])
+
+  useEffect(() => {
+    if (!notifOpen) return
+    void loadSummary()
+  }, [notifOpen, loadSummary])
+
+  useEffect(() => {
+    if (!notifOpen) return
+    const onDocMouseDown = (e: MouseEvent) => {
+      const el = notifWrapRef.current
+      if (el && !el.contains(e.target as Node)) setNotifOpen(false)
+    }
+    document.addEventListener('mousedown', onDocMouseDown)
+    return () => document.removeEventListener('mousedown', onDocMouseDown)
+  }, [notifOpen])
 
   useEffect(() => {
     if (!loading && !user) router.push('/login')
@@ -157,14 +211,97 @@ export default function DashboardLayout({
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="relative w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-rose-500" />
-            </button>
+            <div className="relative" ref={notifWrapRef}>
+              <button
+                type="button"
+                aria-expanded={notifOpen}
+                aria-haspopup="true"
+                aria-label="Activity and notifications"
+                onClick={() => {
+                  setNotifOpen((o) => !o)
+                  setIsProfileOpen(false)
+                }}
+                className="relative w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <Bell className="w-5 h-5" />
+                {(() => {
+                  const n = summary?.recentActivity?.length ?? 0
+                  if (n < 1) return null
+                  return (
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[1.125rem] h-[1.125rem] px-1 rounded-full bg-rose-500 text-[10px] font-semibold text-white flex items-center justify-center">
+                      {n > 9 ? '9+' : n}
+                    </span>
+                  )
+                })()}
+              </button>
+              {notifOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="absolute right-0 top-full mt-2 w-[min(100vw-2rem,22rem)] rounded-xl bg-zinc-950 border border-white/10 shadow-xl overflow-hidden z-50"
+                >
+                  <div className="px-4 py-3 border-b border-white/10">
+                    <p className="text-sm font-medium text-white">Recent activity</p>
+                    <p className="text-xs text-white/45">Workspace, reports, and generations</p>
+                  </div>
+                  <div className="max-h-[min(60vh,20rem)] overflow-y-auto">
+                    {summaryLoading && !summary?.recentActivity?.length ? (
+                      <p className="px-4 py-6 text-sm text-white/50 text-center">Loading…</p>
+                    ) : (summary?.recentActivity?.length ?? 0) === 0 ? (
+                      <p className="px-4 py-6 text-sm text-white/50 text-center">
+                        No recent activity yet. Open{' '}
+                        <Link href="/dashboard/workspace" className="text-indigo-400 hover:underline">
+                          Workspace
+                        </Link>
+                        , run research, or generate a document.
+                      </p>
+                    ) : (
+                      <ul className="py-1">
+                        {(summary?.recentActivity ?? []).map((item) => (
+                          <li key={item.id}>
+                            <Link
+                              href={activityHref(item)}
+                              onClick={() => setNotifOpen(false)}
+                              className="flex gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left"
+                            >
+                              <ActivityIcon kind={item.kind} />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm text-white/90 line-clamp-2">{item.title}</p>
+                                <p className="text-xs text-white/45 mt-0.5">{item.subtitle}</p>
+                                <p className="text-[10px] uppercase tracking-wide text-white/35 mt-1">
+                                  {item.kind === 'report'
+                                    ? 'Research'
+                                    : item.kind === 'workspace'
+                                      ? 'Workspace'
+                                      : 'Generation'}
+                                  {item.status ? ` · ${item.status}` : ''}
+                                </p>
+                              </div>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <div className="border-t border-white/10 px-3 py-2">
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setNotifOpen(false)}
+                      className="block text-center text-xs text-indigo-400 hover:text-indigo-300 py-1.5"
+                    >
+                      View dashboard
+                    </Link>
+                  </div>
+                </motion.div>
+              )}
+            </div>
 
             <div className="relative">
               <button
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                onClick={() => {
+                  setIsProfileOpen(!isProfileOpen)
+                  setNotifOpen(false)
+                }}
                 className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5 transition-colors"
               >
                 <Avatar className="w-8 h-8">

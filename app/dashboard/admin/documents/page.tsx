@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Search, Plus, Eye, Edit3, Trash2, FileText, Loader2 } from 'lucide-react'
+import { Search, Plus, Eye, Edit3, Trash2, FileText, Loader2, Upload, X, Paperclip } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -44,6 +44,8 @@ type LibraryRow = {
   updated_at: string
   complexity: string
   read_minutes: number
+  file_storage_path?: string | null
+  original_filename?: string | null
 }
 
 type Stats = {
@@ -77,6 +79,8 @@ export default function AdminDocumentsPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState(emptyForm)
+  const [uploadFile, setUploadFile] = useState<File | null>(null)
+  const [dragOver, setDragOver] = useState(false)
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 300)
@@ -112,6 +116,15 @@ export default function AdminDocumentsPage() {
     void load()
   }, [load])
 
+  useEffect(() => {
+    if (!uploadFile) return
+    setForm((f) => {
+      if (f.title.trim()) return f
+      const base = uploadFile.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ')
+      return { ...f, title: base || f.title }
+    })
+  }, [uploadFile])
+
   const filtered = useMemo(() => {
     if (sourceFilter === 'all') return rows
     return rows.filter((r) => (r.source || 'curated') === sourceFilter)
@@ -122,6 +135,7 @@ export default function AdminDocumentsPage() {
   function openCreate() {
     setEditingId(null)
     setForm({ ...emptyForm })
+    setUploadFile(null)
     setDialogOpen(true)
   }
 
@@ -137,6 +151,7 @@ export default function AdminDocumentsPage() {
       preview: row.preview || '',
       full_content: '',
     })
+    setUploadFile(null)
     setDialogOpen(true)
   }
 
@@ -158,8 +173,37 @@ export default function AdminDocumentsPage() {
       toast.error('Title is required')
       return
     }
+    if (!editingId && !uploadFile && !form.full_content.trim() && !form.preview.trim()) {
+      toast.error('Add a file upload or enter preview / full content')
+      return
+    }
     setSaving(true)
     try {
+      if (!editingId && uploadFile) {
+        const fd = new FormData()
+        fd.append('file', uploadFile)
+        fd.append('title', form.title.trim())
+        fd.append('description', form.description)
+        fd.append('category', form.category.trim() || 'general')
+        fd.append('jurisdiction', form.jurisdiction)
+        fd.append('access_level', form.access_level)
+        fd.append('source', form.source)
+        fd.append('preview', form.preview)
+        fd.append('full_content', form.full_content)
+        const res = await fetch('/api/admin/library-documents/upload', {
+          method: 'POST',
+          credentials: 'include',
+          body: fd,
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data.error || 'Upload failed')
+        toast.success('Document uploaded')
+        setDialogOpen(false)
+        setUploadFile(null)
+        await load()
+        return
+      }
+
       if (editingId) {
         const body: Record<string, unknown> = {
           title: form.title.trim(),
@@ -326,6 +370,7 @@ export default function AdminDocumentsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-white/10">
+                    <th className="text-left p-4 text-white/50 text-sm font-medium w-10" aria-label="File" />
                     <th className="text-left p-4 text-white/50 text-sm font-medium">Document</th>
                     <th className="text-left p-4 text-white/50 text-sm font-medium">Category</th>
                     <th className="text-left p-4 text-white/50 text-sm font-medium">Source</th>
@@ -337,6 +382,15 @@ export default function AdminDocumentsPage() {
                 <tbody>
                   {filtered.map((doc) => (
                     <tr key={doc.id} className="border-b border-white/5 hover:bg-white/5">
+                      <td className="p-4 text-white/40">
+                        {doc.file_storage_path ? (
+                          <span title={doc.original_filename || 'Has uploaded file'}>
+                            <Paperclip className="w-4 h-4 text-sky-400" aria-hidden />
+                          </span>
+                        ) : (
+                          <span className="inline-block w-4" />
+                        )}
+                      </td>
                       <td className="p-4">
                         <div className="flex items-center gap-3 min-w-0 max-w-xs">
                           <div className="w-10 h-10 rounded-lg bg-rose-500/20 flex items-center justify-center shrink-0">
@@ -400,109 +454,220 @@ export default function AdminDocumentsPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-zinc-950 border-white/10 text-white max-w-lg max-h-[90vh] overflow-y-auto">
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(o) => {
+          setDialogOpen(o)
+          if (!o) setUploadFile(null)
+        }}
+      >
+        <DialogContent className="bg-zinc-950 border-white/10 text-white max-w-xl max-h-[90vh] overflow-y-auto sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>{editingId ? 'Edit document' : 'New document'}</DialogTitle>
-            <DialogDescription className="text-white/50">
-              Stored in <code className="text-white/70">library_documents</code>.
+            <DialogTitle className="text-white">{editingId ? 'Edit document' : 'New document'}</DialogTitle>
+            <DialogDescription className="text-white/55">
+              Stored in <code className="text-white/80">library_documents</code>. Uploads appear in{' '}
+              <strong className="text-white/90">Documents</strong> for all users.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-2">
+          <div className="space-y-4 py-2">
+            {!editingId && (
+              <div className="space-y-2">
+                <Label className="text-white/85">Upload from computer</Label>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      document.getElementById('admin-lib-file')?.click()
+                    }
+                  }}
+                  onDragEnter={(e) => {
+                    e.preventDefault()
+                    setDragOver(true)
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault()
+                    setDragOver(false)
+                  }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    setDragOver(false)
+                    const f = e.dataTransfer.files?.[0]
+                    if (f) setUploadFile(f)
+                  }}
+                  className={cn(
+                    'rounded-xl border-2 border-dashed px-4 py-8 text-center transition-colors cursor-pointer',
+                    dragOver ? 'border-sky-400/60 bg-sky-500/10' : 'border-white/20 bg-white/[0.03]',
+                    uploadFile && 'border-emerald-500/40 bg-emerald-500/10'
+                  )}
+                  onClick={() => document.getElementById('admin-lib-file')?.click()}
+                >
+                  <input
+                    id="admin-lib-file"
+                    type="file"
+                    className="sr-only"
+                    accept=".pdf,.doc,.docx,.txt,.md,.html,.htm,.csv,.json,.xml,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/*"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0]
+                      if (f) setUploadFile(f)
+                    }}
+                  />
+                  {uploadFile ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <FileText className="size-10 text-emerald-400" />
+                      <p className="text-sm text-white font-medium break-all px-2">{uploadFile.name}</p>
+                      <p className="text-xs text-white/50">{(uploadFile.size / 1024).toFixed(1)} KB</p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-white/70 hover:text-white"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setUploadFile(null)
+                        }}
+                      >
+                        <X className="size-4 mr-1" />
+                        Remove file
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 text-white/60">
+                      <Upload className="size-10 text-white/40" />
+                      <p className="text-sm">
+                        Drag and drop a file here, or <span className="text-sky-400">browse</span>
+                      </p>
+                      <p className="text-xs text-white/40">PDF, Word, text, HTML, CSV (max ~50 MB)</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1">
-              <Label className="text-white/80">Title</Label>
+              <Label className="text-white/85">Title</Label>
               <Input
                 value={form.title}
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                className="bg-white/5 border-white/10 text-white"
+                className="bg-white/5 border-white/15 text-white placeholder:text-white/35 focus-visible:border-white/25 focus-visible:ring-white/10"
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-white/80">Description</Label>
+              <Label className="text-white/85">Description</Label>
               <Textarea
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                className="bg-white/5 border-white/10 text-white min-h-[60px]"
+                className="bg-white/5 border-white/15 text-white placeholder:text-white/35 min-h-[64px] focus-visible:border-white/25 focus-visible:ring-white/10"
               />
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-white/80">Category</Label>
+                <Label className="text-white/85">Category</Label>
                 <Input
                   value={form.category}
                   onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                  className="bg-white/5 border-white/10 text-white"
+                  className="bg-white/5 border-white/15 text-white placeholder:text-white/35 focus-visible:border-white/25 focus-visible:ring-white/10"
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-white/80">Jurisdiction</Label>
+                <Label className="text-white/85">Jurisdiction</Label>
                 <Input
                   value={form.jurisdiction}
                   onChange={(e) => setForm((f) => ({ ...f, jurisdiction: e.target.value }))}
-                  className="bg-white/5 border-white/10 text-white"
+                  className="bg-white/5 border-white/15 text-white placeholder:text-white/35 focus-visible:border-white/25 focus-visible:ring-white/10"
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-white/80">Access</Label>
+                <Label className="text-white/85">Access</Label>
                 <Select
                   value={form.access_level}
                   onValueChange={(v) => setForm((f) => ({ ...f, access_level: v }))}
                 >
-                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                  <SelectTrigger className="w-full bg-white/5 border-white/15 text-white focus-visible:ring-white/10">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="free">Free</SelectItem>
-                    <SelectItem value="pro">Pro</SelectItem>
-                    <SelectItem value="business">Business</SelectItem>
+                  <SelectContent className="bg-zinc-950 border-white/10 text-white">
+                    <SelectItem value="free" className="focus:bg-white/10 focus:text-white">
+                      Free
+                    </SelectItem>
+                    <SelectItem value="pro" className="focus:bg-white/10 focus:text-white">
+                      Pro
+                    </SelectItem>
+                    <SelectItem value="business" className="focus:bg-white/10 focus:text-white">
+                      Business
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-white/80">Source</Label>
+                <Label className="text-white/85">Source</Label>
                 <Select
                   value={form.source}
-                  onValueChange={(v) =>
-                    setForm((f) => ({ ...f, source: v as typeof f.source }))
-                  }
+                  onValueChange={(v) => setForm((f) => ({ ...f, source: v as typeof f.source }))}
                 >
-                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                  <SelectTrigger className="w-full bg-white/5 border-white/15 text-white focus-visible:ring-white/10">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="curated">Curated</SelectItem>
-                    <SelectItem value="scheduled">Scheduled</SelectItem>
-                    <SelectItem value="on_demand">On demand</SelectItem>
+                  <SelectContent className="bg-zinc-950 border-white/10 text-white">
+                    <SelectItem value="curated" className="focus:bg-white/10 focus:text-white">
+                      Curated
+                    </SelectItem>
+                    <SelectItem value="scheduled" className="focus:bg-white/10 focus:text-white">
+                      Scheduled
+                    </SelectItem>
+                    <SelectItem value="on_demand" className="focus:bg-white/10 focus:text-white">
+                      On demand
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-white/80">Preview (short)</Label>
+              <Label className="text-white/85">Preview (short)</Label>
               <Textarea
                 value={form.preview}
                 onChange={(e) => setForm((f) => ({ ...f, preview: e.target.value }))}
-                className="bg-white/5 border-white/10 text-white min-h-[80px]"
+                placeholder="Shown in the library list"
+                className="bg-white/5 border-white/15 text-white placeholder:text-white/35 min-h-[80px] focus-visible:border-white/25 focus-visible:ring-white/10"
               />
             </div>
             <div className="space-y-1">
-              <Label className="text-white/80">Full content</Label>
+              <Label className="text-white/85">Full content</Label>
               <Textarea
                 value={form.full_content}
                 onChange={(e) => setForm((f) => ({ ...f, full_content: e.target.value }))}
-                placeholder={editingId ? 'Loads when you open edit…' : 'Optional body (HTML or plain text)'}
-                className="bg-white/5 border-white/10 text-white min-h-[120px] font-mono text-sm"
+                placeholder={
+                  editingId
+                    ? 'Loads when you open edit…'
+                    : 'Optional if you upload a file (text/HTML body otherwise)'
+                }
+                className="bg-white/5 border-white/15 text-white placeholder:text-white/35 min-h-[120px] font-mono text-sm focus-visible:border-white/25 focus-visible:ring-white/10"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" className="border-white/20" onClick={() => setDialogOpen(false)}>
+          <DialogFooter className="gap-2 sm:gap-2 border-t border-white/10 pt-4 mt-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+              onClick={() => {
+                setDialogOpen(false)
+                setUploadFile(null)
+              }}
+            >
               Cancel
             </Button>
-            <Button onClick={() => void handleSave()} disabled={saving}>
-              {saving ? <Loader2 className="size-4 animate-spin" /> : editingId ? 'Save' : 'Create'}
+            <Button
+              type="button"
+              className="bg-rose-500 hover:bg-rose-600 text-white"
+              onClick={() => void handleSave()}
+              disabled={saving}
+            >
+              {saving ? <Loader2 className="size-4 animate-spin" /> : editingId ? 'Save' : uploadFile ? 'Upload' : 'Create'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 
 function mapRow(row: Record<string, unknown>) {
   const full = typeof row.full_content === 'string' ? row.full_content : ''
+  const filePath = typeof row.file_storage_path === 'string' ? row.file_storage_path : ''
   return {
     id: row.id,
     title: row.title,
@@ -24,6 +25,10 @@ function mapRow(row: Record<string, unknown>) {
     relatedIds: (row.related_ids || []) as string[],
     source: typeof row.source === 'string' ? row.source : 'curated',
     createdByUserId: row.created_by_user_id ?? null,
+    hasFileAttachment: Boolean(filePath),
+    originalFilename:
+      typeof row.original_filename === 'string' && row.original_filename ? row.original_filename : null,
+    fileMimeType: typeof row.file_mime_type === 'string' && row.file_mime_type ? row.file_mime_type : null,
   }
 }
 

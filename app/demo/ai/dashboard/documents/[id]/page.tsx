@@ -73,6 +73,9 @@ type LibraryDoc = {
   relatedIds: string[]
   source?: string
   createdByUserId?: string | null
+  hasFileAttachment?: boolean
+  originalFilename?: string | null
+  fileMimeType?: string | null
 }
 
 export default function DocumentDetailPage() {
@@ -236,13 +239,26 @@ export default function DocumentDetailPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="gradient"
-            onClick={() => toast.success('Export is managed per plan — document is in your library.')}
-          >
-            <Download className="size-4" />
-            Download PDF
-          </Button>
+          {doc.hasFileAttachment ? (
+            <Button variant="gradient" asChild>
+              <a
+                href={`/api/library-documents/${encodeURIComponent(doc.id)}/file`}
+                download={doc.originalFilename ?? undefined}
+                className="inline-flex items-center gap-2"
+              >
+                <Download className="size-4" />
+                {doc.originalFilename ? `Download ${doc.originalFilename}` : 'Download original file'}
+              </a>
+            </Button>
+          ) : (
+            <Button
+              variant="gradient"
+              onClick={() => toast.success('Export is managed per plan — document is in your library.')}
+            >
+              <Download className="size-4" />
+              Download PDF
+            </Button>
+          )}
           <Button variant="glass" type="button" onClick={() => { setSaveFolderId('__auto__'); setSaveOpen(true) }}>
             Save to workspace
           </Button>

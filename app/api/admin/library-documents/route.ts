@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     let q = supabaseAdmin
       .from('library_documents')
       .select(
-        'id, title, description, category, jurisdiction, access_level, word_count, download_count, rating, preview, source, created_at, updated_at, complexity, read_minutes',
+        'id, title, description, category, jurisdiction, access_level, word_count, download_count, rating, preview, source, created_at, updated_at, complexity, read_minutes, file_storage_path, original_filename',
         { count: 'exact' }
       )
       .order('updated_at', { ascending: false })

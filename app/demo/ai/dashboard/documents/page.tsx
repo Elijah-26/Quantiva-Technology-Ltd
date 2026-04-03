@@ -6,6 +6,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   FileText,
+  Paperclip,
   Search,
   Filter,
   Grid3X3,
@@ -44,6 +45,8 @@ type LibraryDoc = {
   createdByUserId?: string | null
   /** When academic, deep-link to Academic Research session instead of library detail. */
   documentKind?: "library" | "academic"
+  hasFileAttachment?: boolean
+  originalFilename?: string | null
 }
 
 const accessLevels = [
@@ -464,6 +467,12 @@ export default function DocumentsPage() {
                         Auto
                       </Badge>
                     )}
+                    {doc.documentKind !== "academic" && doc.hasFileAttachment && (
+                      <Badge variant="outline" className="text-xs border-sky-400/40 text-sky-300 gap-1">
+                        <Paperclip className="w-3 h-3" />
+                        File
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex items-center justify-between text-sm text-white/40">
                     <div className="flex items-center gap-3">
@@ -534,6 +543,12 @@ export default function DocumentsPage() {
                       {doc.source === "scheduled" && (
                         <Badge variant="outline" className="text-xs border-violet-400/40 text-violet-300">
                           Auto
+                        </Badge>
+                      )}
+                      {doc.documentKind !== "academic" && doc.hasFileAttachment && (
+                        <Badge variant="outline" className="text-xs border-sky-400/40 text-sky-300 gap-1">
+                          <Paperclip className="w-3 h-3" />
+                          File
                         </Badge>
                       )}
                       <span className="text-white/40 text-xs">
