@@ -4,6 +4,11 @@ import { cookies } from 'next/headers'
 import type { User } from '@supabase/supabase-js'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { isUserPlatformAdmin } from '@/lib/auth/admin'
+import {
+  ADMIN_LIBRARY_DOCUMENTS_SELECT_LEGACY,
+  ADMIN_LIBRARY_DOCUMENTS_SELECT_WITH_FILES,
+  missingLibraryFileAttachmentColumnsError,
+} from '@/lib/library-documents-query'
 
 type AdminAuth = { ok: true; user: User } | { ok: false; response: NextResponse }
 
@@ -58,19 +63,24 @@ export async function GET(request: NextRequest) {
       .from('library_documents')
       .select('*', { count: 'exact', head: true })
 
-    let q = supabaseAdmin
-      .from('library_documents')
-      .select(
-        'id, title, description, category, jurisdiction, access_level, word_count, download_count, rating, preview, source, created_at, updated_at, complexity, read_minutes, file_storage_path, original_filename',
-        { count: 'exact' }
-      )
-      .order('updated_at', { ascending: false })
-
-    if (search) {
-      q = q.or(`title.ilike.%${search}%,category.ilike.%${search}%`)
+    const runList = (cols: string) => {
+      let q = supabaseAdmin
+        .from('library_documents')
+        .select(cols, { count: 'exact' })
+        .order('updated_at', { ascending: false })
+      if (search) {
+        q = q.or(`title.ilike.%${search}%,category.ilike.%${search}%`)
+      }
+      return q.range(offset, offset + limit - 1)
     }
 
-    const { data: rows, error, count } = await q.range(offset, offset + limit - 1)
+    let { data: rows, error, count } = await runList(ADMIN_LIBRARY_DOCUMENTS_SELECT_WITH_FILES)
+    if (error && missingLibraryFileAttachmentColumnsError(error.message)) {
+      const r2 = await runList(ADMIN_LIBRARY_DOCUMENTS_SELECT_LEGACY)
+      rows = r2.data
+      error = r2.error
+      count = r2.count
+    }
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })

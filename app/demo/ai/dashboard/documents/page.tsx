@@ -177,9 +177,25 @@ export default function DocumentsPage() {
 
       {loadError && (
         <p className="text-rose-400 text-sm rounded-lg border border-rose-500/30 bg-rose-500/10 p-3">
-          {loadError}. Apply{" "}
-          <code className="text-xs">supabase/migrations/20260401120000_core_product_tables.sql</code> if
-          needed.
+          {loadError}.{" "}
+          {loadError.includes("file_storage_path") ||
+          loadError.includes("original_filename") ||
+          loadError.includes("file_mime_type") ? (
+            <>
+              Run{" "}
+              <code className="text-xs break-all">
+                supabase/migrations/20260403120000_library_documents_file_storage.sql
+              </code>{" "}
+              on your Supabase project (or <code className="text-xs">supabase db push</code>). Admin file
+              uploads also need the <code className="text-xs">library-documents</code> storage bucket.
+            </>
+          ) : (
+            <>
+              Apply{" "}
+              <code className="text-xs break-all">supabase/migrations/20260401120000_core_product_tables.sql</code>{" "}
+              if the library table is missing.
+            </>
+          )}
         </p>
       )}
 

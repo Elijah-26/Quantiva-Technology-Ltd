@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import {
+  LIBRARY_DOCUMENTS_SELECT_LIST_LEGACY,
+  LIBRARY_DOCUMENTS_SELECT_LIST_WITH_FILES,
+  missingLibraryFileAttachmentColumnsError,
+} from '@/lib/library-documents-query'
 
 function approxWordsFromTargetBand(band: string): number {
   const m: Record<string, number> = {
@@ -39,13 +44,20 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data, error } = await supabase
+    const listWithFiles = await supabase
       .from('library_documents')
-      .select(
-        'id, title, description, category, jurisdiction, access_level, word_count, download_count, rating, last_updated, preview, read_minutes, complexity, versions, related_ids, created_at, updated_at, source, created_by_user_id, file_storage_path, original_filename'
-      )
+      .select(LIBRARY_DOCUMENTS_SELECT_LIST_WITH_FILES)
       .order('title', { ascending: true })
 
+    const listRes =
+      listWithFiles.error && missingLibraryFileAttachmentColumnsError(listWithFiles.error.message)
+        ? await supabase
+            .from('library_documents')
+            .select(LIBRARY_DOCUMENTS_SELECT_LIST_LEGACY)
+            .order('title', { ascending: true })
+        : listWithFiles
+
+    const { data, error } = listRes
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
