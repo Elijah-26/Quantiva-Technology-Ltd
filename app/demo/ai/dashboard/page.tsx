@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
 import {
   FileText,
   Sparkles,
@@ -33,11 +32,6 @@ function usageBarPercent(used: number, limit: number): number {
 }
 
 export default function DashboardPage() {
-  const pathname = usePathname()
-  const generateBase = pathname.startsWith("/dashboard")
-    ? "/dashboard/generate"
-    : "/demo/ai/dashboard/generate"
-
   const [summary, setSummary] = useState<DashboardSummaryResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -157,52 +151,6 @@ export default function DashboardPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.35 }}
-      >
-        <h2 className="text-lg font-semibold text-white mb-2">Guided starts</h2>
-        <p className="text-white/50 text-sm mb-4">
-          Pre-filled document type and jurisdiction—compliance (Clara), launch (Sam), or academic (Alex).
-        </p>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {[
-            {
-              label: "Privacy (EU)",
-              href: `${generateBase}?type=privacy&jurisdiction=eu&industry=saas`,
-              tag: "Clara",
-            },
-            {
-              label: "DPA / processing",
-              href: `${generateBase}?type=dpa&jurisdiction=eu&industry=finance`,
-              tag: "Clara",
-            },
-            {
-              label: "Terms update",
-              href: `${generateBase}?type=terms&jurisdiction=uk&industry=saas`,
-              tag: "Sam",
-            },
-            {
-              label: "Resume draft",
-              href: `${generateBase}?type=resume`,
-              tag: "Alex",
-            },
-          ].map((s) => (
-            <Link
-              key={s.label}
-              href={s.href}
-              className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors flex flex-col gap-1"
-            >
-              <span className="text-white font-medium text-sm">{s.label}</span>
-              <Badge variant="secondary" className="text-[10px] w-fit">
-                {s.tag}
-              </Badge>
-            </Link>
-          ))}
-        </div>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
       >
         <h2 className="text-lg font-semibold text-white mb-4">Quick Actions</h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
