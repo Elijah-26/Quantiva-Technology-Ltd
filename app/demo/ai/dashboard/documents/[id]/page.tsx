@@ -9,6 +9,50 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
+
+type WsFolderRow = {
+  id: string
+  name: string
+  parent_id: string | null
+  sort_order: number
+}
+
+function flattenFoldersForSelect(folders: WsFolderRow[]): { id: string; label: string }[] {
+  const byParent = new Map<string | null, WsFolderRow[]>()
+  for (const f of folders) {
+    const p = f.parent_id
+    if (!byParent.has(p)) byParent.set(p, [])
+    byParent.get(p)!.push(f)
+  }
+  for (const arr of byParent.values()) {
+    arr.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+  }
+  const out: { id: string; label: string }[] = []
+  const walk = (parent: string | null, depth: number) => {
+    for (const f of byParent.get(parent) || []) {
+      out.push({ id: f.id, label: `${'\u2014 '.repeat(depth)}${f.name}` })
+      walk(f.id, depth + 1)
+    }
+  }
+  walk(null, 0)
+  return out
+}
 
 type LibraryDoc = {
   id: string
@@ -44,6 +88,10 @@ export default function DocumentDetailPage() {
   const [related, setRelated] = useState<LibraryDoc[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [saveOpen, setSaveOpen] = useState(false)
+  const [folderChoices, setFolderChoices] = useState<{ id: string; label: string }[]>([])
+  const [saveFolderId, setSaveFolderId] = useState<string>('__auto__')
+  const [saveBusy, setSaveBusy] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -93,21 +141,50 @@ export default function DocumentDetailPage() {
     return full.length > 0 && (full.length > prev.length + 30 || full !== prev)
   }, [doc])
 
+  useEffect(() => {
+    if (!saveOpen) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/workspace/folders', { credentials: 'include' })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok || cancelled) return
+        const rows = (data.folders || []) as WsFolderRow[]
+        setFolderChoices(flattenFoldersForSelect(rows))
+      } catch {
+        if (!cancelled) setFolderChoices([])
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [saveOpen])
+
   const saveToWorkspace = async () => {
     if (!doc) return
-    const res = await fetch('/api/workspace/items/from-library', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        libraryDocumentId: doc.id,
-        folderSlug: doc.category === 'privacy' ? 'gdpr' : 'contracts',
-      }),
-    })
-    if (res.ok) toast.success('Saved to workspace')
-    else {
-      const j = await res.json().catch(() => ({}))
-      toast.error(j.error || 'Could not save')
+    setSaveBusy(true)
+    try {
+      const body: Record<string, string> = { libraryDocumentId: doc.id }
+      if (saveFolderId !== '__auto__') {
+        body.folderId = saveFolderId
+      } else {
+        body.folderSlug = doc.category === 'privacy' ? 'gdpr' : 'contracts'
+      }
+      const res = await fetch('/api/workspace/items/from-library', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (res.ok) {
+        toast.success('Saved to workspace')
+        setSaveOpen(false)
+      } else {
+        const j = await res.json().catch(() => ({}))
+        toast.error(j.error || 'Could not save')
+      }
+    } finally {
+      setSaveBusy(false)
     }
   }
 
@@ -166,7 +243,7 @@ export default function DocumentDetailPage() {
             <Download className="size-4" />
             Download PDF
           </Button>
-          <Button variant="glass" type="button" onClick={saveToWorkspace}>
+          <Button variant="glass" type="button" onClick={() => { setSaveFolderId('__auto__'); setSaveOpen(true) }}>
             Save to workspace
           </Button>
           {doc.accessLevel !== 'free' && (
@@ -304,6 +381,41 @@ export default function DocumentDetailPage() {
           </Card>
         </motion.div>
       </div>
+
+      <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
+        <DialogContent className="border-white/10 bg-navy-950 text-white sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Save to workspace</DialogTitle>
+            <DialogDescription className="text-white/50">
+              Choose a folder or use the default (maps privacy → GDPR folder, else Contracts).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label className="text-white/70">Folder</Label>
+            <Select value={saveFolderId} onValueChange={setSaveFolderId}>
+              <SelectTrigger className="w-full border-white/15 bg-white/5 text-white">
+                <SelectValue placeholder="Choose folder" />
+              </SelectTrigger>
+              <SelectContent className="border-white/10 bg-navy-950 text-white max-h-64">
+                <SelectItem value="__auto__">Default by category</SelectItem>
+                {folderChoices.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" className="border-white/20 text-white" onClick={() => setSaveOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => void saveToWorkspace()} disabled={saveBusy}>
+              {saveBusy ? 'Saving…' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

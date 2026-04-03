@@ -10,6 +10,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const libraryDocumentId = typeof body.libraryDocumentId === 'string' ? body.libraryDocumentId : ''
     const folderSlug = typeof body.folderSlug === 'string' ? body.folderSlug : 'contracts'
+    const folderIdBody = typeof body.folderId === 'string' && body.folderId.length > 0 ? body.folderId : null
     if (!libraryDocumentId) {
       return NextResponse.json({ error: 'libraryDocumentId required' }, { status: 400 })
     }
@@ -49,14 +50,24 @@ export async function POST(request: NextRequest) {
     }
 
     let folderId: string | null = null
-    const { data: folderRow } = await supabase
-      .from('workspace_folders')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('slug', folderSlug)
-      .maybeSingle()
-
-    if (folderRow) folderId = folderRow.id
+    if (folderIdBody) {
+      const { data: byId } = await supabase
+        .from('workspace_folders')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('id', folderIdBody)
+        .maybeSingle()
+      if (byId) folderId = byId.id as string
+    }
+    if (!folderId) {
+      const { data: folderRow } = await supabase
+        .from('workspace_folders')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('slug', folderSlug)
+        .maybeSingle()
+      if (folderRow) folderId = folderRow.id as string
+    }
 
     const { data: item, error: insErr } = await supabase
       .from('workspace_items')
