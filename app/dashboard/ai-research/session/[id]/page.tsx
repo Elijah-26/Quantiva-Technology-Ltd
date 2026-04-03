@@ -94,31 +94,28 @@ function GeneratingHandOverlay({ show, phase }: { show: boolean; phase: Generate
       aria-busy
       aria-live="polite"
     >
-      <motion.div
-        className="text-indigo-300"
-        style={{ width: 112, height: 112 }}
-        animate={{ rotate: [0, 10, -8, 0], y: [0, -6, 0] }}
-        transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <svg viewBox="0 0 120 120" fill="none" className="size-full" aria-hidden>
+      <div className="w-[min(100%,280px)]" style={{ aspectRatio: '300 / 150' }} aria-hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 150" className="size-full">
           <path
-            d="M52 18c-6 0-11 5-11 12v32l-10-8c-4-3-9-2-12 2s-2 10 3 13l22 15c3 2 6 3 10 3h26c8 0 14-5 16-12l5-22c2-7-3-14-10-15-3-1-6 0-9 2l-4 3V30c0-7-5-12-12-12-4 0-8 2-10 5"
-            stroke="currentColor"
-            strokeWidth={5}
-            strokeLinecap="round"
-            strokeLinejoin="round"
             fill="none"
-            opacity={0.95}
-          />
-          <path
-            d="M78 48l18 8c4 2 6 7 4 11l-6 14"
-            stroke="currentColor"
-            strokeWidth={4}
+            stroke="#FF156D"
+            strokeWidth={15}
             strokeLinecap="round"
-            opacity={0.85}
-          />
+            strokeDasharray="300 385"
+            strokeDashoffset={0}
+            d="M275 75c0 31-27 50-50 50-58 0-92-100-150-100-28 0-50 22-50 50s23 50 50 50c58 0 92-100 150-100 24 0 50 19 50 50Z"
+          >
+            <animate
+              attributeName="stroke-dashoffset"
+              calcMode="spline"
+              dur="2s"
+              values="685;-685"
+              keySplines="0 0 1 1"
+              repeatCount="indefinite"
+            />
+          </path>
         </svg>
-      </motion.div>
+      </div>
       <div className="max-w-md space-y-2 text-center">
         <p className="text-lg text-white/95">Kindly wait while your document is being generated.</p>
         {phaseLine ? <p className="text-sm text-white/55">{phaseLine}</p> : null}
