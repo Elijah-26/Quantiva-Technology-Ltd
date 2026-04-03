@@ -24,6 +24,7 @@ import {
   Shield,
   Mail,
   Zap,
+  Loader2,
   type LucideIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -49,6 +50,11 @@ import {
   type OnDemandDocId,
   type WizardField,
 } from "@/lib/on-demand-generation/wizard-flows"
+import {
+  exportOnDemandDraftDocx,
+  exportOnDemandDraftPdf,
+} from "@/lib/on-demand-generation/client-export"
+import { AcademicGeneratingOverlay } from "@/components/AcademicGeneratingOverlay"
 
 const ICON_MAP: Record<string, LucideIcon> = {
   Lock,
@@ -129,6 +135,7 @@ export function GenerateWizard() {
   const [workspaceItemId, setWorkspaceItemId] = useState<string | null>(null)
   const [libraryDocumentId, setLibraryDocumentId] = useState<string | null>(null)
   const [appliedQuery, setAppliedQuery] = useState(false)
+  const [exporting, setExporting] = useState<"docx" | "pdf" | null>(null)
 
   const totalSteps =
     documentType && isOnDemandDocId(documentType) ? totalWizardSteps(documentType) : 1
@@ -222,17 +229,55 @@ export function GenerateWizard() {
     }
   }
 
-  const downloadFile = (ext: "md" | "txt") => {
-    if (!generatedText) return
+  const downloadBaseName = () => {
     const typeName = DOCUMENT_CARDS.find((t) => t.id === documentType)?.name || "document"
     const legacy = documentType ? buildLegacyApiFields(documentType, wizardContext) : null
-    const base = `${typeName}-${legacy?.companyName || "draft"}`.replace(/[^\w\-]+/g, "_").slice(0, 80)
-    const blob = new Blob([generatedText], { type: ext === "md" ? "text/markdown" : "text/plain" })
+    return `${typeName}-${legacy?.companyName || "draft"}`.replace(/[^\w\-]+/g, "_").slice(0, 80) || "quantiva-draft"
+  }
+
+  const triggerBlobDownload = (blob: Blob, filename: string) => {
     const a = document.createElement("a")
     a.href = URL.createObjectURL(blob)
-    a.download = `${base || "quantiva-draft"}.${ext}`
+    a.download = filename
     a.click()
     URL.revokeObjectURL(a.href)
+  }
+
+  const downloadFile = (ext: "md" | "txt") => {
+    if (!generatedText) return
+    const base = downloadBaseName()
+    const blob = new Blob([generatedText], { type: ext === "md" ? "text/markdown" : "text/plain" })
+    triggerBlobDownload(blob, `${base}.${ext}`)
+  }
+
+  const downloadDocx = async () => {
+    if (!generatedText) return
+    const title = DOCUMENT_CARDS.find((t) => t.id === documentType)?.name || "Document"
+    setExporting("docx")
+    try {
+      const blob = await exportOnDemandDraftDocx(title, generatedText)
+      triggerBlobDownload(blob, `${downloadBaseName()}.docx`)
+      toast.success("Downloaded .docx")
+    } catch {
+      toast.error("Could not build .docx")
+    } finally {
+      setExporting(null)
+    }
+  }
+
+  const downloadPdf = async () => {
+    if (!generatedText) return
+    const title = DOCUMENT_CARDS.find((t) => t.id === documentType)?.name || "Document"
+    setExporting("pdf")
+    try {
+      const blob = await exportOnDemandDraftPdf(title, generatedText)
+      triggerBlobDownload(blob, `${downloadBaseName()}.pdf`)
+      toast.success("Downloaded .pdf")
+    } catch {
+      toast.error("Could not build .pdf")
+    } finally {
+      setExporting(null)
+    }
   }
 
   const copyText = async () => {
@@ -323,7 +368,35 @@ export function GenerateWizard() {
                 <Download className="w-4 h-4 mr-2" />
                 Download .txt
               </Button>
-              <Button variant="glass" type="button" onClick={copyText}>
+              <Button
+                variant="glass"
+                className="flex-1 min-w-[120px]"
+                type="button"
+                disabled={exporting !== null}
+                onClick={() => void downloadDocx()}
+              >
+                {exporting === "docx" ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4 mr-2" />
+                )}
+                Download .docx
+              </Button>
+              <Button
+                variant="glass"
+                className="flex-1 min-w-[120px]"
+                type="button"
+                disabled={exporting !== null}
+                onClick={() => void downloadPdf()}
+              >
+                {exporting === "pdf" ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4 mr-2" />
+                )}
+                Download .pdf
+              </Button>
+              <Button variant="glass" type="button" onClick={copyText} disabled={exporting !== null}>
                 <Copy className="w-4 h-4 mr-2" />
                 Copy
               </Button>
@@ -346,34 +419,10 @@ export function GenerateWizard() {
 
   if (isGenerating) {
     return (
-      <div className="max-w-2xl mx-auto text-center py-20">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="space-y-6"
-        >
-          <div className="relative w-24 h-24 mx-auto">
-            <div className="absolute inset-0 rounded-full border-4 border-indigo-500/20" />
-            <div className="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
-            <Sparkles className="absolute inset-0 m-auto w-10 h-10 text-indigo-400" />
-          </div>
-          <h2 className="text-2xl font-bold text-white">Generating your document…</h2>
-          <p className="text-white/60">
-            Tailoring content to your answers. For some document types we also pull brief public web
-            snippets when configured—always verify sources. This usually takes under a minute.
-          </p>
-          <div className="max-w-md mx-auto">
-            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-              <motion.div
-                className="h-full bg-gradient-to-r from-indigo-500 to-indigo-400"
-                initial={{ width: "0%" }}
-                animate={{ width: "100%" }}
-                transition={{ duration: 5, ease: "linear" }}
-              />
-            </div>
-          </div>
-        </motion.div>
-      </div>
+      <AcademicGeneratingOverlay
+        show
+        subtitle="Tailoring content to your answers. For some document types we also pull brief public web snippets when configured—always verify sources. This usually takes under a minute."
+      />
     )
   }
 
