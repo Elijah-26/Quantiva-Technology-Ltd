@@ -597,31 +597,37 @@ function NewResearchPage() {
       {/* Header */}
       <div className="mb-4 sm:mb-6 md:mb-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-            <FileSearch className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center flex-shrink-0 bg-blue-500/20">
+            <FileSearch className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Create New Market Research</h2>
-            <p className="text-sm sm:text-base text-gray-600">Choose your research type and configure parameters</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">Create New Market Research</h2>
+            <p className="text-sm sm:text-base text-white/60">Choose your research type and configure parameters</p>
           </div>
         </div>
       </div>
 
       {/* Tab-based Forms */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
-        <TabsList className="grid w-full grid-cols-2 h-auto">
-          <TabsTrigger value="on-demand" className="gap-1.5 sm:gap-2 py-2.5 sm:py-3 min-h-[48px]">
+        <TabsList className="grid w-full grid-cols-2 h-auto rounded-lg border border-white/10 bg-white/5 p-1">
+          <TabsTrigger
+            value="on-demand"
+            className="gap-1.5 sm:gap-2 py-2.5 sm:py-3 min-h-[48px] text-white/70 data-[state=active]:bg-white/15 data-[state=active]:text-white data-[state=active]:shadow-none"
+          >
             <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
             <div className="text-left">
               <div className="font-semibold text-xs sm:text-sm">On-Demand Research</div>
-              <div className="text-xs text-gray-500 font-normal hidden sm:block">Immediate results</div>
+              <div className="text-xs text-white/45 font-normal hidden sm:block">Immediate results</div>
             </div>
           </TabsTrigger>
-          <TabsTrigger value="recurring" className="gap-1.5 sm:gap-2 py-2.5 sm:py-3 min-h-[48px]">
+          <TabsTrigger
+            value="recurring"
+            className="gap-1.5 sm:gap-2 py-2.5 sm:py-3 min-h-[48px] text-white/70 data-[state=active]:bg-white/15 data-[state=active]:text-white data-[state=active]:shadow-none"
+          >
             <Repeat className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
             <div className="text-left">
               <div className="font-semibold text-xs sm:text-sm">Recurring Research</div>
-              <div className="text-xs text-gray-500 font-normal hidden sm:block">Automated schedule</div>
+              <div className="text-xs text-white/45 font-normal hidden sm:block">Automated schedule</div>
             </div>
           </TabsTrigger>
         </TabsList>
@@ -629,28 +635,28 @@ function NewResearchPage() {
         {/* On-Demand Research Form */}
         <TabsContent value="on-demand" className="space-y-4 sm:space-y-6">
           <form onSubmit={handleOnDemandSubmit}>
-            <Card className="border-2 border-blue-200">
-              <CardHeader className="bg-blue-50">
+            <Card className="border border-blue-400/35 bg-white/5">
+              <CardHeader className="border-b border-white/10 bg-blue-500/10">
                 <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
-                  <CardTitle className="text-base sm:text-lg">On-Demand Research</CardTitle>
+                  <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0" />
+                  <CardTitle className="text-base sm:text-lg text-white">On-Demand Research</CardTitle>
                 </div>
-                <CardDescription className="text-xs sm:text-sm">
+                <CardDescription className="text-xs sm:text-sm text-white/65">
                   Run once immediately and receive results within 24 hours
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 sm:space-y-6 pt-4 sm:pt-6">
                 {/* Market Category */}
                 <div className="space-y-2">
-                  <Label htmlFor="od-marketCategory" className="text-sm sm:text-base">
-                    Market Category <span className="text-red-500">*</span>
+                  <Label htmlFor="od-marketCategory" className="text-sm sm:text-base text-white/90">
+                    Market Category <span className="text-red-400">*</span>
                   </Label>
                   <Select
                     value={onDemandForm.marketCategory}
                     onValueChange={(value) => setOnDemandForm(prev => ({ ...prev, marketCategory: value }))}
                     required
                   >
-                    <SelectTrigger className="h-11 sm:h-11 text-sm sm:text-base">
+                    <SelectTrigger className="h-11 sm:h-11 text-sm sm:text-base bg-white/5 border-white/10 text-white">
                       <SelectValue placeholder="Select a market category" />
                     </SelectTrigger>
                     <SelectContent>
@@ -665,8 +671,8 @@ function NewResearchPage() {
 
                 {/* Sub-niche */}
                 <div className="space-y-2">
-                  <Label htmlFor="od-subNiche" className="text-sm sm:text-base">
-                    Sub-niche or Specific Focus <span className="text-red-500">*</span>
+                  <Label htmlFor="od-subNiche" className="text-sm sm:text-base text-white/90">
+                    Sub-niche or Specific Focus <span className="text-red-400">*</span>
                   </Label>
                   <Input
                     id="od-subNiche"
@@ -675,14 +681,14 @@ function NewResearchPage() {
                     value={onDemandForm.subNiche}
                     onChange={(e) => setOnDemandForm(prev => ({ ...prev, subNiche: e.target.value }))}
                     required
-                    className="h-11 text-sm sm:text-base"
+                    className="h-11 text-sm sm:text-base bg-white/5 border-white/10 text-white placeholder:text-white/40"
                   />
                 </div>
 
                 {/* Geography */}
                 <div className="space-y-2">
-                  <Label htmlFor="od-geography" className="text-sm sm:text-base">
-                    Geographic Focus <span className="text-red-500">*</span>
+                  <Label htmlFor="od-geography" className="text-sm sm:text-base text-white/90">
+                    Geographic Focus <span className="text-red-400">*</span>
                   </Label>
                   <Combobox
                     options={geographicLocations}
@@ -691,16 +697,17 @@ function NewResearchPage() {
                     placeholder="Select a location..."
                     searchPlaceholder="Search locations..."
                     emptyText="No location found."
+                    className="h-11 border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
                   />
-                  <p className="text-xs sm:text-sm text-gray-500">
+                  <p className="text-xs sm:text-sm text-white/50">
                     Choose the geographic region for market analysis
                   </p>
                 </div>
 
                 {/* Email */}
                 <div className="space-y-2">
-                  <Label htmlFor="od-email" className="text-sm sm:text-base">
-                    Email Address <span className="text-red-500">*</span>
+                  <Label htmlFor="od-email" className="text-sm sm:text-base text-white/90">
+                    Email Address <span className="text-red-400">*</span>
                   </Label>
                   <Input
                     id="od-email"
@@ -709,17 +716,17 @@ function NewResearchPage() {
                     value={onDemandForm.email}
                     onChange={(e) => setOnDemandForm(prev => ({ ...prev, email: e.target.value }))}
                     required
-                    className="h-11 text-sm sm:text-base"
+                    className="h-11 text-sm sm:text-base bg-white/5 border-white/10 text-white placeholder:text-white/40"
                   />
-                  <p className="text-xs sm:text-sm text-gray-500">
+                  <p className="text-xs sm:text-sm text-white/50">
                     Report will be sent to this email address
                   </p>
                 </div>
 
                 {/* Additional Notes */}
                 <div className="space-y-2">
-                  <Label htmlFor="od-notes" className="text-sm sm:text-base">
-                    Additional Notes <span className="text-gray-400">(Optional)</span>
+                  <Label htmlFor="od-notes" className="text-sm sm:text-base text-white/90">
+                    Additional Notes <span className="text-white/45">(Optional)</span>
                   </Label>
                   <Textarea
                     id="od-notes"
@@ -727,15 +734,15 @@ function NewResearchPage() {
                     value={onDemandForm.notes}
                     onChange={(e) => setOnDemandForm(prev => ({ ...prev, notes: e.target.value }))}
                     rows={4}
-                    className="resize-none text-sm sm:text-base"
+                    className="resize-none text-sm sm:text-base bg-white/5 border-white/10 text-white placeholder:text-white/40"
                   />
                 </div>
 
                 {/* Submit Button */}
-                <div className="pt-3 sm:pt-4 border-t">
+                <div className="pt-3 sm:pt-4 border-t border-white/10">
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                    <p className="text-xs sm:text-sm text-gray-500 order-2 sm:order-1">
-                      <span className="text-red-500">*</span> Required fields
+                    <p className="text-xs sm:text-sm text-white/50 order-2 sm:order-1">
+                      <span className="text-red-400">*</span> Required fields
                     </p>
                     <Button type="submit" size="lg" className="gap-2 w-full sm:w-auto min-h-[48px] order-1 sm:order-2" disabled={isSubmitting}>
                       {isSubmitting ? (
@@ -757,14 +764,14 @@ function NewResearchPage() {
           </form>
 
           {/* Info Card for On-Demand */}
-          <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200">
+          <Card className="border border-blue-400/35 bg-gradient-to-br from-blue-500/15 to-cyan-500/10">
             <CardHeader>
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-white">
+                <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0" />
                 <span>What happens next?</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
+            <CardContent className="space-y-2 sm:space-y-3 text-xs sm:text-sm text-white/85 [&_strong]:text-white">
               <p className="flex items-start gap-2 sm:gap-3">
                 <span className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-blue-600 text-white font-bold text-xs shrink-0">1</span>
                 <span className="pt-0.5"><strong>AI analyzes</strong> market data from multiple sources and industry databases</span>
@@ -781,8 +788,8 @@ function NewResearchPage() {
                 <span className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-blue-600 text-white font-bold text-xs shrink-0">4</span>
                 <span className="pt-0.5"><strong>Email notification</strong> sent when your report is ready to view</span>
               </p>
-              <div className="mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-blue-200">
-                <p className="flex items-center gap-2 text-blue-700 font-medium">
+              <div className="mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-white/15">
+                <p className="flex items-center gap-2 text-blue-300 font-medium">
                   <span>⏱️</span>
                   <span>Typical turnaround: 4-12 hours</span>
                 </p>
@@ -794,28 +801,28 @@ function NewResearchPage() {
         {/* Recurring Research Form */}
         <TabsContent value="recurring" className="space-y-4 sm:space-y-6">
           <form onSubmit={handleRecurringSubmit}>
-            <Card className="border-2 border-purple-200">
-              <CardHeader className="bg-purple-50">
+            <Card className="border border-purple-400/35 bg-white/5">
+              <CardHeader className="border-b border-white/10 bg-purple-500/10">
                 <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" />
-                  <CardTitle className="text-base sm:text-lg">Recurring Research</CardTitle>
+                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0" />
+                  <CardTitle className="text-base sm:text-lg text-white">Recurring Research</CardTitle>
                 </div>
-                <CardDescription className="text-xs sm:text-sm">
+                <CardDescription className="text-xs sm:text-sm text-white/65">
                   Automated research on a regular schedule for ongoing monitoring
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 sm:space-y-6 pt-4 sm:pt-6">
                 {/* Market Category */}
                 <div className="space-y-2">
-                  <Label htmlFor="rec-marketCategory" className="text-sm sm:text-base">
-                    Market Category <span className="text-red-500">*</span>
+                  <Label htmlFor="rec-marketCategory" className="text-sm sm:text-base text-white/90">
+                    Market Category <span className="text-red-400">*</span>
                   </Label>
                   <Select
                     value={recurringForm.marketCategory}
                     onValueChange={(value) => setRecurringForm(prev => ({ ...prev, marketCategory: value }))}
                     required
                   >
-                    <SelectTrigger className="h-11 text-sm sm:text-base">
+                    <SelectTrigger className="h-11 text-sm sm:text-base bg-white/5 border-white/10 text-white">
                       <SelectValue placeholder="Select a market category" />
                     </SelectTrigger>
                     <SelectContent>
@@ -830,8 +837,8 @@ function NewResearchPage() {
 
                 {/* Sub-niche */}
                 <div className="space-y-2">
-                  <Label htmlFor="rec-subNiche" className="text-sm sm:text-base">
-                    Sub-niche or Specific Focus <span className="text-red-500">*</span>
+                  <Label htmlFor="rec-subNiche" className="text-sm sm:text-base text-white/90">
+                    Sub-niche or Specific Focus <span className="text-red-400">*</span>
                   </Label>
                   <Input
                     id="rec-subNiche"
@@ -840,14 +847,14 @@ function NewResearchPage() {
                     value={recurringForm.subNiche}
                     onChange={(e) => setRecurringForm(prev => ({ ...prev, subNiche: e.target.value }))}
                     required
-                    className="h-11 text-sm sm:text-base"
+                    className="h-11 text-sm sm:text-base bg-white/5 border-white/10 text-white placeholder:text-white/40"
                   />
                 </div>
 
                 {/* Geography */}
                 <div className="space-y-2">
-                  <Label htmlFor="rec-geography" className="text-sm sm:text-base">
-                    Geographic Focus <span className="text-red-500">*</span>
+                  <Label htmlFor="rec-geography" className="text-sm sm:text-base text-white/90">
+                    Geographic Focus <span className="text-red-400">*</span>
                   </Label>
                   <Combobox
                     options={geographicLocations}
@@ -856,16 +863,17 @@ function NewResearchPage() {
                     placeholder="Select a location..."
                     searchPlaceholder="Search locations..."
                     emptyText="No location found."
+                    className="h-11 border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
                   />
-                  <p className="text-xs sm:text-sm text-gray-500">
+                  <p className="text-xs sm:text-sm text-white/50">
                     Choose the geographic region for market analysis
                   </p>
                 </div>
 
                 {/* Email */}
                 <div className="space-y-2">
-                  <Label htmlFor="rec-email" className="text-sm sm:text-base">
-                    Email Address <span className="text-red-500">*</span>
+                  <Label htmlFor="rec-email" className="text-sm sm:text-base text-white/90">
+                    Email Address <span className="text-red-400">*</span>
                   </Label>
                   <Input
                     id="rec-email"
@@ -874,23 +882,23 @@ function NewResearchPage() {
                     value={recurringForm.email}
                     onChange={(e) => setRecurringForm(prev => ({ ...prev, email: e.target.value }))}
                     required
-                    className="h-11 text-sm sm:text-base"
+                    className="h-11 text-sm sm:text-base bg-white/5 border-white/10 text-white placeholder:text-white/40"
                   />
-                  <p className="text-xs sm:text-sm text-gray-500">
+                  <p className="text-xs sm:text-sm text-white/50">
                     Report will be sent to this email address
                   </p>
                 </div>
 
                 {/* Frequency */}
-                <div className="space-y-2 bg-purple-100 p-3 sm:p-4 rounded-lg border border-purple-300">
-                  <Label htmlFor="rec-frequency" className="text-sm sm:text-base">
-                    Frequency <span className="text-red-500">*</span>
+                <div className="space-y-2 bg-purple-500/10 p-3 sm:p-4 rounded-lg border border-purple-400/35">
+                  <Label htmlFor="rec-frequency" className="text-sm sm:text-base text-white/90">
+                    Frequency <span className="text-red-400">*</span>
                   </Label>
                   <Select
                     value={recurringForm.frequency}
                     onValueChange={(value) => setRecurringForm(prev => ({ ...prev, frequency: value }))}
                   >
-                    <SelectTrigger className="h-11 bg-white text-sm sm:text-base">
+                    <SelectTrigger className="h-11 text-sm sm:text-base bg-white/5 border-white/10 text-white">
                       <SelectValue placeholder="Select frequency" />
                     </SelectTrigger>
                     <SelectContent>
@@ -901,15 +909,15 @@ function NewResearchPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs sm:text-sm text-purple-700">
+                  <p className="text-xs sm:text-sm text-purple-200/90">
                     How often should this research be automatically updated?
                   </p>
                 </div>
 
                 {/* Additional Notes */}
                 <div className="space-y-2">
-                  <Label htmlFor="rec-notes" className="text-sm sm:text-base">
-                    Additional Notes <span className="text-gray-400">(Optional)</span>
+                  <Label htmlFor="rec-notes" className="text-sm sm:text-base text-white/90">
+                    Additional Notes <span className="text-white/45">(Optional)</span>
                   </Label>
                   <Textarea
                     id="rec-notes"
@@ -917,15 +925,15 @@ function NewResearchPage() {
                     value={recurringForm.notes}
                     onChange={(e) => setRecurringForm(prev => ({ ...prev, notes: e.target.value }))}
                     rows={4}
-                    className="resize-none text-sm sm:text-base"
+                    className="resize-none text-sm sm:text-base bg-white/5 border-white/10 text-white placeholder:text-white/40"
                   />
                 </div>
 
                 {/* Submit Button */}
-                <div className="pt-3 sm:pt-4 border-t">
+                <div className="pt-3 sm:pt-4 border-t border-white/10">
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                    <p className="text-xs sm:text-sm text-gray-500 order-2 sm:order-1">
-                      <span className="text-red-500">*</span> Required fields
+                    <p className="text-xs sm:text-sm text-white/50 order-2 sm:order-1">
+                      <span className="text-red-400">*</span> Required fields
                     </p>
                     <Button type="submit" size="lg" className="gap-2 w-full sm:w-auto min-h-[48px] order-1 sm:order-2" disabled={isSubmitting}>
                       {isSubmitting ? (
@@ -947,14 +955,14 @@ function NewResearchPage() {
           </form>
 
           {/* Info Card for Recurring */}
-          <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200">
+          <Card className="border border-purple-400/35 bg-gradient-to-br from-purple-500/15 to-pink-500/10">
             <CardHeader>
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" />
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-white">
+                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0" />
                 <span>How Recurring Research Works</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
+            <CardContent className="space-y-2 sm:space-y-3 text-xs sm:text-sm text-white/85 [&_strong]:text-white">
               <p className="flex items-start gap-2 sm:gap-3">
                 <span className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-purple-600 text-white font-bold text-xs shrink-0">1</span>
                 <span className="pt-0.5"><strong>Schedule created</strong> and saved in your Schedules section for easy management</span>
@@ -971,8 +979,8 @@ function NewResearchPage() {
                 <span className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-purple-600 text-white font-bold text-xs shrink-0">4</span>
                 <span className="pt-0.5"><strong>Email alerts & dashboard updates</strong> notify you when new reports are available</span>
               </p>
-              <div className="mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-purple-200 bg-purple-100 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 sm:py-3 rounded-b-lg">
-                <p className="flex items-center gap-2 text-purple-700 font-medium">
+              <div className="mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-white/15 bg-purple-500/10 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 sm:py-3 rounded-b-lg">
+                <p className="flex items-center gap-2 text-purple-200 font-medium">
                   <span>💡</span>
                   <span>Pause or cancel schedules anytime from your Schedules page</span>
                 </p>

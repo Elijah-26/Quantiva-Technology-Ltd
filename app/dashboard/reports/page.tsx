@@ -200,8 +200,8 @@ function ReportsPage() {
       <div className="p-8">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-center h-64">
-            <div className="flex items-center gap-3 text-gray-500">
-              <Spinner className="size-6 text-blue-600" />
+            <div className="flex items-center gap-3 text-white/55">
+              <Spinner className="size-6 text-blue-400" />
               <span>Loading reports...</span>
             </div>
           </div>
@@ -215,8 +215,8 @@ function ReportsPage() {
         {/* Header */}
         <div className="mb-6 md:mb-8 flex flex-col sm:flex-row items-start justify-between gap-4">
           <div className="min-w-0">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Research Reports</h2>
-            <p className="text-sm md:text-base text-gray-600">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">Research Reports</h2>
+            <p className="text-sm md:text-base text-white/60">
               View and analyze your generated market intelligence reports
             </p>
           </div>
@@ -234,43 +234,43 @@ function ReportsPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
-          <Card>
+          <Card className="border-white/10 bg-white/5">
             <CardContent className="pt-4 sm:pt-6">
               <div className="flex items-center justify-between">
                 <div className="min-w-0">
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Reports</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">{reports.length}</p>
+                  <p className="text-xs sm:text-sm text-white/60 mb-1">Total Reports</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-white">{reports.length}</p>
                 </div>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center flex-shrink-0 bg-blue-500/20">
+                  <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-white/10 bg-white/5">
             <CardContent className="pt-4 sm:pt-6">
               <div className="flex items-center justify-between">
                 <div className="min-w-0">
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1">This Month</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">{thisMonth}</p>
+                  <p className="text-xs sm:text-sm text-white/60 mb-1">This Month</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-white">{thisMonth}</p>
                 </div>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center flex-shrink-0 bg-emerald-500/20">
+                  <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-white/10 bg-white/5">
             <CardContent className="pt-4 sm:pt-6">
               <div className="flex items-center justify-between">
                 <div className="min-w-0">
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1">Latest Report</p>
-                  <p className="text-base sm:text-lg font-bold text-gray-900 truncate">{latestReport.split(',')[0] || 'None'}</p>
+                  <p className="text-xs sm:text-sm text-white/60 mb-1">Latest Report</p>
+                  <p className="text-base sm:text-lg font-bold text-white truncate">{latestReport.split(',')[0] || 'None'}</p>
                 </div>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center flex-shrink-0 bg-purple-500/20">
+                  <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-purple-400" />
                 </div>
               </div>
             </CardContent>
@@ -278,17 +278,17 @@ function ReportsPage() {
         </div>
 
         {/* Search and Filters */}
-        <Card className="mb-4 sm:mb-6">
+        <Card className="mb-4 sm:mb-6 border-white/10 bg-white/5">
           <CardContent className="pt-4 sm:pt-6">
             {/* Search Bar and Filter Toggle */}
             <div className="flex flex-col md:flex-row gap-3 sm:gap-4 mb-3 sm:mb-4">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/40" />
                 <Input
                   placeholder="Search reports by title, category, or geography..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 text-sm sm:text-base h-11"
+                  className="pl-10 text-sm sm:text-base h-11 bg-white/5 border-white/10 text-white placeholder:text-white/40"
                 />
               </div>
               <div className="flex gap-2">
@@ -320,13 +320,13 @@ function ReportsPage() {
 
             {/* Filter Options (collapsible) */}
             {showFilters && (
-              <div className={`grid grid-cols-1 sm:grid-cols-2 ${isAdmin ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-3 sm:gap-4 pt-3 sm:pt-4 border-t`}>
+              <div className={`grid grid-cols-1 sm:grid-cols-2 ${isAdmin ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-3 sm:gap-4 pt-3 sm:pt-4 border-t border-white/10`}>
                 <div>
-                  <label className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
+                  <label className="text-xs sm:text-sm font-medium text-white/75 mb-2 block">
                     Category
                   </label>
                   <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                    <SelectTrigger className="h-10 sm:h-11 text-sm sm:text-base">
+                    <SelectTrigger className="h-10 sm:h-11 text-sm sm:text-base bg-white/5 border-white/10 text-white">
                       <SelectValue placeholder="All categories" />
                     </SelectTrigger>
                     <SelectContent>
@@ -339,11 +339,11 @@ function ReportsPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
+                  <label className="text-xs sm:text-sm font-medium text-white/75 mb-2 block">
                     Type
                   </label>
                   <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="h-10 sm:h-11 text-sm sm:text-base">
+                    <SelectTrigger className="h-10 sm:h-11 text-sm sm:text-base bg-white/5 border-white/10 text-white">
                       <SelectValue placeholder="All types" />
                     </SelectTrigger>
                     <SelectContent>
@@ -355,11 +355,11 @@ function ReportsPage() {
                 </div>
 
                 <div>
-                  <label className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
+                  <label className="text-xs sm:text-sm font-medium text-white/75 mb-2 block">
                     Geography
                   </label>
                   <Select value={geographyFilter} onValueChange={setGeographyFilter}>
-                    <SelectTrigger className="h-10 sm:h-11 text-sm sm:text-base">
+                    <SelectTrigger className="h-10 sm:h-11 text-sm sm:text-base bg-white/5 border-white/10 text-white">
                       <SelectValue placeholder="All geographies" />
                     </SelectTrigger>
                     <SelectContent>
@@ -374,11 +374,11 @@ function ReportsPage() {
                 {/* Admin-only: User Filter */}
                 {isAdmin && (
                   <div>
-                    <label className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
+                    <label className="text-xs sm:text-sm font-medium text-white/75 mb-2 block">
                       User
                     </label>
                     <Select value={userFilter} onValueChange={setUserFilter}>
-                      <SelectTrigger className="h-10 sm:h-11 text-sm sm:text-base">
+                      <SelectTrigger className="h-10 sm:h-11 text-sm sm:text-base bg-white/5 border-white/10 text-white">
                         <SelectValue placeholder="All users" />
                       </SelectTrigger>
                       <SelectContent>
@@ -392,11 +392,11 @@ function ReportsPage() {
                 )}
 
                 <div>
-                  <label className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
+                  <label className="text-xs sm:text-sm font-medium text-white/75 mb-2 block">
                     Sort By
                   </label>
                   <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
-                    <SelectTrigger className="h-10 sm:h-11 text-sm sm:text-base">
+                    <SelectTrigger className="h-10 sm:h-11 text-sm sm:text-base bg-white/5 border-white/10 text-white">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -412,10 +412,10 @@ function ReportsPage() {
             )}
 
             {/* Results count */}
-            <div className="mt-3 sm:mt-4 text-xs sm:text-sm text-gray-600">
+            <div className="mt-3 sm:mt-4 text-xs sm:text-sm text-white/60">
               Showing {filteredAndSortedReports.length} of {reports.length} reports
               {hasActiveFilters && (
-                <span className="ml-2 text-blue-600 font-medium">
+                <span className="ml-2 text-blue-400 font-medium">
                   (filtered)
                 </span>
               )}
@@ -434,7 +434,7 @@ function ReportsPage() {
             })()
             
             return (
-              <Card key={report.id} className="hover:border-blue-300 transition-colors relative overflow-hidden">
+              <Card key={report.id} className="border-white/10 bg-white/5 hover:border-blue-500/40 transition-colors relative overflow-hidden">
                 {isNew && (
                   <div className="absolute top-0 right-0">
                     <div className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white px-3 py-1 text-xs font-bold tracking-wider flex items-center gap-1 shadow-lg">
@@ -447,11 +447,11 @@ function ReportsPage() {
                   <div className="flex flex-col gap-4">
                     {/* Title and Type Section */}
                     <div className="flex items-start gap-2 sm:gap-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <FileText className="w-5 h-5 text-blue-600" />
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-blue-500/20">
+                        <FileText className="w-5 h-5 text-blue-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 break-words">
+                        <h3 className="text-base sm:text-lg font-semibold text-white mb-2 break-words">
                           {report.title}
                         </h3>
                         <div className="flex flex-wrap items-center gap-2">
@@ -469,7 +469,7 @@ function ReportsPage() {
                     </div>
 
                     {/* Details Section */}
-                    <div className="flex flex-col gap-2 text-xs sm:text-sm text-gray-600">
+                    <div className="flex flex-col gap-2 text-xs sm:text-sm text-white/65">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 flex-shrink-0" />
                         <span>{report.dateGenerated}</span>
@@ -486,33 +486,33 @@ function ReportsPage() {
 
                     {/* Admin-only: User Information */}
                     {isAdmin && report.userName && (
-                      <div className="pt-3 border-t border-gray-200">
+                      <div className="pt-3 border-t border-white/10">
                         <div className="flex flex-col gap-2 text-xs sm:text-sm">
-                          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs w-fit">
+                          <Badge variant="outline" className="bg-purple-500/20 text-purple-200 border-purple-400/40 text-xs w-fit">
                             Generated by
                           </Badge>
                           <div className="flex flex-col gap-1">
-                            <span className="font-medium text-gray-900 break-words">{report.userName}</span>
+                            <span className="font-medium text-white break-words">{report.userName}</span>
                             {report.userCompany && (
-                              <span className="text-gray-600 break-words">{report.userCompany}</span>
+                              <span className="text-white/60 break-words">{report.userCompany}</span>
                             )}
-                            <span className="text-gray-500 text-xs break-all">{report.userEmail}</span>
+                            <span className="text-white/45 text-xs break-all">{report.userEmail}</span>
                           </div>
                         </div>
                       </div>
                     )}
 
                     {/* Action Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-gray-100">
+                    <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-white/10">
                       <Link href={`/dashboard/reports/${report.id}`} className="flex-1">
-                        <Button variant="outline" className="gap-2 w-full min-h-[48px]">
+                        <Button variant="outline" className="gap-2 w-full min-h-[48px] border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white">
                           <span className="text-sm sm:text-base">View Report</span>
                           <ChevronRight className="w-4 h-4" />
                         </Button>
                       </Link>
                       <Button 
                         variant="ghost"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 min-h-[48px] w-full sm:w-auto gap-2"
+                        className="text-red-400 hover:text-red-300 hover:bg-red-500/15 min-h-[48px] w-full sm:w-auto gap-2"
                         onClick={() => handleDelete(report.id, report.title)}
                       >
                         <Trash2 className="w-4 h-4" />
@@ -528,18 +528,18 @@ function ReportsPage() {
 
         {/* Empty State */}
         {filteredAndSortedReports.length === 0 && reports.length > 0 && (
-          <Card className="border-2 border-dashed">
+          <Card className="border-2 border-dashed border-white/20 bg-white/5">
             <CardContent className="py-16 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Search className="w-8 h-8 text-gray-400" />
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-white/10">
+                <Search className="w-8 h-8 text-white/45" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 className="text-lg font-semibold text-white mb-2">
                 No reports match your filters
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-white/60 mb-6">
                 Try adjusting your search or filter criteria
               </p>
-              <Button onClick={clearFilters} variant="outline">
+              <Button onClick={clearFilters} variant="outline" className="border-white/20 bg-white/5 text-white hover:bg-white/10">
                 Clear All Filters
               </Button>
             </CardContent>
@@ -548,15 +548,15 @@ function ReportsPage() {
 
         {/* No Reports at All */}
         {reports.length === 0 && (
-          <Card className="border-2 border-dashed">
+          <Card className="border-2 border-dashed border-white/20 bg-white/5">
             <CardContent className="py-16 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FileText className="w-8 h-8 text-gray-400" />
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-white/10">
+                <FileText className="w-8 h-8 text-white/45" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 className="text-lg font-semibold text-white mb-2">
                 No reports yet
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-white/60 mb-6">
                 Create your first market research request to get started
               </p>
               <Link href="/dashboard/new-research">
