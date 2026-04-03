@@ -49,6 +49,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
+import { trackLibraryDocumentDownload } from '@/lib/track-library-download'
 
 type FolderRow = {
   id: string
@@ -282,6 +283,7 @@ export default function WorkspacePageClient() {
         a.download = `${doc.title.replace(/[^\w\-]+/g, '_').slice(0, 80) || 'document'}.md`
         a.click()
         URL.revokeObjectURL(a.href)
+        trackLibraryDocumentDownload(doc.libraryDocumentId)
       } catch {
         toast.error('Download failed')
       }

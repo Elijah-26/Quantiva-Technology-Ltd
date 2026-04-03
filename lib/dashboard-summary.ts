@@ -23,11 +23,16 @@ export interface DashboardSummaryResponse {
     researchReports: number
   }
   recentActivity: DashboardActivityItem[]
+  /** Top library rows by recency / engagement (not static picks). */
   recommendedTemplates: {
     id: string
     title: string
     category: string
-    rating: number
+    downloadCount: number
+    wordCount: number
+    updatedAt: string
+    /** Present only when the library has a non-zero rating (avoid fake-looking seed stars). */
+    rating: number | null
   }[]
   usage: {
     reportsUsedThisMonth: number

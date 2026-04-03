@@ -11,6 +11,7 @@ import {
   GraduationCap,
   FolderOpen,
   BarChart3,
+  Download,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -29,6 +30,13 @@ const quickActions = [
 function usageBarPercent(used: number, limit: number): number {
   if (limit <= 0) return 0
   return Math.min(100, Math.round((used / limit) * 100))
+}
+
+function formatDocDate(iso: string): string {
+  if (!iso) return ""
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ""
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
 }
 
 export default function DashboardPage() {
@@ -73,7 +81,12 @@ export default function DashboardPage() {
     if (!summary) return []
     return [
       { label: "Library templates", value: summary.stats.libraryTemplates, icon: FileText, hint: "Available to browse" },
-      { label: "Workspace items", value: summary.stats.workspaceItems, icon: FolderOpen, hint: "Saved in your workspace" },
+      {
+        label: "Workspace items",
+        value: summary.stats.workspaceItems,
+        icon: FolderOpen,
+        hint: "Your saves plus documents others shared with you",
+      },
       { label: "AI generations", value: summary.stats.aiGenerationsCompleted, icon: Sparkles, hint: "Completed jobs" },
       { label: "Research reports", value: summary.stats.researchReports, icon: BarChart3, hint: "Total reports" },
     ]
@@ -254,33 +267,54 @@ export default function DashboardPage() {
         >
           <Card className="glass-card border-0">
             <CardHeader>
-              <CardTitle className="text-white">Recommended for You</CardTitle>
+              <CardTitle className="text-white">Library highlights</CardTitle>
+              <p className="text-white/45 text-sm font-normal leading-snug">
+                Top entries by saves and recent updates—live from your document library.
+              </p>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {summary.recommendedTemplates.length === 0 ? (
                   <p className="text-white/50 text-sm">No templates in the library yet.</p>
                 ) : (
-                  summary.recommendedTemplates.map((template) => (
-                    <div
-                      key={template.id}
-                      className="p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <Badge variant="secondary" className="text-xs">
-                          {template.category}
-                        </Badge>
-                        <div className="flex items-center gap-1 text-amber-400">
-                          <Star className="w-3 h-3 fill-current" />
-                          <span className="text-xs">{template.rating.toFixed(1)}</span>
+                  summary.recommendedTemplates.map((template) => {
+                    const cat =
+                      template.category.length > 0
+                        ? template.category.charAt(0).toUpperCase() + template.category.slice(1)
+                        : template.category
+                    return (
+                      <div
+                        key={template.id}
+                        className="p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <Badge variant="secondary" className="text-xs">
+                            {cat}
+                          </Badge>
+                          {template.rating != null && template.rating > 0 ? (
+                            <div className="flex items-center gap-1 text-amber-400 shrink-0">
+                              <Star className="w-3 h-3 fill-current" />
+                              <span className="text-xs">{template.rating.toFixed(1)}</span>
+                            </div>
+                          ) : null}
                         </div>
+                        <h4 className="text-white font-medium text-sm">{template.title}</h4>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/45">
+                          <span className="inline-flex items-center gap-1">
+                            <Download className="w-3 h-3" />
+                            {template.downloadCount.toLocaleString()} downloads
+                          </span>
+                          <span>{template.wordCount.toLocaleString()} words</span>
+                          {template.updatedAt ? (
+                            <span>Updated {formatDocDate(template.updatedAt)}</span>
+                          ) : null}
+                        </div>
+                        <Button variant="glass" size="sm" className="w-full mt-3" asChild>
+                          <Link href={`/dashboard/documents/${template.id}`}>Open in library</Link>
+                        </Button>
                       </div>
-                      <h4 className="text-white font-medium text-sm">{template.title}</h4>
-                      <Button variant="glass" size="sm" className="w-full mt-3" asChild>
-                        <Link href={`/dashboard/documents/${template.id}`}>Use template</Link>
-                      </Button>
-                    </div>
-                  ))
+                    )
+                  })
                 )}
               </div>
             </CardContent>

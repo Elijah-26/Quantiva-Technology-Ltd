@@ -166,7 +166,7 @@ export default function DocumentsPage() {
           <h1 className="text-3xl font-bold text-white mb-2">Document Library</h1>
           <p className="text-white/60">
             {loading
-              ? "Loading templates from your workspace…"
+              ? "Loading your document library…"
               : `Browse and search ${documents.length} items: library templates, on-demand drafts, and your Academic Research sessions.`}
           </p>
         </div>
@@ -471,10 +471,12 @@ export default function DocumentsPage() {
                         <Download className="w-3 h-3" />
                         {doc.downloadCount.toLocaleString()}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <Star className="w-3 h-3" />
-                        {doc.rating}
-                      </span>
+                      {doc.documentKind !== "academic" && doc.rating > 0 ? (
+                        <span className="flex items-center gap-1">
+                          <Star className="w-3 h-3" />
+                          {doc.rating.toFixed(1)}
+                        </span>
+                      ) : null}
                     </div>
                     <span className="flex items-center gap-1">
                       <Clock className="w-3 h-3" />
@@ -546,10 +548,12 @@ export default function DocumentsPage() {
                       <Download className="w-4 h-4" />
                       {doc.downloadCount.toLocaleString()}
                     </span>
-                    <span className="flex items-center gap-1">
-                      <Star className="w-4 h-4" />
-                      {doc.rating}
-                    </span>
+                    {doc.documentKind !== "academic" && doc.rating > 0 ? (
+                      <span className="flex items-center gap-1">
+                        <Star className="w-4 h-4" />
+                        {doc.rating.toFixed(1)}
+                      </span>
+                    ) : null}
                   </div>
                   <button className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-amber-400 transition-colors">
                     <Star

@@ -35,6 +35,11 @@ function limitForJson(admin: boolean, raw: number): number {
   return raw
 }
 
+function countFrom(res: { count: number | null; error?: { message: string } | null }): number {
+  if (res.error) console.error('[dashboard/summary] count error', res.error.message)
+  return res.count ?? 0
+}
+
 export async function GET() {
   try {
     const cookieStore = await cookies()
@@ -95,7 +100,8 @@ export async function GET() {
 
     const [
       libCount,
-      wsCount,
+      wsOwnedCount,
+      wsSharedCount,
       genCompleted,
       repTotal,
       repMonth,
@@ -110,6 +116,10 @@ export async function GET() {
         .from('workspace_items')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', uid),
+      supabaseAdmin
+        .from('workspace_item_shares')
+        .select('id', { count: 'exact', head: true })
+        .eq('shared_with_user_id', uid),
       supabaseAdmin
         .from('generation_jobs')
         .select('id', { count: 'exact', head: true })
@@ -146,10 +156,15 @@ export async function GET() {
         .limit(8),
       supabaseAdmin
         .from('library_documents')
-        .select('id, title, category, rating')
-        .order('rating', { ascending: false })
+        .select('id, title, category, rating, download_count, word_count, updated_at')
+        .order('download_count', { ascending: false })
+        .order('updated_at', { ascending: false })
         .limit(3),
     ])
+
+    if (topTemplates.error) {
+      console.error('[dashboard/summary] library picks', topTemplates.error.message)
+    }
 
     const activity: DashboardActivityItem[] = []
 
@@ -195,26 +210,34 @@ export async function GET() {
     const reportsLimit = limitForJson(admin, cap)
     const generationsLimit = reportsLimit
 
+    const workspaceItemsTotal = countFrom(wsOwnedCount) + countFrom(wsSharedCount)
+
     const body: DashboardSummaryResponse = {
       greetingName,
       planLabel,
       stats: {
-        libraryTemplates: libCount.count ?? 0,
-        workspaceItems: wsCount.count ?? 0,
-        aiGenerationsCompleted: genCompleted.count ?? 0,
-        researchReports: repTotal.count ?? 0,
+        libraryTemplates: countFrom(libCount),
+        workspaceItems: workspaceItemsTotal,
+        aiGenerationsCompleted: countFrom(genCompleted),
+        researchReports: countFrom(repTotal),
       },
       recentActivity: activity.slice(0, 8),
-      recommendedTemplates: (topTemplates.data || []).map((t) => ({
-        id: t.id,
-        title: t.title,
-        category: t.category,
-        rating: Number(t.rating) || 0,
-      })),
+      recommendedTemplates: (topTemplates.error ? [] : topTemplates.data || []).map((t) => {
+        const r = Number(t.rating)
+        return {
+          id: t.id as string,
+          title: t.title as string,
+          category: t.category as string,
+          downloadCount: typeof t.download_count === 'number' ? t.download_count : 0,
+          wordCount: typeof t.word_count === 'number' ? t.word_count : 0,
+          updatedAt: (t.updated_at as string) || '',
+          rating: r > 0 ? r : null,
+        }
+      }),
       usage: {
-        reportsUsedThisMonth: repMonth.count ?? 0,
+        reportsUsedThisMonth: countFrom(repMonth),
         reportsLimit,
-        generationsUsedThisMonth: genMonth.count ?? 0,
+        generationsUsedThisMonth: countFrom(genMonth),
         generationsLimit,
       },
     }

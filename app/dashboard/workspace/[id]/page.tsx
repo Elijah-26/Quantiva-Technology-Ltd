@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Download, FileStack } from 'lucide-react'
 import { toast } from 'sonner'
+import { trackLibraryDocumentDownload } from '@/lib/track-library-download'
 
 type ItemPayload = {
   title: string
@@ -99,6 +100,7 @@ function WorkspaceItemPage({ params }: { params: Promise<{ id: string }> }) {
         return
       }
       downloadBody(text, ext)
+      trackLibraryDocumentDownload(libraryId)
     } catch {
       toast.error('Download failed')
     }
