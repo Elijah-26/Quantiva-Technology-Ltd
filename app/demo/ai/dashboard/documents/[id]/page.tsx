@@ -383,23 +383,29 @@ export default function DocumentDetailPage() {
       </div>
 
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
-        <DialogContent className="border-white/10 bg-navy-950 text-white sm:max-w-md">
+        <DialogContent className="border border-zinc-600 bg-black text-white shadow-2xl sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Save to workspace</DialogTitle>
-            <DialogDescription className="text-white/50">
+            <DialogTitle className="text-white">Save to workspace</DialogTitle>
+            <DialogDescription className="text-white/60">
               Choose a folder or use the default (maps privacy → GDPR folder, else Contracts).
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-2">
             <Label className="text-white/70">Folder</Label>
             <Select value={saveFolderId} onValueChange={setSaveFolderId}>
-              <SelectTrigger className="w-full border-white/15 bg-white/5 text-white">
+              <SelectTrigger className="w-full border-zinc-600 bg-zinc-900 text-white">
                 <SelectValue placeholder="Choose folder" />
               </SelectTrigger>
-              <SelectContent className="border-white/10 bg-navy-950 text-white max-h-64">
-                <SelectItem value="__auto__">Default by category</SelectItem>
+              <SelectContent className="border border-zinc-600 bg-black text-white max-h-64">
+                <SelectItem value="__auto__" className="text-white focus:bg-zinc-800 focus:text-white">
+                  Default by category
+                </SelectItem>
                 {folderChoices.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
+                  <SelectItem
+                    key={c.id}
+                    value={c.id}
+                    className="text-white focus:bg-zinc-800 focus:text-white"
+                  >
                     {c.label}
                   </SelectItem>
                 ))}
@@ -407,10 +413,20 @@ export default function DocumentDetailPage() {
             </Select>
           </div>
           <DialogFooter>
-            <Button variant="outline" className="border-white/20 text-white" onClick={() => setSaveOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-zinc-500 bg-zinc-900 text-white hover:bg-zinc-800 hover:text-white"
+              onClick={() => setSaveOpen(false)}
+            >
               Cancel
             </Button>
-            <Button onClick={() => void saveToWorkspace()} disabled={saveBusy}>
+            <Button
+              type="button"
+              className="bg-white text-black hover:bg-zinc-200"
+              onClick={() => void saveToWorkspace()}
+              disabled={saveBusy}
+            >
               {saveBusy ? 'Saving…' : 'Save'}
             </Button>
           </DialogFooter>

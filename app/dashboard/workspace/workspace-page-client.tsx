@@ -944,10 +944,10 @@ export default function WorkspacePageClient() {
       </div>
 
       <Dialog open={folderDialogOpen} onOpenChange={setFolderDialogOpen}>
-        <DialogContent className="border-white/10 bg-navy-950 text-white sm:max-w-md">
+        <DialogContent className="border border-zinc-600 bg-black text-white shadow-2xl sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{folderDialogParentId ? 'New subfolder' : 'New folder'}</DialogTitle>
-            <DialogDescription className="text-white/50">
+            <DialogTitle className="text-white">{folderDialogParentId ? 'New subfolder' : 'New folder'}</DialogTitle>
+            <DialogDescription className="text-white/60">
               Folders help you group library saves and generated documents.
             </DialogDescription>
           </DialogHeader>
@@ -965,10 +965,15 @@ export default function WorkspacePageClient() {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" className="border-white/20 text-white" onClick={() => setFolderDialogOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-zinc-500 bg-zinc-900 text-white hover:bg-zinc-800 hover:text-white"
+              onClick={() => setFolderDialogOpen(false)}
+            >
               Cancel
             </Button>
-            <Button onClick={createFolder} disabled={folderSaving}>
+            <Button className="bg-white text-black hover:bg-zinc-200" onClick={createFolder} disabled={folderSaving}>
               {folderSaving ? 'Saving…' : 'Create'}
             </Button>
           </DialogFooter>
@@ -981,9 +986,9 @@ export default function WorkspacePageClient() {
           if (!o) setRenameFolderId(null)
         }}
       >
-        <DialogContent className="border-white/10 bg-navy-950 text-white sm:max-w-md">
+        <DialogContent className="border border-zinc-600 bg-black text-white shadow-2xl sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Rename folder</DialogTitle>
+            <DialogTitle className="text-white">Rename folder</DialogTitle>
           </DialogHeader>
           <Input
             value={renameFolderName}
@@ -992,19 +997,26 @@ export default function WorkspacePageClient() {
             onKeyDown={(e) => e.key === 'Enter' && saveRenameFolder()}
           />
           <DialogFooter>
-            <Button variant="outline" className="border-white/20 text-white" onClick={() => setRenameFolderId(null)}>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-zinc-500 bg-zinc-900 text-white hover:bg-zinc-800 hover:text-white"
+              onClick={() => setRenameFolderId(null)}
+            >
               Cancel
             </Button>
-            <Button onClick={saveRenameFolder}>Save</Button>
+            <Button className="bg-white text-black hover:bg-zinc-200" onClick={saveRenameFolder}>
+              Save
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={Boolean(shareDoc)} onOpenChange={(o) => !o && setShareDoc(null)}>
-        <DialogContent className="border-white/10 bg-navy-950 text-white sm:max-w-md">
+        <DialogContent className="border border-zinc-600 bg-black text-white shadow-2xl sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Share document</DialogTitle>
-            <DialogDescription className="text-white/50">
+            <DialogTitle className="text-white">Share document</DialogTitle>
+            <DialogDescription className="text-white/60">
               Invite a teammate by email. They must already have an account. Shared users can view and download; only
               you can move or delete the original.
             </DialogDescription>
@@ -1016,7 +1028,7 @@ export default function WorkspacePageClient() {
               onChange={(e) => setShareEmail(e.target.value)}
               className="bg-white/5 border-white/10 text-white"
             />
-            <Button type="button" onClick={addShare}>
+            <Button type="button" className="bg-white text-black hover:bg-zinc-200 shrink-0" onClick={addShare}>
               Add
             </Button>
           </div>
