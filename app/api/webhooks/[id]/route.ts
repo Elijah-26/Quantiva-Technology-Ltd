@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase/server'
+import { isUserPlatformAdmin } from '@/lib/auth/admin'
 
 // PUT - Update webhook (admin only)
 export async function PUT(
@@ -43,17 +44,8 @@ export async function PUT(
       )
     }
 
-    // Check if user is admin
-    const isAdmin = user.user_metadata?.role === 'admin' ||
-                    user.app_metadata?.role === 'admin' ||
-                    user.email === 'admin@quantitva.com' ||
-                    user.email === 'pat2echo@gmail.com'
-
-    if (!isAdmin) {
-      return NextResponse.json(
-        { error: 'Forbidden - Admin access required' },
-        { status: 403 }
-      )
+    if (!(await isUserPlatformAdmin(user, supabaseAdmin))) {
+      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
     }
 
     const body = await request.json()
@@ -129,17 +121,8 @@ export async function DELETE(
       )
     }
 
-    // Check if user is admin
-    const isAdmin = user.user_metadata?.role === 'admin' ||
-                    user.app_metadata?.role === 'admin' ||
-                    user.email === 'admin@quantitva.com' ||
-                    user.email === 'pat2echo@gmail.com'
-
-    if (!isAdmin) {
-      return NextResponse.json(
-        { error: 'Forbidden - Admin access required' },
-        { status: 403 }
-      )
+    if (!(await isUserPlatformAdmin(user, supabaseAdmin))) {
+      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
     }
 
     // Delete webhook using service role

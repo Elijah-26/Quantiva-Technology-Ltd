@@ -1,95 +1,78 @@
-// app/api/users/route.ts
-// API routes for user management (all authenticated users)
+// app/api/users/route.ts — list/create users (platform admins only)
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
+import { isUserPlatformAdmin } from '@/lib/auth/admin'
 
-// GET all users (authenticated users)
+// GET all users (platform admin only)
 export async function GET(request: NextRequest) {
   try {
-    // Get the authorization header
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Extract token
     const token = authHeader.replace('Bearer ', '')
-    
-    // Verify the user is authenticated
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
-    
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAdmin.auth.getUser(token)
+
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get all users
+    if (!(await isUserPlatformAdmin(user, supabaseAdmin))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const { data: users, error: usersError } = await supabaseAdmin
       .from('users')
       .select('*')
       .order('created_at', { ascending: false })
 
     if (usersError) {
-      return NextResponse.json(
-        { error: usersError.message },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: usersError.message }, { status: 500 })
     }
 
     return NextResponse.json({ users })
   } catch (error) {
     console.error('Error fetching users:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-// POST - Create new user (authenticated users)
+// POST — create user (platform admin only)
 export async function POST(request: NextRequest) {
   try {
-    // Get the authorization header
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Extract token
     const token = authHeader.replace('Bearer ', '')
-    
-    // Verify the user is authenticated
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
-    
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAdmin.auth.getUser(token)
+
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Parse request body
+    if (!(await isUserPlatformAdmin(user, supabaseAdmin))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const body = await request.json()
     const { email, password, full_name, company_name, role } = body
 
-    // Validate required fields
     if (!email || !password) {
-      return NextResponse.json(
-        { error: 'Email and password are required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
     }
 
-    // Check if email already exists
     const { data: existingUser } = await supabaseAdmin
       .from('users')
       .select('email')
@@ -97,13 +80,9 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (existingUser) {
-      return NextResponse.json(
-        { error: 'Email already exists' },
-        { status: 409 }
-      )
+      return NextResponse.json({ error: 'Email already exists' }, { status: 409 })
     }
 
-    // Create user in auth.users (default role is 'user' from database for security)
     const { data: newAuthUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email: email.toLowerCase(),
       password,
@@ -115,18 +94,13 @@ export async function POST(request: NextRequest) {
     })
 
     if (createError) {
-      return NextResponse.json(
-        { error: createError.message },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: createError.message }, { status: 400 })
     }
 
-    // Update the user's role if specified (otherwise defaults to 'user')
-    // The trigger automatically creates the user with 'user' role
     if (newAuthUser.user && role) {
       const { error: updateError } = await supabaseAdmin
         .from('users')
-        .update({ 
+        .update({
           role,
           full_name,
           company_name,
@@ -138,19 +112,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Fetch the complete user data
     const { data: newUser } = await supabaseAdmin
       .from('users')
       .select('*')
-      .eq('id', newAuthUser.user.id)
+      .eq('id', newAuthUser.user!.id)
       .single()
 
     return NextResponse.json({ user: newUser }, { status: 201 })
   } catch (error) {
     console.error('Error creating user:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

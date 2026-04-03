@@ -493,3 +493,58 @@ async function auditScheduled(
     metadata,
   })
 }
+
+export type ScheduledBatchCreated = {
+  id: string
+  title: string
+  marketCategory: string
+  documentType: string
+  geography: string
+}
+
+/** Run the same loop as the Vercel cron: N documents for today’s batch date. */
+export async function runScheduledLibraryBatch(admin: SupabaseClient): Promise<
+  | {
+      ok: true
+      requested: number
+      createdCount: number
+      partial: boolean
+      created: ScheduledBatchCreated[]
+      errors?: Array<{ index: number; error: string }>
+    }
+  | { ok: false; error: string; errors?: Array<{ index: number; error: string }> }
+> {
+  const dateSuffix = new Date().toISOString().slice(0, 10)
+  const { count } = await getScheduledLibraryDocumentsPerDay(admin)
+
+  const created: ScheduledBatchCreated[] = []
+  const errors: Array<{ index: number; error: string }> = []
+
+  for (let i = 0; i < count; i++) {
+    const result = await runOneScheduledLibraryDocument(admin, dateSuffix, i)
+    if (result.ok) {
+      created.push({
+        id: result.id,
+        title: result.title,
+        marketCategory: result.marketCategory,
+        documentType: result.documentType,
+        geography: result.geography,
+      })
+    } else {
+      errors.push({ index: i, error: result.error })
+    }
+  }
+
+  if (created.length === 0 && errors.length > 0) {
+    return { ok: false, error: errors[0]?.error || 'Generation failed', errors }
+  }
+
+  return {
+    ok: true,
+    requested: count,
+    createdCount: created.length,
+    partial: created.length < count,
+    created,
+    errors: errors.length ? errors : undefined,
+  }
+}

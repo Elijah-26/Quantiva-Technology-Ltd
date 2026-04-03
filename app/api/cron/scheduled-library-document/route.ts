@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import {
   getScheduledLibraryDocumentsPerDay,
-  runOneScheduledLibraryDocument,
+  runScheduledLibraryBatch,
   runScheduledLibraryHealthChecks,
 } from '@/lib/scheduled-library-cron'
 
@@ -49,47 +49,22 @@ async function runScheduled(request: NextRequest) {
       })
     }
 
-    const dateSuffix = new Date().toISOString().slice(0, 10)
-    const { count } = await getScheduledLibraryDocumentsPerDay(supabaseAdmin)
+    const batch = await runScheduledLibraryBatch(supabaseAdmin)
 
-    const created: Array<{
-      id: string
-      title: string
-      marketCategory: string
-      documentType: string
-      geography: string
-    }> = []
-    const errors: Array<{ index: number; error: string }> = []
-
-    for (let i = 0; i < count; i++) {
-      const result = await runOneScheduledLibraryDocument(supabaseAdmin, dateSuffix, i)
-      if (result.ok) {
-        created.push({
-          id: result.id,
-          title: result.title,
-          marketCategory: result.marketCategory,
-          documentType: result.documentType,
-          geography: result.geography,
-        })
-      } else {
-        errors.push({ index: i, error: result.error })
-      }
-    }
-
-    if (created.length === 0 && errors.length > 0) {
+    if (!batch.ok) {
       return NextResponse.json(
-        { ok: false, error: errors[0]?.error || 'Generation failed', errors },
+        { ok: false, error: batch.error, errors: batch.errors },
         { status: 500 }
       )
     }
 
     return NextResponse.json({
       ok: true,
-      requested: count,
-      createdCount: created.length,
-      partial: created.length < count,
-      created,
-      errors: errors.length ? errors : undefined,
+      requested: batch.requested,
+      createdCount: batch.createdCount,
+      partial: batch.partial,
+      created: batch.created,
+      errors: batch.errors,
     })
   } catch (e) {
     console.error(e)

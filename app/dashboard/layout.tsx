@@ -11,7 +11,6 @@ import {
   Sparkles,
   FolderOpen,
   CreditCard,
-  Settings,
   Bell,
   Search,
   Menu,
@@ -188,18 +187,11 @@ export default function DashboardLayout({
                 >
                   <div className="p-2">
                     <Link
-                      href="/dashboard/settings"
+                      href="/dashboard/profile"
                       className="flex items-center gap-3 px-3 py-2 rounded-lg text-white/70 hover:bg-white/5 hover:text-white transition-colors"
                     >
                       <User className="w-4 h-4" />
                       <span className="text-sm">Profile</span>
-                    </Link>
-                    <Link
-                      href="/dashboard/settings"
-                      className="flex items-center gap-3 px-3 py-2 rounded-lg text-white/70 hover:bg-white/5 hover:text-white transition-colors"
-                    >
-                      <Settings className="w-4 h-4" />
-                      <span className="text-sm">Settings</span>
                     </Link>
                     <div className="border-t border-white/10 my-2" />
                     <button

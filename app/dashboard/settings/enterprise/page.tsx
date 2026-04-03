@@ -54,9 +54,9 @@ function EnterpriseSettingsPage() {
   return (
     <div className="space-y-6 max-w-3xl">
       <Button variant="ghost" size="sm" asChild className="-ml-2 text-white/70">
-        <Link href="/dashboard/settings">
+        <Link href="/dashboard/profile">
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to settings
+          Back to profile
         </Link>
       </Button>
 

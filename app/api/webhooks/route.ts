@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase/server'
+import { isUserPlatformAdmin } from '@/lib/auth/admin'
 
 // GET all webhooks (all authenticated users can read)
 export async function GET() {
@@ -93,17 +94,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if user is admin
-    const isAdmin = user.user_metadata?.role === 'admin' ||
-                    user.app_metadata?.role === 'admin' ||
-                    user.email === 'admin@quantitva.com' ||
-                    user.email === 'pat2echo@gmail.com'
-
-    if (!isAdmin) {
-      return NextResponse.json(
-        { error: 'Forbidden - Admin access required' },
-        { status: 403 }
-      )
+    if (!(await isUserPlatformAdmin(user, supabaseAdmin))) {
+      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
     }
 
     const body = await request.json()
