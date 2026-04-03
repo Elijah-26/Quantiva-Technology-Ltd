@@ -7,93 +7,147 @@ import { motion } from "framer-motion"
 import {
   Sparkles,
   FileText,
-  Globe,
-  Building2,
   ChevronRight,
   ChevronLeft,
   Check,
   Download,
   Copy,
   RefreshCw,
+  Lock,
+  FileStack,
+  ScrollText,
+  Handshake,
+  BadgeCheck,
+  Users,
+  IdCard,
+  Scale,
+  Shield,
+  Mail,
+  Zap,
+  type LucideIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import {
+  DOCUMENT_CARDS,
+  buildLegacyApiFields,
+  getFlow,
+  isOnDemandDocId,
+  stepIsValid,
+  totalWizardSteps,
+  type OnDemandDocId,
+  type WizardField,
+} from "@/lib/on-demand-generation/wizard-flows"
 
-const documentTypes = [
-  { id: "privacy", name: "Privacy Policy", icon: "🔒", description: "GDPR, CCPA-oriented privacy policies (draft)" },
-  { id: "dpa", name: "Data Processing Agreement (DPA)", icon: "📑", description: "Processor / controller data processing terms" },
-  { id: "terms", name: "Terms of Service", icon: "📋", description: "Terms and conditions for your business" },
-  { id: "contract", name: "Contract", icon: "✍️", description: "Employment, service, and partnership contracts" },
-  { id: "compliance", name: "Compliance Doc", icon: "✅", description: "Regulatory compliance documentation" },
-  { id: "hr", name: "HR Document", icon: "👥", description: "Employee handbooks and HR policies" },
-  { id: "research_proposal", name: "Research proposal", icon: "🎓", description: "Academic / PhD proposal structure" },
-  { id: "dissertation_outline", name: "Dissertation outline", icon: "📚", description: "Thesis chapter scaffolding" },
-  { id: "research_ethics", name: "Research ethics statement", icon: "⚖️", description: "Ethics and compliance for human subjects" },
-  { id: "academic_paper", name: "Academic paper scaffold", icon: "📄", description: "IMRaD-style outline and headings" },
-  { id: "custom", name: "Custom Document", icon: "⚡", description: "AI-generated custom document" },
-]
+const ICON_MAP: Record<string, LucideIcon> = {
+  Lock,
+  FileStack,
+  ScrollText,
+  Handshake,
+  BadgeCheck,
+  Users,
+  IdCard,
+  Scale,
+  Shield,
+  Mail,
+  FileText,
+  Zap,
+}
 
-const industries = [
-  { id: "saas", name: "SaaS / Technology" },
-  { id: "ecommerce", name: "E-commerce" },
-  { id: "healthcare", name: "Healthcare" },
-  { id: "finance", name: "Finance / Fintech" },
-  { id: "education", name: "Education" },
-  { id: "consulting", name: "Consulting" },
-  { id: "retail", name: "Retail" },
-  { id: "other", name: "Other" },
-]
-
-const jurisdictions = [
-  { id: "uk", name: "United Kingdom", flag: "🇬🇧" },
-  { id: "us", name: "United States", flag: "🇺🇸" },
-  { id: "eu", name: "European Union", flag: "🇪🇺" },
-  { id: "ca", name: "Canada", flag: "🇨🇦" },
-  { id: "au", name: "Australia", flag: "🇦🇺" },
-  { id: "global", name: "Global / Multi-jurisdiction", flag: "🌍" },
-]
-
-const ACADEMIC_IDS = new Set(["research_proposal", "dissertation_outline", "research_ethics", "academic_paper"])
+function FieldEditor({
+  field,
+  value,
+  onChange,
+}: {
+  field: WizardField
+  value: string
+  onChange: (v: string) => void
+}) {
+  const id = `wiz-${field.id}`
+  if (field.type === "select" && field.options?.length) {
+    return (
+      <Select value={value || ""} onValueChange={onChange}>
+        <SelectTrigger
+          id={id}
+          className="w-full border-white/15 bg-white/5 text-white"
+        >
+          <SelectValue placeholder={`Select ${field.label}`} />
+        </SelectTrigger>
+        <SelectContent className="border-white/10 bg-navy-900 text-white">
+          {field.options.map((o) => (
+            <SelectItem key={o.value} value={o.value}>
+              {o.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    )
+  }
+  if (field.type === "textarea") {
+    return (
+      <textarea
+        id={id}
+        rows={4}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={field.placeholder}
+        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:border-indigo-500/50 resize-none"
+      />
+    )
+  }
+  return (
+    <Input
+      id={id}
+      type={field.type === "url" ? "url" : "text"}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={field.placeholder}
+      className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
+    />
+  )
+}
 
 export function GenerateWizard() {
   const searchParams = useSearchParams()
   const [step, setStep] = useState(1)
+  const [documentType, setDocumentType] = useState<OnDemandDocId | "">("")
+  const [wizardContext, setWizardContext] = useState<Record<string, string>>({})
   const [isGenerating, setIsGenerating] = useState(false)
   const [isComplete, setIsComplete] = useState(false)
   const [generatedText, setGeneratedText] = useState("")
   const [workspaceItemId, setWorkspaceItemId] = useState<string | null>(null)
   const [libraryDocumentId, setLibraryDocumentId] = useState<string | null>(null)
   const [appliedQuery, setAppliedQuery] = useState(false)
-  const [formData, setFormData] = useState({
-    documentType: "",
-    industry: "",
-    jurisdiction: "",
-    companyName: "",
-    website: "",
-    description: "",
-    additionalRequirements: "",
-  })
 
-  const totalSteps = 4
+  const totalSteps =
+    documentType && isOnDemandDocId(documentType) ? totalWizardSteps(documentType) : 1
+
+  const setField = (id: string, v: string) => {
+    setWizardContext((prev) => ({ ...prev, [id]: v }))
+  }
+
+  const selectType = (id: OnDemandDocId) => {
+    setDocumentType(id)
+    setWizardContext({})
+    setStep(1)
+  }
 
   const applySearchParams = useCallback(() => {
     const type = searchParams.get("type") || searchParams.get("documentType") || ""
-    const jurisdiction = searchParams.get("jurisdiction") || ""
-    const industry = searchParams.get("industry") || ""
-    if (!type && !jurisdiction && !industry) return
-    setFormData((prev) => ({
-      ...prev,
-      documentType: documentTypes.some((t) => t.id === type) ? type : prev.documentType,
-      jurisdiction: jurisdictions.some((j) => j.id === jurisdiction) ? jurisdiction : prev.jurisdiction,
-      industry: industries.some((i) => i.id === industry) ? industry : prev.industry,
-    }))
-    if (documentTypes.some((t) => t.id === type)) {
-      setStep(2)
-    }
+    if (!type || !isOnDemandDocId(type)) return
+    setDocumentType(type)
+    setStep(2)
   }, [searchParams])
 
   useEffect(() => {
@@ -117,23 +171,21 @@ export function GenerateWizard() {
   }
 
   const handleGenerate = async () => {
+    if (!documentType) return
     setIsGenerating(true)
     setGeneratedText("")
     setWorkspaceItemId(null)
     setLibraryDocumentId(null)
     try {
+      const legacy = buildLegacyApiFields(documentType, wizardContext)
       const res = await fetch("/api/generation-jobs", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          documentType: formData.documentType,
-          industry: formData.industry,
-          jurisdiction: formData.jurisdiction,
-          companyName: formData.companyName,
-          website: formData.website,
-          description: formData.description,
-          additionalRequirements: formData.additionalRequirements,
+          documentType,
+          wizardContext,
+          ...legacy,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -172,8 +224,9 @@ export function GenerateWizard() {
 
   const downloadFile = (ext: "md" | "txt") => {
     if (!generatedText) return
-    const typeName = documentTypes.find((t) => t.id === formData.documentType)?.name || "document"
-    const base = `${typeName}-${formData.companyName}`.replace(/[^\w\-]+/g, "_").slice(0, 80)
+    const typeName = DOCUMENT_CARDS.find((t) => t.id === documentType)?.name || "document"
+    const legacy = documentType ? buildLegacyApiFields(documentType, wizardContext) : null
+    const base = `${typeName}-${legacy?.companyName || "draft"}`.replace(/[^\w\-]+/g, "_").slice(0, 80)
     const blob = new Blob([generatedText], { type: ext === "md" ? "text/markdown" : "text/plain" })
     const a = document.createElement("a")
     a.href = URL.createObjectURL(blob)
@@ -193,19 +246,15 @@ export function GenerateWizard() {
   }
 
   const canProceed = () => {
-    switch (step) {
-      case 1:
-        return formData.documentType
-      case 2:
-        return formData.industry && formData.jurisdiction
-      case 3:
-        return formData.companyName
-      case 4:
-        return true
-      default:
-        return false
-    }
+    if (step === 1) return Boolean(documentType)
+    if (!documentType) return false
+    return stepIsValid(documentType, step - 2, wizardContext)
   }
+
+  const contentStepIndex = step - 2
+  const flow = documentType ? getFlow(documentType) : null
+  const currentStepDef =
+    documentType && flow && contentStepIndex >= 0 ? flow.steps[contentStepIndex] : null
 
   if (isComplete) {
     const isDash =
@@ -232,7 +281,7 @@ export function GenerateWizard() {
               ? "Your draft is in the document library (and workspace when available). Download or copy below. This is not legal advice—have counsel review before use."
               : workspaceItemId
                 ? "A draft was saved to your workspace. Download or copy below. This is not legal advice—have counsel review before use."
-                : "Download or copy your draft below. If saves failed, your job is still stored under AI Generate history."}
+                : "Download or copy your draft below. If saves failed, your job is still stored under on-demand generation history."}
           </p>
         </motion.div>
 
@@ -241,7 +290,7 @@ export function GenerateWizard() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-white font-semibold text-lg">
-                  {documentTypes.find((t) => t.id === formData.documentType)?.name}
+                  {DOCUMENT_CARDS.find((t) => t.id === documentType)?.name}
                 </h3>
                 <p className="text-white/50 text-sm">Generated just now</p>
               </div>
@@ -250,15 +299,27 @@ export function GenerateWizard() {
             <div className="p-4 rounded-xl bg-white/5 mb-4 max-h-64 overflow-y-auto">
               <p className="text-white/70 text-sm leading-relaxed whitespace-pre-wrap">
                 {generatedText ||
-                  `${formData.companyName} — draft will appear here after generation (stored in Supabase).`}
+                  (documentType
+                    ? `${buildLegacyApiFields(documentType, wizardContext).companyName} — draft will appear here after generation (stored in Supabase).`
+                    : "Your draft will appear here after generation.")}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button variant="gradient" className="flex-1 min-w-[120px]" type="button" onClick={() => downloadFile("md")}>
+              <Button
+                variant="gradient"
+                className="flex-1 min-w-[120px]"
+                type="button"
+                onClick={() => downloadFile("md")}
+              >
                 <Download className="w-4 h-4 mr-2" />
                 Download .md
               </Button>
-              <Button variant="glass" className="flex-1 min-w-[120px]" type="button" onClick={() => downloadFile("txt")}>
+              <Button
+                variant="glass"
+                className="flex-1 min-w-[120px]"
+                type="button"
+                onClick={() => downloadFile("txt")}
+              >
                 <Download className="w-4 h-4 mr-2" />
                 Download .txt
               </Button>
@@ -296,10 +357,10 @@ export function GenerateWizard() {
             <div className="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
             <Sparkles className="absolute inset-0 m-auto w-10 h-10 text-indigo-400" />
           </div>
-          <h2 className="text-2xl font-bold text-white">Generating your document...</h2>
+          <h2 className="text-2xl font-bold text-white">Generating your document…</h2>
           <p className="text-white/60">
-            Our AI is crafting a customized document tailored to your requirements.
-            This usually takes about 30 seconds.
+            Tailoring content to your answers. For some document types we also pull brief public web
+            snippets when configured—always verify sources. This usually takes under a minute.
           </p>
           <div className="max-w-md mx-auto">
             <div className="h-2 bg-white/10 rounded-full overflow-hidden">
@@ -316,8 +377,6 @@ export function GenerateWizard() {
     )
   }
 
-  const isAcademic = ACADEMIC_IDS.has(formData.documentType)
-
   return (
     <div className="max-w-3xl mx-auto">
       <motion.div
@@ -326,17 +385,17 @@ export function GenerateWizard() {
         transition={{ duration: 0.5 }}
         className="text-center mb-8"
       >
-        <h1 className="text-3xl font-bold text-white mb-2">AI Document Generator</h1>
+        <h1 className="text-3xl font-bold text-white mb-2">On-Demand Document</h1>
         <p className="text-white/60">
-          {isAcademic
-            ? "Structure academic drafts and outlines. Verify requirements with your institution."
-            : "Answer a few questions and let our AI create a customized compliance-oriented draft."}
+          Choose a document type and answer the questions for that category. Steps change based on what
+          you select. Academic theses and proposals live under{" "}
+          <span className="text-indigo-300">Academic Research</span>.
         </p>
       </motion.div>
 
       <p className="text-amber-200/80 text-xs text-center mb-6 px-2">
-        Outputs are AI drafts only—not legal advice. Review with qualified counsel before reliance, especially for GDPR,
-        DORA, or regulated industries.
+        Outputs are AI drafts only—not legal advice. For contracts, privacy, HR, family law, and
+        regulated industries, have qualified counsel review before use.
       </p>
 
       <motion.div
@@ -378,166 +437,80 @@ export function GenerateWizard() {
                     What type of document do you need?
                   </Label>
                   <div className="grid sm:grid-cols-2 gap-3">
-                    {documentTypes.map((type) => (
-                      <button
-                        key={type.id}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, documentType: type.id })}
-                        className={cn(
-                          "p-4 rounded-xl border text-left transition-all duration-200",
-                          formData.documentType === type.id
-                            ? "border-indigo-500 bg-indigo-500/20"
-                            : "border-white/10 bg-white/5 hover:bg-white/10"
-                        )}
-                      >
-                        <span className="text-2xl mb-2 block">{type.icon}</span>
-                        <span className="text-white font-medium block">{type.name}</span>
-                        <span className="text-white/50 text-sm">{type.description}</span>
-                      </button>
-                    ))}
+                    {DOCUMENT_CARDS.map((type) => {
+                      const Icon = ICON_MAP[type.icon] || FileText
+                      const selected = documentType === type.id
+                      return (
+                        <button
+                          key={type.id}
+                          type="button"
+                          onClick={() => selectType(type.id)}
+                          className={cn(
+                            "p-4 rounded-xl border text-left transition-all duration-200",
+                            selected
+                              ? "border-indigo-500 bg-indigo-500/20"
+                              : "border-white/10 bg-white/5 hover:bg-white/10",
+                            type.glow &&
+                              "ring-1 ring-indigo-400/40 shadow-[0_0_24px_rgba(99,102,241,0.18)]"
+                          )}
+                        >
+                          <span className="mb-2 flex text-indigo-300">
+                            <Icon className="size-7" aria-hidden />
+                          </span>
+                          <span className="text-white font-medium block">{type.name}</span>
+                          <span className="text-white/50 text-sm">{type.description}</span>
+                        </button>
+                      )
+                    })}
                   </div>
+                  {documentType === "law_divorce" && (
+                    <p className="mt-4 text-sm text-amber-200/90 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                      Family law is highly jurisdiction-specific. This tool only produces an informational
+                      outline—not filings or legal advice. Consult a licensed attorney.
+                    </p>
+                  )}
                 </div>
               </div>
             )}
 
-            {step === 2 && (
+            {step >= 2 && currentStepDef && documentType && (
               <div className="space-y-6">
                 <div>
-                  <Label className="text-white/70 mb-4 block flex items-center gap-2">
-                    <Building2 className="w-4 h-4" />
-                    {isAcademic ? "Field or programme" : "What industry are you in?"}
-                  </Label>
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    {industries.map((industry) => (
-                      <button
-                        key={industry.id}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, industry: industry.id })}
-                        className={cn(
-                          "p-3 rounded-xl border text-left transition-all duration-200",
-                          formData.industry === industry.id
-                            ? "border-indigo-500 bg-indigo-500/20"
-                            : "border-white/10 bg-white/5 hover:bg-white/10"
-                        )}
-                      >
-                        <span className="text-white text-sm">{industry.name}</span>
-                      </button>
+                  <h2 className="text-lg font-semibold text-white mb-1">{currentStepDef.title}</h2>
+                  {currentStepDef.description ? (
+                    <p className="text-sm text-white/55 mb-4">{currentStepDef.description}</p>
+                  ) : null}
+                  <div className="space-y-5">
+                    {currentStepDef.fields.map((field) => (
+                      <div key={field.id}>
+                        <Label
+                          htmlFor={`wiz-${field.id}`}
+                          className="text-white/70 mb-2 block text-sm"
+                        >
+                          {field.label}
+                          {field.required ? <span className="text-rose-400"> *</span> : null}
+                        </Label>
+                        <FieldEditor
+                          field={field}
+                          value={wizardContext[field.id] || ""}
+                          onChange={(v) => setField(field.id, v)}
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>
 
-                <div>
-                  <Label className="text-white/70 mb-4 block flex items-center gap-2">
-                    <Globe className="w-4 h-4" />
-                    {isAcademic ? "Regulatory or ethics context" : "Which jurisdiction applies?"}
-                  </Label>
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    {jurisdictions.map((jurisdiction) => (
-                      <button
-                        key={jurisdiction.id}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, jurisdiction: jurisdiction.id })}
-                        className={cn(
-                          "p-3 rounded-xl border text-left transition-all duration-200 flex items-center gap-3",
-                          formData.jurisdiction === jurisdiction.id
-                            ? "border-indigo-500 bg-indigo-500/20"
-                            : "border-white/10 bg-white/5 hover:bg-white/10"
-                        )}
-                      >
-                        <span className="text-xl">{jurisdiction.flag}</span>
-                        <span className="text-white text-sm">{jurisdiction.name}</span>
-                      </button>
-                    ))}
+                {step === totalSteps && (
+                  <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/30">
+                    <h4 className="text-white font-medium mb-2">Ready to generate</h4>
+                    <p className="text-white/60 text-sm">
+                      We will draft your{" "}
+                      {DOCUMENT_CARDS.find((t) => t.id === documentType)?.name.toLowerCase()} using the
+                      answers above. For supported types, we may add short public web excerpts to the
+                      prompt—verify everything important independently.
+                    </p>
                   </div>
-                </div>
-              </div>
-            )}
-
-            {step === 3 && (
-              <div className="space-y-6">
-                <div>
-                  <Label htmlFor="companyName" className="text-white/70 mb-2 block">
-                    {isAcademic ? "Institution or project name" : "Company Name"}
-                  </Label>
-                  <Input
-                    id="companyName"
-                    type="text"
-                    placeholder={isAcademic ? "University of … / Project title" : "Acme Inc."}
-                    value={formData.companyName}
-                    onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                    className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="website" className="text-white/70 mb-2 block">
-                    {isAcademic ? "Lab or project URL (optional)" : "Website (optional)"}
-                  </Label>
-                  <Input
-                    id="website"
-                    type="url"
-                    placeholder="https://example.com"
-                    value={formData.website}
-                    onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                    className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="description" className="text-white/70 mb-2 block">
-                    {isAcademic ? "Research topic summary" : "Briefly describe your business (optional)"}
-                  </Label>
-                  <textarea
-                    id="description"
-                    rows={3}
-                    placeholder={
-                      isAcademic
-                        ? "Research question, methods, population…"
-                        : "We provide cloud-based project management software for small businesses..."
-                    }
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:border-indigo-500/50 resize-none"
-                  />
-                </div>
-              </div>
-            )}
-
-            {step === 4 && (
-              <div className="space-y-6">
-                <div>
-                  <Label htmlFor="requirements" className="text-white/70 mb-2 block">
-                    {isAcademic
-                      ? "Supervisor or committee requirements (optional)"
-                      : "Any specific requirements? (optional)"}
-                  </Label>
-                  <textarea
-                    id="requirements"
-                    rows={4}
-                    placeholder="e.g., Include specific clauses, mention particular services, comply with specific regulations..."
-                    value={formData.additionalRequirements}
-                    onChange={(e) => setFormData({ ...formData, additionalRequirements: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:border-indigo-500/50 resize-none"
-                  />
-                </div>
-
-                <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/30">
-                  <h4 className="text-white font-medium mb-2">Ready to generate!</h4>
-                  <p className="text-white/60 text-sm">
-                    Our AI will create a structured draft for{" "}
-                    {documentTypes.find((t) => t.id === formData.documentType)?.name.toLowerCase()} for{" "}
-                    {formData.companyName}
-                    {!isAcademic && (
-                      <>
-                        {" "}
-                        based on your inputs, tailored for{" "}
-                        {industries.find((i) => i.id === formData.industry)?.name.toLowerCase()} and{" "}
-                        {jurisdictions.find((j) => j.id === formData.jurisdiction)?.name} context.
-                      </>
-                    )}
-                    {isAcademic && "."}
-                  </p>
-                </div>
+                )}
               </div>
             )}
 
@@ -550,7 +523,7 @@ export function GenerateWizard() {
                 {step === totalSteps ? (
                   <>
                     <Sparkles className="w-4 h-4 mr-2" />
-                    Generate Document
+                    Generate document
                   </>
                 ) : (
                   <>

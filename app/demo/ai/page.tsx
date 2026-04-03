@@ -351,7 +351,7 @@ function HowItWorksSection() {
     },
     {
       number: "03",
-      title: "Generate Documents",
+      title: "On-Demand Documents",
       description: "Our AI generates customized documents tailored to your specific needs. Edit, download, and deploy in minutes.",
       icon: Zap,
     },

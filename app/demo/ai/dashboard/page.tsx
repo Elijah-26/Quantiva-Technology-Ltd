@@ -21,7 +21,7 @@ import { Spinner } from "@/components/ui/spinner"
 import type { DashboardSummaryResponse } from "@/lib/dashboard-summary"
 
 const quickActions = [
-  { label: "Generate Document", icon: Sparkles, href: "/dashboard/generate", color: "from-indigo-500 to-indigo-600" },
+  { label: "On-Demand Document", icon: Sparkles, href: "/dashboard/generate", color: "from-indigo-500 to-indigo-600" },
   { label: "Browse Templates", icon: FileText, href: "/dashboard/documents", color: "from-emerald-500 to-emerald-600" },
   { label: "Academic Research", icon: GraduationCap, href: "/dashboard/new-research", color: "from-violet-500 to-violet-600" },
   { label: "View Workspace", icon: FolderOpen, href: "/dashboard/workspace", color: "from-amber-500 to-amber-600" },
@@ -180,8 +180,8 @@ export default function DashboardPage() {
               tag: "Sam",
             },
             {
-              label: "Research proposal",
-              href: `${generateBase}?type=research_proposal&jurisdiction=uk&industry=education`,
+              label: "Resume draft",
+              href: `${generateBase}?type=resume`,
               tag: "Alex",
             },
           ].map((s) => (

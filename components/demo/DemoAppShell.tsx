@@ -59,7 +59,7 @@ const NAV_GROUPS: NavGroup[] = [
     title: 'User app',
     items: [
       { href: '/demo/ai/dashboard/documents', label: 'Documents', icon: FileText },
-      { href: '/demo/ai/dashboard/generate', label: 'AI Generate', icon: Sparkles },
+      { href: '/demo/ai/dashboard/generate', label: 'On-Demand Document', icon: Sparkles },
       { href: '/demo/ai/dashboard/workspace', label: 'Workspace', icon: FolderOpen },
       { href: '/demo/ai/dashboard/billing', label: 'Billing', icon: CreditCard },
       { href: '/demo/ai/dashboard/settings', label: 'Settings', icon: Settings },

@@ -6,52 +6,78 @@ import { getUserPlanAndLimits } from '@/lib/plan-helper'
 import { isPlatformAdmin } from '@/lib/auth/admin'
 import { recordAuditEvent } from '@/lib/audit'
 import { insertGeneratedLibraryRow, previewFromBody } from '@/lib/library-document-generation'
+import {
+  isOnDemandDocId,
+  sanitizeWizardContext,
+  type OnDemandDocId,
+} from '@/lib/on-demand-generation/wizard-flows'
+import { systemPromptForDocumentType, userPromptForGeneration } from '@/lib/on-demand-generation/prompts'
+import { getOptionalWebContextForGeneration } from '@/lib/on-demand-generation/research-context'
 
-const WIZARD_DOC_LABELS: Record<string, string> = {
+export const WIZARD_DOC_LABELS: Record<string, string> = {
   privacy: 'Privacy Policy',
   dpa: 'Data Processing Agreement (DPA)',
   terms: 'Terms of Service',
   contract: 'Contract',
   compliance: 'Compliance Doc',
   hr: 'HR Document',
-  research_proposal: 'Research proposal',
-  dissertation_outline: 'Dissertation outline',
-  research_ethics: 'Research ethics statement',
-  academic_paper: 'Academic paper scaffold',
+  resume: 'Resume / CV',
+  law_divorce: 'Family law — divorce (informational)',
+  nda: 'Non-Disclosure Agreement (NDA)',
+  cover_letter: 'Cover letter',
+  memorandum: 'Internal memorandum',
   custom: 'Custom Document',
 }
 
-const ACADEMIC_DOC_TYPES = new Set([
-  'research_proposal',
-  'dissertation_outline',
-  'research_ethics',
-  'academic_paper',
-])
+function effectiveWizardContext(
+  docId: OnDemandDocId,
+  sanitized: Record<string, string>,
+  legacy: {
+    industry: string
+    jurisdiction: string
+    companyName: string
+    website: string
+    description: string
+    additionalRequirements: string
+  }
+): Record<string, string> {
+  if (Object.keys(sanitized).length > 0) return sanitized
+  return {
+    industry: legacy.industry,
+    jurisdiction: legacy.jurisdiction,
+    company_name: legacy.companyName,
+    website: legacy.website,
+    business_summary: legacy.description,
+    additional_requirements: legacy.additionalRequirements,
+  }
+}
 
-async function synthesizeDocument(body: {
-  documentType: string
-  industry: string
-  jurisdiction: string
-  companyName: string
-  website: string
-  description: string
-  additionalRequirements: string
+async function synthesizeDocument(input: {
+  documentType: OnDemandDocId
+  wizardContext: Record<string, string>
+  legacy: {
+    industry: string
+    jurisdiction: string
+    companyName: string
+    website: string
+    description: string
+    additionalRequirements: string
+  }
 }): Promise<{ text: string; error?: string }> {
   const key = process.env.OPENAI_API_KEY
-  const isAcademic = ACADEMIC_DOC_TYPES.has(body.documentType)
+  const sanitized = sanitizeWizardContext(input.documentType, input.wizardContext)
+  const ctx = effectiveWizardContext(input.documentType, sanitized, input.legacy)
+
   if (!key) {
+    const preview = JSON.stringify(ctx, null, 2).slice(0, 2000)
     return {
-      text: `[Draft — add OPENAI_API_KEY for live AI generation]\n\n${body.companyName}\n${body.website}\n\n${body.description}\n\n${body.additionalRequirements || ''}\n\nDocument type: ${body.documentType} · Field/context: ${body.industry} · Jurisdiction: ${body.jurisdiction}`,
+      text: `[Draft — add OPENAI_API_KEY for live AI generation]\n\n${preview}`,
     }
   }
 
-  const systemContent = isAcademic
-    ? 'You help researchers structure academic writing: proposals, thesis outlines, ethics statements, and paper scaffolding. Use clear headings, bullet points, and methodology-aware language. Do not fabricate citations; use placeholder tags like [Author, Year] where needed.'
-    : 'You draft professional legal/compliance-oriented document sections. Use clear headings and bullet points where helpful.'
-
-  const userContent = isAcademic
-    ? `Produce a structured outline or draft for: ${body.documentType.replace(/_/g, ' ')}.\nInstitution / project name: ${body.companyName}\nSite or lab page (optional): ${body.website}\nField or programme: ${body.industry}\nRegulatory or ethics context (jurisdiction): ${body.jurisdiction}\nTopic summary: ${body.description}\nSupervisor or committee requirements: ${body.additionalRequirements || 'None'}`
-    : `Produce a structured draft for a ${body.documentType} document.\nCompany: ${body.companyName}\nWebsite: ${body.website}\nIndustry: ${body.industry}\nJurisdiction: ${body.jurisdiction}\nRequirements: ${body.description}\nAdditional: ${body.additionalRequirements || 'None'}`
+  const web = await getOptionalWebContextForGeneration(input.documentType, ctx)
+  const systemContent = systemPromptForDocumentType(input.documentType)
+  const userContent = userPromptForGeneration(input.documentType, ctx, web)
 
   try {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -63,16 +89,10 @@ async function synthesizeDocument(body: {
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
         messages: [
-          {
-            role: 'system',
-            content: systemContent,
-          },
-          {
-            role: 'user',
-            content: userContent,
-          },
+          { role: 'system', content: systemContent },
+          { role: 'user', content: userContent },
         ],
-        max_tokens: 2500,
+        max_tokens: 3800,
       }),
     })
 
@@ -109,7 +129,10 @@ export async function GET() {
       }
     )
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -153,7 +176,10 @@ export async function POST(request: NextRequest) {
       }
     )
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -166,9 +192,27 @@ export async function POST(request: NextRequest) {
     const website = String(body.website || '')
     const description = String(body.description || '')
     const additionalRequirements = String(body.additionalRequirements || '')
+    const wizardContextRaw = body.wizardContext
 
-    if (!documentType || !industry || !jurisdiction || !companyName) {
+    if (!isOnDemandDocId(documentType)) {
+      return NextResponse.json(
+        {
+          error:
+            'Unsupported document type. Academic templates live under Academic Research; on-demand types are listed in the wizard.',
+        },
+        { status: 400 }
+      )
+    }
+
+    const docId = documentType
+    const wizardStored = sanitizeWizardContext(docId, wizardContextRaw)
+
+    if (!companyName.trim()) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
+    if (!industry || !jurisdiction) {
+      return NextResponse.json({ error: 'Missing industry or jurisdiction' }, { status: 400 })
     }
 
     if (!isPlatformAdmin(user)) {
@@ -193,34 +237,38 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const { data: job, error: insErr } = await supabase
-      .from('generation_jobs')
-      .insert({
-        user_id: user.id,
-        status: 'processing',
-        document_type: documentType,
-        industry,
-        jurisdiction,
-        company_name: companyName,
-        website,
-        description,
-        additional_requirements: additionalRequirements,
-      })
-      .select()
-      .single()
+    const insertRow: Record<string, unknown> = {
+      user_id: user.id,
+      status: 'processing',
+      document_type: documentType,
+      industry,
+      jurisdiction,
+      company_name: companyName,
+      website,
+      description,
+      additional_requirements: additionalRequirements,
+      wizard_context: wizardStored,
+    }
+
+    const { data: job, error: insErr } = await supabase.from('generation_jobs').insert(insertRow).select().single()
 
     if (insErr || !job) {
       return NextResponse.json({ error: insErr?.message || 'Insert failed' }, { status: 500 })
     }
 
-    const result = await synthesizeDocument({
-      documentType,
+    const legacy = {
       industry,
       jurisdiction,
       companyName,
       website,
       description,
       additionalRequirements,
+    }
+
+    const result = await synthesizeDocument({
+      documentType: docId,
+      wizardContext: wizardStored,
+      legacy,
     })
 
     const now = new Date().toISOString()
@@ -279,7 +327,7 @@ export async function POST(request: NextRequest) {
 
     const docLabel = WIZARD_DOC_LABELS[documentType] || documentType.replace(/_/g, ' ')
     const libraryTitle = `${docLabel} — ${companyName}`
-    const libraryDescription = `AI Generate draft for ${companyName}. Industry: ${industry}. Jurisdiction: ${jurisdiction}.`
+    const libraryDescription = `On-demand document draft for ${companyName}. Industry: ${industry}. Jurisdiction: ${jurisdiction}.`
 
     let libraryDocumentId: string | null = null
     const libInsert = await insertGeneratedLibraryRow(supabaseAdmin, {

@@ -69,7 +69,7 @@ const sections = [
     icon: LayoutGrid,
   },
   {
-    title: 'Quantiva AI — AI Generate',
+    title: 'Quantiva AI — On-Demand Document',
     href: '/demo/ai/dashboard/generate',
     icon: LayoutGrid,
   },

@@ -148,7 +148,7 @@ export default function DocumentsPage() {
           <p className="text-white/60">
             {loading
               ? "Loading templates from your workspace…"
-              : `Browse and search ${documents.length} items: library templates, AI Generate output, and your Academic Research sessions.`}
+              : `Browse and search ${documents.length} items: library templates, on-demand drafts, and your Academic Research sessions.`}
           </p>
         </div>
       </motion.div>

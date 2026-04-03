@@ -32,7 +32,7 @@ const sidebarLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/documents', label: 'Documents', icon: FileText },
   { href: '/dashboard/ai-research', label: 'Academic Research', icon: GraduationCap },
-  { href: '/dashboard/generate', label: 'AI Generate', icon: Sparkles },
+  { href: '/dashboard/generate', label: 'On-Demand Document', icon: Sparkles },
   { href: '/dashboard/workspace', label: 'My Workspace', icon: FolderOpen },
   { href: '/dashboard/compliance/activity', label: 'Activity log', icon: ScrollText },
   { href: '/dashboard/billing', label: 'Billing', icon: CreditCard },

@@ -94,7 +94,7 @@ function WorkspaceItemPage({ params }: { params: Promise<{ id: string }> }) {
           ) : (
             <p className="text-white/50 text-sm">
               This item has no stored draft text (e.g. library template only). Open the template from
-              Documents or run AI Generate for a full draft.
+              Documents or use On-Demand Document for a full draft.
             </p>
           )}
         </CardContent>
