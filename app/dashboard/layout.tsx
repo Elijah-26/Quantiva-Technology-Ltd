@@ -21,7 +21,6 @@ import {
   User,
   GraduationCap,
   Library,
-  ScrollText,
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
@@ -34,7 +33,6 @@ const sidebarLinks = [
   { href: '/dashboard/ai-research', label: 'Academic Research', icon: GraduationCap },
   { href: '/dashboard/generate', label: 'On-Demand Document', icon: Sparkles },
   { href: '/dashboard/workspace', label: 'My Workspace', icon: FolderOpen },
-  { href: '/dashboard/compliance/activity', label: 'Activity log', icon: ScrollText },
   { href: '/dashboard/billing', label: 'Billing', icon: CreditCard },
   { href: '/dashboard/research', label: 'Market Research Intelligence', icon: Library },
   { href: '/dashboard/admin', label: 'Admin', icon: Shield },
