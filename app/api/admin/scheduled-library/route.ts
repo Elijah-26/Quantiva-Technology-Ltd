@@ -52,12 +52,9 @@ export async function GET(request: NextRequest) {
   if (!auth.ok) return auth.response
 
   try {
-    const [perDay, health] = await Promise.all([
-      getScheduledLibraryDocumentsPerDay(supabaseAdmin),
-      runScheduledLibraryHealthChecks(supabaseAdmin),
-    ])
-
+    const perDay = await getScheduledLibraryDocumentsPerDay(supabaseAdmin)
     const validate = request.nextUrl.searchParams.get('validate') === '1'
+
     const body: Record<string, unknown> = {
       documentsPerDay: perDay.count,
       documentsPerDaySource: perDay.source,
@@ -68,7 +65,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (validate) {
-      body.health = health
+      body.health = await runScheduledLibraryHealthChecks(supabaseAdmin)
     }
 
     return NextResponse.json(body)

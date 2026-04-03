@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Settings, Loader2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
+import { Settings, Loader2 } from 'lucide-react'
 import {
   Card,
   CardContent,
@@ -30,22 +30,18 @@ export default function AdminSettingsPage() {
   const [documentsPerDay, setDocumentsPerDay] = useState(1)
   const [maxCap, setMaxCap] = useState(10)
   const [source, setSource] = useState<string>('default')
-  const [envFallback, setEnvFallback] = useState<string | null>(null)
-  const [health, setHealth] = useState<Health | null>(null)
   const [inputValue, setInputValue] = useState('1')
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/admin/scheduled-library?validate=1', { credentials: 'include' })
+      const res = await fetch('/api/admin/scheduled-library', { credentials: 'include' })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || 'Failed to load')
       setDocumentsPerDay(data.documentsPerDay ?? 1)
       setInputValue(String(data.documentsPerDay ?? 1))
       setMaxCap(data.maxDocumentsPerRun ?? 10)
       setSource(data.documentsPerDaySource ?? 'default')
-      setEnvFallback(data.environmentFallback ?? null)
-      setHealth(data.health ?? null)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Load failed')
     } finally {
@@ -109,8 +105,8 @@ export default function AdminSettingsPage() {
             <CardTitle className="text-white">Scheduled library generation</CardTitle>
           </div>
           <CardDescription className="text-white/50">
-            Vercel Cron calls <code className="text-indigo-300">/api/cron/scheduled-library-document</code> daily
-            (08:00 UTC). Each run creates up to the number below (random industry, document type, geography).
+            Runs once daily at 08:00 UTC. Each run creates up to the number below (random industry, document type,
+            geography).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -140,78 +136,16 @@ export default function AdminSettingsPage() {
                   </Button>
                 </div>
                 <p className="text-xs text-white/45">
-                  Effective value: <span className="text-white/70">{documentsPerDay}</span> (source:{' '}
-                  <span className="text-white/70">{source}</span>). Hard cap: {maxCap} — override max with env{' '}
-                  <code className="text-indigo-300">SCHEDULED_LIBRARY_DOCUMENTS_MAX_PER_DAY</code>.
-                  {envFallback != null && source !== 'environment' && (
+                  Current saved value: <span className="text-white/70">{documentsPerDay}</span>
+                  {source !== 'default' && (
                     <>
                       {' '}
-                      Env fallback <code className="text-indigo-300">SCHEDULED_LIBRARY_DOCUMENTS_PER_DAY</code> is{' '}
-                      {envFallback} (used when DB is empty).
+                      (<span className="text-white/70">{source}</span>)
                     </>
                   )}
+                  . Maximum per run: {maxCap}.
                 </p>
               </form>
-
-              {health && (
-                <div className="rounded-xl border border-white/10 bg-black/30 p-4 space-y-2">
-                  <p className="text-sm font-medium text-white flex items-center gap-2">
-                    {health.readyForScheduledRun ? (
-                      <CheckCircle2 className="size-4 text-emerald-400" />
-                    ) : (
-                      <AlertCircle className="size-4 text-amber-400" />
-                    )}
-                    Cron readiness (no documents created)
-                  </p>
-                  <ul className="text-sm text-white/65 space-y-1">
-                    <li className="flex items-center gap-2">
-                      {health.openaiApiKeyConfigured ? (
-                        <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
-                      ) : (
-                        <XCircle className="size-3.5 text-rose-400 shrink-0" />
-                      )}
-                      OPENAI_API_KEY set on deployment
-                    </li>
-                    <li className="flex items-center gap-2">
-                      {health.cronSecretConfigured ? (
-                        <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
-                      ) : (
-                        <XCircle className="size-3.5 text-rose-400 shrink-0" />
-                      )}
-                      CRON_SECRET set (Vercel injects Bearer token)
-                    </li>
-                    <li className="flex items-center gap-2">
-                      {health.referenceMarketCategories > 0 ? (
-                        <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
-                      ) : (
-                        <XCircle className="size-3.5 text-rose-400 shrink-0" />
-                      )}
-                      reference_options: {health.referenceMarketCategories} market categories
-                    </li>
-                    <li className="flex items-center gap-2">
-                      {health.referenceGeographies > 0 ? (
-                        <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
-                      ) : (
-                        <XCircle className="size-3.5 text-rose-400 shrink-0" />
-                      )}
-                      reference_options: {health.referenceGeographies} geographies
-                    </li>
-                    <li className="flex items-center gap-2">
-                      {health.cronAuditUserConfigured ? (
-                        <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
-                      ) : (
-                        <span className="size-3.5 text-white/30 shrink-0">○</span>
-                      )}
-                      CRON_AUDIT_USER_ID (optional — audit log actor for scheduled docs)
-                    </li>
-                  </ul>
-                  <p className="text-xs text-white/40 pt-2">
-                    Optional: call the cron URL with{' '}
-                    <code className="text-indigo-300">?validate=1</code> and the same auth as production cron to
-                    re-check without generating.
-                  </p>
-                </div>
-              )}
 
               <Button type="button" variant="outline" className="border-white/15 text-white" onClick={load}>
                 Refresh status
