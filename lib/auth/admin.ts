@@ -1,16 +1,20 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { User } from '@supabase/supabase-js'
 
+const PLATFORM_ADMIN_EMAILS = new Set(
+  ['admin@quantitva.com', 'pat2echo@gmail.com', 'kaytoba49@gmail.com'].map((e) => e.toLowerCase())
+)
+
 /** Matches admin checks used across API routes (metadata + legacy emails). */
 export function isPlatformAdmin(user: User | null | undefined): boolean {
   if (!user) return false
   const um = user.user_metadata as { role?: string } | undefined
   const am = user.app_metadata as { role?: string } | undefined
+  const email = user.email?.toLowerCase()
   return (
     um?.role === 'admin' ||
     am?.role === 'admin' ||
-    user.email === 'admin@quantitva.com' ||
-    user.email === 'pat2echo@gmail.com'
+    (email != null && PLATFORM_ADMIN_EMAILS.has(email))
   )
 }
 
