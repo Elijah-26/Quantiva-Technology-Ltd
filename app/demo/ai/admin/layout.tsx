@@ -17,6 +17,7 @@ import {
   X,
   ClipboardList,
   Library,
+  Calendar,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -26,6 +27,7 @@ const sidebarLinks = [
   { href: "/demo/ai/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/demo/ai/admin/users", label: "Users", icon: Users },
   { href: "/demo/ai/admin/documents", label: "Documents", icon: FileText },
+  { href: "/demo/ai/admin/scheduled-documents", label: "Scheduled documents", icon: Calendar },
   { href: "/demo/ai/admin/moderation", label: "Moderation", icon: ClipboardList },
   { href: "/demo/ai/admin/templates", label: "Templates", icon: Library },
   { href: "/demo/ai/admin/analytics", label: "Analytics", icon: BarChart3 },

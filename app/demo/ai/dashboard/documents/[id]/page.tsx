@@ -151,7 +151,7 @@ export default function DocumentDetailPage() {
               )}
               {source === 'scheduled' && (
                 <Badge variant="outline" className="border-violet-400/40 text-violet-300 text-xs">
-                  Scheduled
+                  Auto
                 </Badge>
               )}
             </div>

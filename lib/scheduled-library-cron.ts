@@ -7,10 +7,28 @@ import {
   previewFromBody,
 } from '@/lib/library-document-generation'
 import { recordAuditEvent } from '@/lib/audit'
+import {
+  buildLegacyApiFields,
+  INDUSTRY_OPTIONS,
+  JURISDICTION_OPTIONS,
+  type OnDemandDocId,
+} from '@/lib/on-demand-generation/wizard-flows'
+import { synthesizeOnDemandDocument, WIZARD_DOC_LABELS } from '@/lib/on-demand-generation/synthesize-server'
+import { buildSyntheticWizardContext, pickRandomOnDemandType } from '@/lib/scheduled-generation/synthetic-context'
+import { synthesizeAcademicSingleShot } from '@/lib/scheduled-generation/academic-single-shot'
+import { synthesizeHybridScheduled } from '@/lib/scheduled-generation/hybrid-shot'
+import { fetchRandomCustomSeed } from '@/lib/custom-generation-seeds'
+import { ACADEMIC_TEMPLATE_TYPES, type AcademicTemplateType } from '@/lib/academic-research/types'
 
 const CONFIG_KEY = 'scheduled_library'
 
 export type DocumentsPerDaySource = 'database' | 'environment' | 'default'
+
+export type ScheduledPipeline =
+  | 'library_taxonomy'
+  | 'on_demand_synthetic'
+  | 'academic_single_shot'
+  | 'hybrid'
 
 function parsePositiveInt(raw: string | undefined, fallback: number): number {
   if (raw == null || raw === '') return fallback
@@ -119,19 +137,68 @@ export async function runScheduledLibraryHealthChecks(admin: SupabaseClient): Pr
   }
 }
 
-function pickRandom<T>(arr: T[]): T | undefined {
+function pickRandom<T>(arr: readonly T[]): T | undefined {
   if (!arr.length) return undefined
   return arr[Math.floor(Math.random() * arr.length)]
+}
+
+function pickPipeline(): ScheduledPipeline {
+  const r = Math.random() * 100
+  if (r < 35) return 'library_taxonomy'
+  if (r < 75) return 'on_demand_synthetic'
+  if (r < 93) return 'academic_single_shot'
+  return 'hybrid'
+}
+
+function industryLabel(value: string): string {
+  return INDUSTRY_OPTIONS.find((o) => o.value === value)?.label || value
+}
+
+function jurisdictionLabel(value: string): string {
+  return JURISDICTION_OPTIONS.find((o) => o.value === value)?.label || value
+}
+
+function baseMetadata(
+  pipeline: ScheduledPipeline,
+  dateSuffix: string,
+  indexInBatch: number
+): Record<string, unknown> {
+  return {
+    pipeline,
+    runBatchDate: dateSuffix,
+    indexInBatch,
+    model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+  }
 }
 
 export type OneScheduledResult =
   | { ok: true; id: string; title: string; marketCategory: string; documentType: string; geography: string }
   | { ok: false; error: string }
 
-/** Generate and insert one scheduled library document (random category / type / geography). */
+/** Generate and insert one scheduled library document using a weighted mix of pipelines. */
 export async function runOneScheduledLibraryDocument(
   admin: SupabaseClient,
-  dateSuffix: string
+  dateSuffix: string,
+  indexInBatch = 0
+): Promise<OneScheduledResult> {
+  const pipeline = pickPipeline()
+
+  if (pipeline === 'library_taxonomy') {
+    return runLibraryTaxonomyPipeline(admin, dateSuffix, indexInBatch)
+  }
+  if (pipeline === 'on_demand_synthetic') {
+    return runOnDemandSyntheticPipeline(admin, dateSuffix, indexInBatch)
+  }
+  if (pipeline === 'academic_single_shot') {
+    return runAcademicSingleShotPipeline(admin, dateSuffix, indexInBatch)
+  }
+  return runHybridPipeline(admin, dateSuffix, indexInBatch)
+}
+
+async function runLibraryTaxonomyPipeline(
+  admin: SupabaseClient,
+  dateSuffix: string,
+  indexInBatch: number
 ): Promise<OneScheduledResult> {
   const { data: refRows, error: refErr } = await admin
     .from('reference_options')
@@ -171,6 +238,14 @@ export async function runOneScheduledLibraryDocument(
 
   const title = buildLibraryDocumentTitle(genInput, dateSuffix)
   const preview = previewFromBody(text)
+  const generationMetadata = {
+    ...baseMetadata('library_taxonomy', dateSuffix, indexInBatch),
+    libraryCategory: cat.value,
+    libraryCategoryLabel: cat.label,
+    libraryDocType: docType.id,
+    geography: geo.value,
+    geographyLabel: geo.label,
+  }
 
   const inserted = await insertGeneratedLibraryRow(admin, {
     title,
@@ -180,26 +255,19 @@ export async function runOneScheduledLibraryDocument(
     geographyValue: geo.value,
     source: 'scheduled',
     createdByUserId: null,
+    generationMetadata,
   })
 
   if ('error' in inserted) {
     return { ok: false, error: inserted.error }
   }
 
-  const auditActor = process.env.CRON_AUDIT_USER_ID
-  if (auditActor) {
-    await recordAuditEvent(admin, {
-      actorUserId: auditActor,
-      action: 'library.document_generated_scheduled',
-      entityType: 'library_document',
-      entityId: inserted.id,
-      metadata: {
-        marketCategory: cat.value,
-        documentType: docType.id,
-        geography: geo.value,
-      },
-    })
-  }
+  await auditScheduled(admin, inserted.id, {
+    marketCategory: cat.value,
+    documentType: docType.id,
+    geography: geo.value,
+    pipeline: 'library_taxonomy',
+  })
 
   return {
     ok: true,
@@ -209,4 +277,219 @@ export async function runOneScheduledLibraryDocument(
     documentType: docType.id,
     geography: geo.value,
   }
+}
+
+async function runOnDemandSyntheticPipeline(
+  admin: SupabaseClient,
+  dateSuffix: string,
+  indexInBatch: number
+): Promise<OneScheduledResult> {
+  const useSeed = Math.random() < 0.45
+  const seedRow = useSeed ? await fetchRandomCustomSeed(admin) : null
+  const seed = seedRow?.wizard_context || null
+
+  let docId: OnDemandDocId = pickRandomOnDemandType()
+  if (docId === 'custom' && !seed) {
+    docId = 'privacy'
+  }
+
+  const wizardContext = buildSyntheticWizardContext(docId, { seed })
+  const legacy = buildLegacyApiFields(docId, wizardContext)
+
+  const result = await synthesizeOnDemandDocument(
+    { documentType: docId, wizardContext, legacy },
+    { skipWebResearch: true }
+  )
+
+  if (result.error || !result.text) {
+    return { ok: false, error: result.error || 'On-demand synthetic generation failed' }
+  }
+
+  const docLabel = WIZARD_DOC_LABELS[docId] || docId
+  const title = `${docLabel} — ${legacy.companyName} (${dateSuffix})`
+  const preview = previewFromBody(result.text)
+  const generationMetadata = {
+    ...baseMetadata('on_demand_synthetic', dateSuffix, indexInBatch),
+    onDemandType: docId,
+    wizardContext,
+    legacyCompanyName: legacy.companyName,
+    customSeedId: seedRow?.id ?? null,
+  }
+
+  const inserted = await insertGeneratedLibraryRow(admin, {
+    title,
+    fullContent: result.text,
+    preview,
+    marketCategoryValue: docId,
+    geographyValue: legacy.jurisdiction,
+    source: 'scheduled',
+    createdByUserId: null,
+    description: `Scheduled synthetic on-demand–style draft (${docId}).`,
+    generationMetadata,
+  })
+
+  if ('error' in inserted) {
+    return { ok: false, error: inserted.error }
+  }
+
+  await auditScheduled(admin, inserted.id, {
+    documentType: docId,
+    geography: legacy.jurisdiction,
+    pipeline: 'on_demand_synthetic',
+    seedId: seedRow?.id,
+  })
+
+  return {
+    ok: true,
+    id: inserted.id,
+    title,
+    marketCategory: docId,
+    documentType: docId,
+    geography: legacy.jurisdiction,
+  }
+}
+
+async function runAcademicSingleShotPipeline(
+  admin: SupabaseClient,
+  dateSuffix: string,
+  indexInBatch: number
+): Promise<OneScheduledResult> {
+  const templateType = pickRandom([...ACADEMIC_TEMPLATE_TYPES]) as AcademicTemplateType
+  const seedRow = Math.random() < 0.35 ? await fetchRandomCustomSeed(admin) : null
+  const seedSnippet = seedRow ? JSON.stringify(seedRow.wizard_context, null, 2).slice(0, 1500) : undefined
+
+  const result = await synthesizeAcademicSingleShot({ templateType, seedSnippet })
+  if (result.error || !result.text) {
+    return { ok: false, error: result.error || 'Academic single-shot failed' }
+  }
+
+  const title = `Academic-style ${templateType.replace(/_/g, ' ')} — ${dateSuffix}`
+  const preview = previewFromBody(result.text)
+  const generationMetadata = {
+    ...baseMetadata('academic_single_shot', dateSuffix, indexInBatch),
+    academicTemplate: templateType,
+    customSeedId: seedRow?.id ?? null,
+  }
+
+  const inserted = await insertGeneratedLibraryRow(admin, {
+    title,
+    fullContent: result.text,
+    preview,
+    marketCategoryValue: `academic:${templateType}`,
+    geographyValue: 'global',
+    source: 'scheduled',
+    createdByUserId: null,
+    description: `Scheduled single-shot academic-style draft (${templateType}).`,
+    generationMetadata,
+  })
+
+  if ('error' in inserted) {
+    return { ok: false, error: inserted.error }
+  }
+
+  await auditScheduled(admin, inserted.id, {
+    documentType: templateType,
+    geography: 'global',
+    pipeline: 'academic_single_shot',
+    seedId: seedRow?.id,
+  })
+
+  return {
+    ok: true,
+    id: inserted.id,
+    title,
+    marketCategory: `academic:${templateType}`,
+    documentType: templateType,
+    geography: 'global',
+  }
+}
+
+async function runHybridPipeline(
+  admin: SupabaseClient,
+  dateSuffix: string,
+  indexInBatch: number
+): Promise<OneScheduledResult> {
+  const onDemandLabel = pickRandom([
+    WIZARD_DOC_LABELS.privacy,
+    WIZARD_DOC_LABELS.terms,
+    WIZARD_DOC_LABELS.hr,
+    WIZARD_DOC_LABELS.compliance,
+    WIZARD_DOC_LABELS.custom,
+  ])!
+  const templateType = pickRandom([...ACADEMIC_TEMPLATE_TYPES]) as AcademicTemplateType
+  const industry = pickRandom(INDUSTRY_OPTIONS)!.value
+  const jurisdiction = pickRandom(JURISDICTION_OPTIONS)!.value
+  const seedRow = Math.random() < 0.4 ? await fetchRandomCustomSeed(admin) : null
+  const seedSnippet = seedRow ? JSON.stringify(seedRow.wizard_context, null, 2).slice(0, 2000) : undefined
+
+  const result = await synthesizeHybridScheduled({
+    onDemandLabel,
+    academicTemplate: templateType,
+    industry: industryLabel(industry),
+    jurisdictionLabel: jurisdictionLabel(jurisdiction),
+    seedSnippet,
+  })
+
+  if (result.error || !result.text) {
+    return { ok: false, error: result.error || 'Hybrid generation failed' }
+  }
+
+  const title = `Hybrid ${onDemandLabel.slice(0, 40)} / ${templateType} — ${dateSuffix}`
+  const preview = previewFromBody(result.text)
+  const generationMetadata = {
+    ...baseMetadata('hybrid', dateSuffix, indexInBatch),
+    hybridOnDemandLabel: onDemandLabel,
+    academicTemplate: templateType,
+    industry,
+    jurisdiction,
+    customSeedId: seedRow?.id ?? null,
+  }
+
+  const inserted = await insertGeneratedLibraryRow(admin, {
+    title,
+    fullContent: result.text,
+    preview,
+    marketCategoryValue: 'hybrid',
+    geographyValue: jurisdiction,
+    source: 'scheduled',
+    createdByUserId: null,
+    description: `Scheduled hybrid draft combining ${onDemandLabel} themes with ${templateType} structure.`,
+    generationMetadata,
+  })
+
+  if ('error' in inserted) {
+    return { ok: false, error: inserted.error }
+  }
+
+  await auditScheduled(admin, inserted.id, {
+    documentType: 'hybrid',
+    geography: jurisdiction,
+    pipeline: 'hybrid',
+    seedId: seedRow?.id,
+  })
+
+  return {
+    ok: true,
+    id: inserted.id,
+    title,
+    marketCategory: 'hybrid',
+    documentType: 'hybrid',
+    geography: jurisdiction,
+  }
+}
+
+async function auditScheduled(
+  admin: SupabaseClient,
+  entityId: string,
+  metadata: Record<string, unknown>
+) {
+  const auditActor = process.env.CRON_AUDIT_USER_ID
+  if (!auditActor) return
+  await recordAuditEvent(admin, {
+    actorUserId: auditActor,
+    action: 'library.document_generated_scheduled',
+    entityType: 'library_document',
+    entityId,
+    metadata,
+  })
 }

@@ -62,7 +62,7 @@ async function runScheduled(request: NextRequest) {
     const errors: Array<{ index: number; error: string }> = []
 
     for (let i = 0; i < count; i++) {
-      const result = await runOneScheduledLibraryDocument(supabaseAdmin, dateSuffix)
+      const result = await runOneScheduledLibraryDocument(supabaseAdmin, dateSuffix, i)
       if (result.ok) {
         created.push({
           id: result.id,

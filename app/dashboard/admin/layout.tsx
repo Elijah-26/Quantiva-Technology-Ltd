@@ -16,6 +16,7 @@ import {
   ClipboardList,
   Library,
   ArrowLeft,
+  Calendar,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -23,6 +24,7 @@ const sidebarLinks = [
   { href: '/dashboard/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/admin/users', label: 'Users', icon: Users },
   { href: '/dashboard/admin/documents', label: 'Documents', icon: FileText },
+  { href: '/dashboard/admin/scheduled-documents', label: 'Scheduled documents', icon: Calendar },
   { href: '/dashboard/admin/moderation', label: 'Moderation', icon: ClipboardList },
   { href: '/dashboard/admin/templates', label: 'Templates', icon: Library },
   { href: '/dashboard/admin/analytics', label: 'Analytics', icon: BarChart3 },

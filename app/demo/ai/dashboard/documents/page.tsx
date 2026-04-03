@@ -75,6 +75,10 @@ export default function DocumentsPage() {
   const [showFilters, setShowFilters] = useState(false)
   const [selectedJurisdictions, setSelectedJurisdictions] = useState<string[]>([])
   const [selectedAccessLevel, setSelectedAccessLevel] = useState("all")
+  /** Filter library rows by how they were created (curated / scheduled auto / user on-demand). */
+  const [selectedSource, setSelectedSource] = useState<
+    "all" | "curated" | "scheduled" | "on_demand"
+  >("all")
 
   useEffect(() => {
     let cancelled = false
@@ -132,7 +136,22 @@ export default function DocumentsPage() {
       selectedJurisdictions.length === 0 || selectedJurisdictions.includes(doc.jurisdiction)
     const matchesAccessLevel =
       selectedAccessLevel === "all" || doc.accessLevel === selectedAccessLevel
-    return matchesCategory && matchesSearch && matchesJurisdiction && matchesAccessLevel
+    const src =
+      doc.documentKind === "academic"
+        ? "academic_research"
+        : doc.source ?? "curated"
+    const matchesSource =
+      selectedSource === "all" ||
+      (selectedSource === "curated" && src === "curated") ||
+      (selectedSource === "scheduled" && src === "scheduled") ||
+      (selectedSource === "on_demand" && src === "on_demand")
+    return (
+      matchesCategory &&
+      matchesSearch &&
+      matchesJurisdiction &&
+      matchesAccessLevel &&
+      matchesSource
+    )
   })
 
   return (
@@ -186,9 +205,13 @@ export default function DocumentsPage() {
           >
             <Filter className="w-4 h-4 mr-2" />
             Filters
-            {(selectedJurisdictions.length > 0 || selectedAccessLevel !== "all") && (
+            {(selectedJurisdictions.length > 0 ||
+              selectedAccessLevel !== "all" ||
+              selectedSource !== "all") && (
               <span className="ml-2 w-5 h-5 rounded-full bg-indigo-500 text-xs flex items-center justify-center">
-                {selectedJurisdictions.length + (selectedAccessLevel !== "all" ? 1 : 0)}
+                {selectedJurisdictions.length +
+                  (selectedAccessLevel !== "all" ? 1 : 0) +
+                  (selectedSource !== "all" ? 1 : 0)}
               </span>
             )}
           </Button>
@@ -229,6 +252,7 @@ export default function DocumentsPage() {
               onClick={() => {
                 setSelectedJurisdictions([])
                 setSelectedAccessLevel("all")
+                setSelectedSource("all")
               }}
               className="text-sm text-indigo-400 hover:text-indigo-300"
             >
@@ -275,11 +299,43 @@ export default function DocumentsPage() {
               </div>
             </div>
           </div>
+          <div>
+            <h4 className="text-white/60 text-sm mb-2">Origin</h4>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  { id: "all" as const, name: "All origins" },
+                  { id: "curated" as const, name: "Curated library" },
+                  { id: "scheduled" as const, name: "Auto (scheduled cron)" },
+                  { id: "on_demand" as const, name: "My on-demand drafts" },
+                ] as const
+              ).map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setSelectedSource(opt.id)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-sm transition-colors",
+                    selectedSource === opt.id
+                      ? "bg-violet-500/20 text-violet-300 border border-violet-500/50"
+                      : "bg-white/5 text-white/60 hover:bg-white/10"
+                  )}
+                >
+                  {opt.name}
+                </button>
+              ))}
+            </div>
+            <p className="text-white/35 text-xs mt-2">
+              Academic Research sessions appear when &quot;All origins&quot; is selected.
+            </p>
+          </div>
         </motion.div>
       )}
 
       {/* Active Filters */}
-      {(selectedJurisdictions.length > 0 || selectedAccessLevel !== "all") && (
+      {(selectedJurisdictions.length > 0 ||
+        selectedAccessLevel !== "all" ||
+        selectedSource !== "all") && (
         <div className="flex flex-wrap gap-2">
           {selectedJurisdictions.map((j) => (
             <span
@@ -296,6 +352,18 @@ export default function DocumentsPage() {
             <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-400 text-sm">
               {accessLevels.find((l) => l.id === selectedAccessLevel)?.name}
               <button onClick={() => setSelectedAccessLevel("all")}>
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+          {selectedSource !== "all" && (
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-violet-500/20 text-violet-300 text-sm">
+              {selectedSource === "curated"
+                ? "Curated library"
+                : selectedSource === "scheduled"
+                  ? "Auto (cron)"
+                  : "On-demand drafts"}
+              <button type="button" onClick={() => setSelectedSource("all")}>
                 <X className="w-3 h-3" />
               </button>
             </span>
@@ -393,7 +461,7 @@ export default function DocumentsPage() {
                     )}
                     {doc.source === "scheduled" && (
                       <Badge variant="outline" className="text-xs border-violet-400/40 text-violet-300">
-                        Scheduled
+                        Auto
                       </Badge>
                     )}
                   </div>
@@ -463,7 +531,7 @@ export default function DocumentsPage() {
                       )}
                       {doc.source === "scheduled" && (
                         <Badge variant="outline" className="text-xs border-violet-400/40 text-violet-300">
-                          Scheduled
+                          Auto
                         </Badge>
                       )}
                       <span className="text-white/40 text-xs">

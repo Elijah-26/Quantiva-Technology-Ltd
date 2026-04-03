@@ -90,6 +90,8 @@ export async function insertGeneratedLibraryRow(
     /** When set, monthly quota counts the job only (not this row as extra on_demand). */
     generationJobId?: string | null
     description?: string
+    /** Cron / provenance (pipeline, wizard snapshot, etc.) */
+    generationMetadata?: Record<string, unknown> | null
   }
 ): Promise<{ id: string } | { error: string }> {
   const wc = wordCount(params.fullContent)
@@ -118,6 +120,9 @@ export async function insertGeneratedLibraryRow(
   }
   if (params.generationJobId) {
     row.generation_job_id = params.generationJobId
+  }
+  if (params.generationMetadata && Object.keys(params.generationMetadata).length > 0) {
+    row.generation_metadata = params.generationMetadata
   }
   const { data, error } = await admin.from('library_documents').insert(row)
     .select('id')
