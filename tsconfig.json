@@ -39,6 +39,7 @@
   "exclude": [
     "node_modules",
     "app/updated_ui",
+    "app/_update_ui_version2",
     "functionality_update"
   ]
 }

@@ -1,0 +1,111 @@
+/* Homepage marketing (ported from update_ui_version2) — scoped to .home-v2 only */
+
+.home-v2 {
+  --hv2-primary: #5b4cdb;
+  --hv2-primary-hover: #4a3ec7;
+  --hv2-bg-card: rgba(17, 17, 24, 0.8);
+  --hv2-border: rgba(255, 255, 255, 0.1);
+  --hv2-border-hover: rgba(91, 76, 219, 0.3);
+}
+
+.home-v2 .section {
+  padding: 5rem 0;
+  position: relative;
+}
+
+@media (min-width: 768px) {
+  .home-v2 .section {
+    padding: 6rem 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .home-v2 .section {
+    padding: 8rem 0;
+  }
+}
+
+.home-v2 .card {
+  background: var(--hv2-bg-card);
+  border: 1px solid var(--hv2-border);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.home-v2 .card:hover {
+  border-color: var(--hv2-border-hover);
+}
+
+.home-v2 .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+}
+
+.home-v2 .btn:active {
+  transform: scale(0.98);
+}
+
+.home-v2 .btn.btn-primary {
+  background: var(--hv2-primary);
+  color: white;
+}
+
+.home-v2 .btn.btn-primary:hover {
+  background: var(--hv2-primary-hover);
+}
+
+.home-v2 .btn.btn-secondary {
+  background: transparent;
+  color: white;
+  border: 1px solid var(--hv2-border);
+}
+
+.home-v2 .btn.btn-secondary:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+@keyframes home-v2-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes home-v2-pulse-glow {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.home-v2 .animate-float {
+  animation: home-v2-float 6s ease-in-out infinite;
+}
+
+.home-v2 .animate-pulse-glow {
+  animation: home-v2-pulse-glow 4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-v2 .animate-float,
+  .home-v2 .animate-pulse-glow {
+    animation: none;
+  }
+}

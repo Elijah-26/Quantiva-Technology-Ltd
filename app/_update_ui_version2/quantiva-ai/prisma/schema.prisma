@@ -1,0 +1,929 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// USERS & AUTHENTICATION
+// ============================================================================
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  emailVerified     Boolean   @default(false)
+  emailVerifiedAt   DateTime?
+  passwordHash      String?
+  authProvider      String?   // 'email', 'google', 'microsoft'
+  authProviderId    String?
+  mfaEnabled        Boolean   @default(false)
+  mfaSecret         String?
+  mfaBackupCodes    String[]
+  status            String    @default("active") // 'active', 'suspended', 'deleted'
+  role              String    @default("user")   // 'user', 'admin', 'super_admin'
+  onboardingCompleted Boolean @default(false)
+  onboardingStep    Int       @default(0)
+  lastLoginAt       DateTime?
+  loginCount        Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  // Relations
+  profile           UserProfile?
+  businessProfile   BusinessProfile?
+  subscription      Subscription?
+  sessions          Session[]
+  generatedDocs     GeneratedDocument[]
+  savedDocs         SavedDocument[]
+  downloads         Download[]
+  notifications     Notification[]
+  searchHistory     SearchHistory[]
+  activityLogs      UserActivityLog[]
+  researchPapers    ResearchPaper[]
+  extensionSessions ExtensionSession[]
+  extensionCaptures ExtensionCapture[]
+
+  @@index([email])
+  @@index([status])
+  @@index([role])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model UserProfile {
+  id                    String   @id @default(uuid())
+  userId                String   @unique
+  firstName             String?
+  lastName              String?
+  displayName           String?
+  phone                 String?
+  phoneVerified         Boolean  @default(false)
+  avatarUrl             String?
+  jobTitle              String?
+  department            String?
+  timezone              String   @default("UTC")
+  language              String   @default("en")
+  notificationPreferences Json   @default("{}")
+  marketingConsent      Boolean  @default(false)
+  marketingConsentAt    DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_profiles")
+}
+
+model BusinessProfile {
+  id                    String   @id @default(uuid())
+  userId                String   @unique
+  companyName           String?
+  companySize           String?  // '1-10', '11-50', etc.
+  businessStage         String?  // 'startup', 'growth', etc.
+  employeeCount         Int?
+  companyWebsite        String?
+  companyDescription    String?
+  primaryIndustryId     String?
+  primarySubindustryId  String?
+  nicheSpecialization   String?
+  primaryJurisdictionId String?
+  additionalJurisdictions String[]
+  businessGoals         String[]
+  complianceFocusAreas  String[]
+  templatePreferences   String[]
+  researchInterest      Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([primaryIndustryId])
+  @@map("business_profiles")
+}
+
+model Session {
+  id            String   @id @default(uuid())
+  userId        String
+  tokenHash     String
+  expiresAt     DateTime
+  ipAddress     String?
+  userAgent     String?
+  deviceInfo    Json?
+  isValid       Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  lastActiveAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+// ============================================================================
+// INDUSTRY CLASSIFICATION
+// ============================================================================
+
+model Industry {
+  id            String   @id @default(uuid())
+  slug          String   @unique
+  name          String
+  description   String?
+  icon          String?
+  color         String?
+  sortOrder     Int      @default(0)
+  isActive      Boolean  @default(true)
+  documentCount Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  subindustries Subindustry[]
+  documents     DocumentIndustry[]
+
+  @@index([slug])
+  @@index([isActive])
+  @@map("industries")
+}
+
+model Subindustry {
+  id            String   @id @default(uuid())
+  industryId    String
+  slug          String
+  name          String
+  description   String?
+  sortOrder     Int      @default(0)
+  isActive      Boolean  @default(true)
+  documentCount Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  industry Industry @relation(fields: [industryId], references: [id], onDelete: Cascade)
+  niches   Niche[]
+  documents DocumentSubindustry[]
+
+  @@unique([industryId, slug])
+  @@index([industryId])
+  @@index([slug])
+  @@map("subindustries")
+}
+
+model Niche {
+  id             String   @id @default(uuid())
+  subindustryId  String
+  name           String
+  description    String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  subindustry Subindustry @relation(fields: [subindustryId], references: [id], onDelete: Cascade)
+
+  @@index([subindustryId])
+  @@map("niches")
+}
+
+model Jurisdiction {
+  id              String   @id @default(uuid())
+  code            String   @unique // 'UK', 'US', etc.
+  name            String
+  countryCode     String?  // ISO 3166-1 alpha-2
+  region          String?
+  description     String?
+  regulatoryBodies String[]
+  isActive        Boolean  @default(true)
+  documentCount   Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  documents DocumentJurisdiction[]
+
+  @@index([code])
+  @@index([countryCode])
+  @@map("jurisdictions")
+}
+
+// ============================================================================
+// DOCUMENT SYSTEM
+// ============================================================================
+
+model Document {
+  id                String   @id @default(uuid())
+  slug              String   @unique
+  title             String
+  description       String?
+  shortDescription  String?
+  content           String?
+  documentType      String
+  category          String?
+  
+  // Access control
+  accessLevel       String   @default("free") // 'free', 'pro', 'business', 'premium'
+  isPublished       Boolean  @default(false)
+  publishedAt       DateTime?
+  
+  // Versioning
+  version           Int      @default(1)
+  latestVersionId   String?
+  
+  // Source tracking
+  sourceType        String   @default("ai") // 'ai', 'manual', 'imported'
+  generatedByJobId  String?
+  
+  // Metadata
+  wordCount         Int?
+  estimatedReadTime Int?
+  complexityLevel   String?  // 'simple', 'moderate', 'complex'
+  
+  // Statistics
+  viewCount         Int      @default(0)
+  downloadCount     Int      @default(0)
+  generationCount   Int      @default(0)
+  favoriteCount     Int      @default(0)
+  
+  // Review status
+  reviewStatus      String   @default("pending") // 'pending', 'approved', 'rejected'
+  reviewedBy        String?
+  reviewedAt        DateTime?
+  reviewNotes       String?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdBy         String?
+  updatedBy         String?
+
+  // Relations
+  industries        DocumentIndustry[]
+  subindustries     DocumentSubindustry[]
+  jurisdictions     DocumentJurisdiction[]
+  tags              DocumentTag[]
+  relationships     DocumentRelationship[]
+  versions          DocumentVersion[]
+  generatedDocs     GeneratedDocument[]
+
+  @@index([slug])
+  @@index([documentType])
+  @@index([accessLevel])
+  @@index([isPublished])
+  @@index([reviewStatus])
+  @@index([createdAt])
+  @@map("documents")
+}
+
+model DocumentVersion {
+  id            String   @id @default(uuid())
+  documentId    String
+  version       Int
+  content       String
+  changeSummary String?
+  createdBy     String?
+  createdAt     DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, version])
+  @@index([documentId])
+  @@map("document_versions")
+}
+
+model DocumentIndustry {
+  id         String   @id @default(uuid())
+  documentId String
+  industryId String
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  industry Industry @relation(fields: [industryId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, industryId])
+  @@index([documentId])
+  @@index([industryId])
+  @@map("document_industries")
+}
+
+model DocumentSubindustry {
+  id             String   @id @default(uuid())
+  documentId     String
+  subindustryId  String
+  createdAt      DateTime @default(now())
+
+  document    Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  subindustry Subindustry @relation(fields: [subindustryId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, subindustryId])
+  @@index([documentId])
+  @@index([subindustryId])
+  @@map("document_subindustries")
+}
+
+model DocumentJurisdiction {
+  id             String   @id @default(uuid())
+  documentId     String
+  jurisdictionId String
+  isPrimary      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  document     Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  jurisdiction Jurisdiction @relation(fields: [jurisdictionId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, jurisdictionId])
+  @@index([documentId])
+  @@index([jurisdictionId])
+  @@map("document_jurisdictions")
+}
+
+model Tag {
+  id            String   @id @default(uuid())
+  slug          String   @unique
+  name          String
+  description   String?
+  category      String?  // 'topic', 'regulation', 'use_case'
+  color         String?
+  documentCount Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  documents DocumentTag[]
+
+  @@index([slug])
+  @@index([category])
+  @@map("tags")
+}
+
+model DocumentTag {
+  id               String   @id @default(uuid())
+  documentId       String
+  tagId            String
+  confidenceScore  Float?
+  createdAt        DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  tag      Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, tagId])
+  @@index([documentId])
+  @@index([tagId])
+  @@map("document_tags")
+}
+
+model DocumentRelationship {
+  id                 String   @id @default(uuid())
+  documentId         String
+  relatedDocumentId  String
+  relationshipType   String?  // 'related', 'prerequisite', 'extension'
+  strengthScore      Float?
+  createdAt          DateTime @default(now())
+
+  document        Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  relatedDocument Document @relation(name: "RelatedTo", fields: [relatedDocumentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, relatedDocumentId])
+  @@index([documentId])
+  @@map("document_relationships")
+}
+
+// ============================================================================
+// AI GENERATION SYSTEM
+// ============================================================================
+
+model GenerationJob {
+  id                  String   @id @default(uuid())
+  jobType             String   // 'document', 'research', 'batch'
+  status              String   @default("queued") // 'queued', 'processing', 'completed', 'failed'
+  
+  // Input parameters
+  templateDocumentId  String?
+  userId              String?
+  parameters          Json
+  
+  // Output
+  outputDocumentId    String?
+  outputContent       String?
+  
+  // Processing
+  startedAt           DateTime?
+  completedAt         DateTime?
+  failedAt            DateTime?
+  errorMessage        String?
+  retryCount          Int      @default(0)
+  
+  // AI metadata
+  modelUsed           String?
+  tokensUsed          Int?
+  costEstimate        Float?
+  
+  // Quality
+  qualityScore        Float?
+  confidenceScore     Float?
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([userId])
+  @@index([templateDocumentId])
+  @@index([createdAt])
+  @@map("generation_jobs")
+}
+
+model GeneratedDocument {
+  id                    String   @id @default(uuid())
+  userId                String
+  templateDocumentId    String
+  generationJobId       String?
+  
+  title                 String?
+  content               String
+  generationParameters  Json?
+  
+  status                String   @default("draft") // 'draft', 'saved', 'deleted'
+  
+  editCount             Int      @default(0)
+  downloadCount         Int      @default(0)
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  lastEditedAt          DateTime?
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateDocument Document          @relation(fields: [templateDocumentId], references: [id], onDelete: Cascade)
+  savedDocs        SavedDocument[]
+  downloads        Download[]
+
+  @@index([userId])
+  @@index([templateDocumentId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("generated_documents")
+}
+
+// ============================================================================
+// USER WORKSPACE
+// ============================================================================
+
+model WorkspaceFolder {
+  id            String   @id @default(uuid())
+  userId        String
+  parentId      String?
+  name          String
+  description   String?
+  color         String?
+  icon          String?
+  sortOrder     Int      @default(0)
+  documentCount Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   WorkspaceFolder?  @relation(name: "FolderHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children WorkspaceFolder[] @relation(name: "FolderHierarchy")
+  savedDocs SavedDocument[]
+
+  @@index([userId])
+  @@index([parentId])
+  @@map("workspace_folders")
+}
+
+model SavedDocument {
+  id                  String   @id @default(uuid())
+  userId              String
+  generatedDocumentId String
+  folderId            String?
+  
+  customTitle         String?
+  customTags          String[]
+  notes               String?
+  
+  isFavorite          Boolean  @default(false)
+  isArchived          Boolean  @default(false)
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generatedDocument GeneratedDocument @relation(fields: [generatedDocumentId], references: [id], onDelete: Cascade)
+  folder           WorkspaceFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([folderId])
+  @@index([isFavorite])
+  @@map("saved_documents")
+}
+
+model Download {
+  id                  String   @id @default(uuid())
+  userId              String
+  generatedDocumentId String
+  
+  format              String   // 'pdf', 'docx', 'txt', 'markdown'
+  fileSize            Int?
+  fileUrl             String?
+  
+  ipAddress           String?
+  userAgent           String?
+  
+  createdAt           DateTime @default(now())
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generatedDocument GeneratedDocument @relation(fields: [generatedDocumentId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([generatedDocumentId])
+  @@index([createdAt])
+  @@map("downloads")
+}
+
+// ============================================================================
+// SUBSCRIPTION & BILLING
+// ============================================================================
+
+model Plan {
+  id                    String   @id @default(uuid())
+  slug                  String   @unique
+  name                  String
+  description           String?
+  
+  priceMonthly          Float
+  priceAnnual           Float
+  currency              String   @default("GBP")
+  
+  features              Json
+  
+  downloadsPerMonth     Int?
+  aiGenerationsPerMonth Int?
+  documentsAccessLevel  String   @default("free")
+  storageLimitMb        Int?
+  
+  isActive              Boolean  @default(true)
+  isPublic              Boolean  @default(true)
+  sortOrder             Int      @default(0)
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  subscriptions Subscription[]
+
+  @@index([slug])
+  @@index([isActive])
+  @@map("plans")
+}
+
+model Subscription {
+  id                    String   @id @default(uuid())
+  userId                String   @unique
+  planId                String
+  
+  status                String   @default("active") // 'active', 'cancelled', 'past_due'
+  billingCycle          String   // 'monthly', 'annual'
+  
+  currentPeriodStart    DateTime
+  currentPeriodEnd      DateTime
+  trialStart            DateTime?
+  trialEnd              DateTime?
+  cancelledAt           DateTime?
+  cancellationReason    String?
+  
+  stripeSubscriptionId  String?
+  stripeCustomerId      String?
+  
+  downloadsUsedThisPeriod     Int @default(0)
+  aiGenerationsUsedThisPeriod Int @default(0)
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan     Plan      @relation(fields: [planId], references: [id], onDelete: Cascade)
+  payments Payment[]
+  invoices Invoice[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([currentPeriodEnd])
+  @@map("subscriptions")
+}
+
+model Payment {
+  id                    String   @id @default(uuid())
+  userId                String
+  subscriptionId        String?
+  
+  amount                Float
+  currency              String   @default("GBP")
+  status                String?  // 'succeeded', 'failed', 'pending', 'refunded'
+  
+  stripePaymentIntentId String?
+  stripeChargeId        String?
+  
+  description           String?
+  failureMessage        String?
+  receiptUrl            String?
+  
+  createdAt             DateTime @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  invoice      Invoice?
+
+  @@index([userId])
+  @@index([subscriptionId])
+  @@index([createdAt])
+  @@map("payments")
+}
+
+model Invoice {
+  id                String   @id @default(uuid())
+  userId            String
+  subscriptionId    String?
+  paymentId         String?  @unique
+  
+  invoiceNumber     String   @unique
+  amount            Float
+  currency          String   @default("GBP")
+  status            String?  // 'draft', 'open', 'paid', 'void'
+  
+  invoiceDate       DateTime
+  dueDate           DateTime?
+  paidAt            DateTime?
+  
+  pdfUrl            String?
+  
+  stripeInvoiceId   String?
+  
+  createdAt         DateTime @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  payment      Payment?      @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([invoiceNumber])
+  @@map("invoices")
+}
+
+// ============================================================================
+// RESEARCH MODULE
+// ============================================================================
+
+model ResearchField {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  name        String
+  description String?
+  parentId    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  parent   ResearchField?  @relation(name: "FieldHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children ResearchField[] @relation(name: "FieldHierarchy")
+  papers   ResearchPaper[]
+
+  @@index([slug])
+  @@index([parentId])
+  @@map("research_fields")
+}
+
+model ResearchTemplate {
+  id                String   @id @default(uuid())
+  documentId        String?
+  
+  name              String
+  description       String?
+  templateType      String   // 'dissertation', 'thesis', 'proposal', etc.
+  
+  applicableLevels  String[] // ['bachelor', 'master', 'phd']
+  applicableFields  String[]
+  
+  structure         Json
+  
+  accessLevel       String   @default("free")
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  document Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@index([templateType])
+  @@index([accessLevel])
+  @@map("research_templates")
+}
+
+model ResearchPaper {
+  id               String   @id @default(uuid())
+  userId           String
+  templateId       String?
+  
+  title            String?
+  abstract         String?
+  
+  fieldId          String?
+  educationLevel   String?
+  institution      String?
+  
+  content          String?
+  outline          Json?
+  
+  status           String   @default("draft") // 'draft', 'in_progress', 'completed'
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  field ResearchField? @relation(fields: [fieldId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+  @@map("research_papers")
+}
+
+// ============================================================================
+// EXTENSION SYSTEM
+// ============================================================================
+
+model ExtensionSession {
+  id               String   @id @default(uuid())
+  userId           String
+  
+  sessionTokenHash String
+  deviceName       String?
+  browser          String?
+  
+  isActive         Boolean  @default(true)
+  lastHeartbeatAt  DateTime?
+  
+  createdAt        DateTime @default(now())
+  expiresAt        DateTime
+
+  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  captures ExtensionCapture[]
+
+  @@index([userId])
+  @@index([sessionTokenHash])
+  @@map("extension_sessions")
+}
+
+model ExtensionCapture {
+  id                  String   @id @default(uuid())
+  userId              String
+  sessionId           String?
+  
+  sourceUrl           String
+  sourceTitle         String?
+  capturedContent     String?
+  contentType         String?  // 'webpage', 'article', 'regulation'
+  
+  suggestedDocuments  String[]
+  aiAnalysis          Json?
+  
+  isProcessed         Boolean  @default(false)
+  generatedDocumentId String?
+  
+  createdAt           DateTime @default(now())
+
+  user  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session ExtensionSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([createdAt])
+  @@map("extension_captures")
+}
+
+// ============================================================================
+// PLATFORM FEATURES
+// ============================================================================
+
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String
+  
+  type        String   // 'document_ready', 'template_recommended', etc.
+  title       String
+  message     String?
+  
+  actionUrl   String?
+  actionText  String?
+  
+  isRead      Boolean  @default(false)
+  readAt      DateTime?
+  
+  metadata    Json?
+  
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model SearchHistory {
+  id            String   @id @default(uuid())
+  userId        String
+  
+  query         String
+  filters       Json?
+  resultsCount  Int?
+  
+  clickedDocumentId String?
+  
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([query])
+  @@index([createdAt])
+  @@map("search_history")
+}
+
+model UserActivityLog {
+  id           String   @id @default(uuid())
+  userId       String?
+  
+  activityType String   // 'view', 'download', 'generate', 'search'
+  entityType   String?  // 'document', 'template', etc.
+  entityId     String?
+  
+  ipAddress    String?
+  userAgent    String?
+  referrer     String?
+  
+  metadata     Json?
+  
+  createdAt    DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([activityType])
+  @@index([createdAt])
+  @@map("user_activity_logs")
+}
+
+// ============================================================================
+// ADMIN SYSTEM
+// ============================================================================
+
+model AdminAction {
+  id           String   @id @default(uuid())
+  adminId      String
+  
+  actionType   String   // 'document_approve', 'user_suspend', etc.
+  entityType   String?
+  entityId     String?
+  
+  previousState Json?
+  newState      Json?
+  reason        String?
+  
+  createdAt    DateTime @default(now())
+
+  admin User @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([actionType])
+  @@index([createdAt])
+  @@map("admin_actions")
+}
+
+model SystemSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       Json
+  description String?
+  isEncrypted Boolean  @default(false)
+  updatedBy   String?
+  updatedAt   DateTime @updatedAt
+
+  @@index([key])
+  @@map("system_settings")
+}
+
+model EmailTemplate {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  name      String
+  subject   String
+  htmlBody  String
+  textBody  String?
+  variables Json?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+  @@map("email_templates")
+}

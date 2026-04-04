@@ -21,6 +21,8 @@ interface PricingSectionProps {
   compact?: boolean
   /** For scroll targets (e.g. billing payment tab → plans). */
   gridId?: string
+  /** When false, omit the marketing title block (e.g. homepage supplies its own section header). */
+  showHeading?: boolean
 }
 
 export function PricingSection({
@@ -30,13 +32,14 @@ export function PricingSection({
   isAdmin = false,
   compact = false,
   gridId,
+  showHeading = true,
 }: PricingSectionProps) {
   const showTierState =
     activePlanId !== undefined && activePlanId !== null
 
   return (
     <div className={cn('pricing-content max-w-6xl mx-auto', compact && 'max-w-6xl')}>
-      {!compact ? (
+      {!compact && showHeading ? (
         <div className="text-center mb-16">
           <h2 className="font-heading text-3xl md:text-5xl font-bold text-white mb-4">
             Simple, transparent pricing
@@ -45,7 +48,8 @@ export function PricingSection({
             Choose the plan that fits your needs. All plans include a 14-day free trial.
           </p>
         </div>
-      ) : (
+      ) : null}
+      {compact ? (
         <div className="text-center mb-10">
           <h2 className="font-heading text-2xl md:text-3xl font-bold text-white mb-2">
             Plans & pricing
@@ -58,7 +62,7 @@ export function PricingSection({
             . Paid plans include a 14-day free trial. Secure checkout via Stripe.
           </p>
         </div>
-      )}
+      ) : null}
 
       <div id={gridId} className="grid md:grid-cols-3 gap-6">
         {MARKETING_PLANS.map((plan) => {
