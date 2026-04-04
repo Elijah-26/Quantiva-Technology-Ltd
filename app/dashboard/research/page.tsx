@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { FileSearch, FileText, Calendar, Shield } from 'lucide-react'
+import { FileSearch, FileText, Calendar } from 'lucide-react'
 
 const items = [
   {
@@ -24,12 +24,6 @@ const items = [
     description: 'Manage recurring market research schedules.',
     icon: Calendar,
   },
-  {
-    href: '/dashboard/research/regulatory-guardrail',
-    title: 'Regulatory Guardrail',
-    description: 'Run compliance checks and review policy flags.',
-    icon: Shield,
-  },
 ]
 
 export default function ResearchModulePage() {
@@ -38,7 +32,7 @@ export default function ResearchModulePage() {
       <div>
         <h1 className="text-3xl font-bold text-white">Market Research Intelligence</h1>
         <p className="text-white/60">
-          On-demand and recurring research, reports, schedules, and compliance tools in one place.
+          On-demand and recurring research, reports, and schedules in one place.
         </p>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
