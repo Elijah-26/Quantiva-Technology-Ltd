@@ -1,37 +1,104 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import { Check } from 'lucide-react'
-import { MARKETING_PLANS } from '@/lib/marketing-plans'
+import { MARKETING_PLANS, type MarketingPlanKey } from '@/lib/marketing-plans'
 import { Spinner } from '@/components/ui/spinner'
+import { cn } from '@/lib/utils'
 
-interface PricingSectionProps {
-  onSelectPlan?: (planKey: string) => void
-  isLoadingPlan?: string | null
+function tierRank(id: MarketingPlanKey): number {
+  return { starter: 0, professional: 1, enterprise: 2 }[id]
 }
 
-export function PricingSection({ onSelectPlan, isLoadingPlan = null }: PricingSectionProps) {
-  return (
-    <div className="pricing-content max-w-6xl mx-auto">
-      <div className="text-center mb-16">
-        <h2 className="font-heading text-3xl md:text-5xl font-bold text-white mb-4">
-          Simple, transparent pricing
-        </h2>
-        <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-          Choose the plan that fits your needs. All plans include a 14-day free trial.
-        </p>
-      </div>
+interface PricingSectionProps {
+  onSelectPlan?: (planKey: MarketingPlanKey) => void
+  isLoadingPlan?: string | null
+  /** Logged-in user's tier (omit while loading summary). */
+  activePlanId?: MarketingPlanKey | null
+  /** Platform admin: all plan CTAs disabled. */
+  isAdmin?: boolean
+  /** Dashboard: tighter heading, same grid/cards as marketing. */
+  compact?: boolean
+  /** For scroll targets (e.g. billing payment tab → plans). */
+  gridId?: string
+}
 
-      <div className="grid md:grid-cols-3 gap-6">
+export function PricingSection({
+  onSelectPlan,
+  isLoadingPlan = null,
+  activePlanId,
+  isAdmin = false,
+  compact = false,
+  gridId,
+}: PricingSectionProps) {
+  const showTierState =
+    activePlanId !== undefined && activePlanId !== null
+
+  return (
+    <div className={cn('pricing-content max-w-6xl mx-auto', compact && 'max-w-6xl')}>
+      {!compact ? (
+        <div className="text-center mb-16">
+          <h2 className="font-heading text-3xl md:text-5xl font-bold text-white mb-4">
+            Simple, transparent pricing
+          </h2>
+          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+            Choose the plan that fits your needs. All plans include a 14-day free trial.
+          </p>
+        </div>
+      ) : (
+        <div className="text-center mb-10">
+          <h2 className="font-heading text-2xl md:text-3xl font-bold text-white mb-2">
+            Plans & pricing
+          </h2>
+          <p className="text-gray-400 text-sm md:text-base max-w-2xl mx-auto">
+            Same options as{' '}
+            <a href="/pricing" className="text-indigo-400 hover:underline">
+              quantiva.world/pricing
+            </a>
+            . Paid plans include a 14-day free trial. Secure checkout via Stripe.
+          </p>
+        </div>
+      )}
+
+      <div id={gridId} className="grid md:grid-cols-3 gap-6">
         {MARKETING_PLANS.map((plan) => {
           const isLoading = isLoadingPlan === plan.id
           const isPopular = plan.popular
+          const currentRank = showTierState && activePlanId != null ? tierRank(activePlanId) : -1
+          const planRank = tierRank(plan.id)
+          const isCurrent = showTierState && activePlanId != null && plan.id === activePlanId
+          const isLowerTier = showTierState && activePlanId != null && planRank < currentRank
+          const buttonDisabled =
+            isLoading ||
+            isAdmin ||
+            isCurrent ||
+            isLowerTier ||
+            !onSelectPlan
+
+          let buttonLabel: ReactNode = 'Get Started'
+          if (isLoading) {
+            buttonLabel = (
+              <>
+                <Spinner className="size-4 text-white" />
+                Redirecting...
+              </>
+            )
+          } else if (isAdmin) {
+            buttonLabel = 'Admin access'
+          } else if (isCurrent) {
+            buttonLabel = 'Current plan'
+          } else if (isLowerTier) {
+            buttonLabel = 'Lower tier'
+          }
 
           return (
             <div
               key={plan.id}
-              className={`pricing-card p-8 ${
-                isPopular ? 'glass-card-strong relative border-indigo-500/30' : 'glass-card'
-              }`}
+              className={cn(
+                'pricing-card p-8',
+                isPopular ? 'glass-card-strong relative border-indigo-500/30' : 'glass-card',
+                isCurrent && 'ring-2 ring-emerald-500/50 rounded-2xl'
+              )}
             >
               {isPopular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -57,20 +124,18 @@ export function PricingSection({ onSelectPlan, isLoadingPlan = null }: PricingSe
               </ul>
               <button
                 type="button"
-                className={`w-full py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
-                  isPopular ? 'btn-primary' : 'btn-secondary'
-                }`}
-                onClick={() => onSelectPlan?.(plan.id)}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Spinner className="size-4 text-white" />
-                    Redirecting...
-                  </>
-                ) : (
-                  'Get Started'
+                className={cn(
+                  'w-full py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2',
+                  isPopular ? 'btn-primary' : 'btn-secondary',
+                  buttonDisabled && !isLoading && 'opacity-60 cursor-not-allowed'
                 )}
+                onClick={() => {
+                  if (buttonDisabled || isLoading) return
+                  onSelectPlan(plan.id)
+                }}
+                disabled={buttonDisabled}
+              >
+                {buttonLabel}
               </button>
             </div>
           )

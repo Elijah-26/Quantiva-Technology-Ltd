@@ -17,7 +17,7 @@ export default function PricingPage() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  const handleSelectPlan = async (planKey: string) => {
+  const handleSelectPlan = async (planKey: MarketingPlanKey) => {
     setLoadingPlan(planKey)
 
     try {
@@ -26,7 +26,7 @@ export default function PricingPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          plan: planKey as MarketingPlanKey,
+          plan: planKey,
           successUrl: `${baseUrl}/signup?checkout=success&plan=${planKey}`,
           cancelUrl: `${baseUrl}/pricing`,
         }),

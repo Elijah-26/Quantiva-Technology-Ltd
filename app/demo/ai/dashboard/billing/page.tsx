@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
-import { CreditCard, Check, Loader2 } from "lucide-react"
+import { CreditCard, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -10,59 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import type { BillingSummaryResponse } from "@/lib/billing-summary"
-import type { SubscriptionPlan } from "@/lib/plan-limits"
-
-const plans = [
-  {
-    id: "starter",
-    name: "Starter",
-    price: 0,
-    description: "Perfect for individuals and small projects",
-    features: [
-      "5 AI generations/month",
-      "10 downloads/month",
-      "Access to free templates",
-      "Basic search",
-      "Email support",
-    ],
-    notIncluded: [
-      "API access",
-      "Team collaboration",
-      "Priority support",
-    ],
-  },
-  {
-    id: "professional",
-    name: "Professional",
-    price: 49,
-    description: "For growing businesses and teams",
-    features: [
-      "50 AI generations/month",
-      "100 downloads/month",
-      "All Pro templates",
-      "Advanced search & filters",
-      "Priority support",
-      "API access",
-      "Team collaboration",
-    ],
-    highlighted: true,
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    price: 149,
-    description: "For organizations with advanced needs",
-    features: [
-      "Unlimited AI generations",
-      "Unlimited downloads",
-      "All Business templates",
-      "Custom document requests",
-      "Dedicated account manager",
-      "SSO & advanced security",
-      "Custom integrations",
-    ],
-  },
-]
+import { PricingSection } from "@/components/pricing/PricingSection"
+import type { MarketingPlanKey } from "@/lib/marketing-plans"
 
 function usagePct(used: number, limit: number): number {
   if (limit < 0) return 0
@@ -76,11 +25,10 @@ function formatLimit(used: number, limit: number): string {
 }
 
 export default function BillingPage() {
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly")
   const [summary, setSummary] = useState<BillingSummaryResponse | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [checkoutPlan, setCheckoutPlan] = useState<SubscriptionPlan | null>(null)
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
 
   const loadSummary = useCallback(async () => {
     setLoading(true)
@@ -112,34 +60,37 @@ export default function BillingPage() {
 
   const currentPlanId = summary?.planId ?? null
 
-  async function startStripeCheckout(plan: SubscriptionPlan) {
-    if (plan === "starter") {
-      toast.message("Starter is free", { description: "Pick Professional or Enterprise to subscribe." })
+  const handleSelectPlan = async (planKey: MarketingPlanKey) => {
+    if (summary?.isAdmin) return
+    if (planKey === "starter") {
+      toast.message("Starter is the free tier", {
+        description: "Choose Professional or Enterprise to subscribe with Stripe.",
+      })
       return
     }
-    setCheckoutPlan(plan)
+    setLoadingPlan(planKey)
     try {
-      const origin = window.location.origin
+      const baseUrl = window.location.origin
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          plan,
-          successUrl: `${origin}/dashboard/billing?checkout=success`,
-          cancelUrl: `${origin}/dashboard/billing`,
+          plan: planKey,
+          successUrl: `${baseUrl}/dashboard/billing?checkout=success&plan=${planKey}`,
+          cancelUrl: `${baseUrl}/dashboard/billing`,
         }),
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error || "Could not start checkout")
       if (data.url) {
         window.location.href = data.url as string
         return
       }
-      throw new Error("No checkout URL returned")
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Checkout failed")
+      throw new Error(data.error || "Failed to create checkout session")
+    } catch (err) {
+      console.error(err)
+      toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.")
     } finally {
-      setCheckoutPlan(null)
+      setLoadingPlan(null)
     }
   }
 
@@ -223,109 +174,18 @@ export default function BillingPage() {
           <TabsTrigger value="payment">Payment Method</TabsTrigger>
         </TabsList>
 
-        {/* Plans Tab */}
+        {/* Plans Tab — same UI + Stripe flow as /pricing */}
         <TabsContent value="plans" className="space-y-6">
-          {/* Billing Toggle */}
-          <div className="flex items-center justify-center gap-4">
-            <span className={cn("text-sm", billingCycle === "monthly" ? "text-white" : "text-white/50")}>
-              Monthly
-            </span>
-            <button
-              onClick={() => setBillingCycle(billingCycle === "monthly" ? "annual" : "monthly")}
-              className="relative w-14 h-7 rounded-full bg-white/10 transition-colors"
-            >
-              <div
-                className={cn(
-                  "absolute top-1 w-5 h-5 rounded-full bg-indigo-500 transition-all duration-300",
-                  billingCycle === "annual" ? "left-8" : "left-1"
-                )}
-              />
-            </button>
-            <span className={cn("text-sm", billingCycle === "annual" ? "text-white" : "text-white/50")}>
-              Annual
-              <span className="ml-2 text-xs text-emerald-400">Save 20%</span>
-            </span>
-          </div>
-
-          {/* Plans Grid */}
-          <div id="billing-plan-grid" className="grid md:grid-cols-3 gap-6">
-            {plans.map((plan, index) => (
-              <motion.div
-                key={plan.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-              >
-                <div
-                  className={cn(
-                    "h-full rounded-2xl p-6 transition-all duration-300",
-                    plan.highlighted
-                      ? "bg-gradient-to-b from-indigo-500/20 to-indigo-600/10 border-2 border-indigo-500/50"
-                      : "glass-card hover:bg-white/[0.06]",
-                    currentPlanId === plan.id && "ring-2 ring-emerald-500/50"
-                  )}
-                >
-                  {currentPlanId === plan.id && (
-                    <Badge className="mb-4 bg-emerald-500 text-white">Current Plan</Badge>
-                  )}
-                  {plan.highlighted && currentPlanId !== plan.id && (
-                    <Badge className="mb-4 bg-indigo-500 text-white">Most Popular</Badge>
-                  )}
-                  <h3 className="text-xl font-semibold text-white mb-1">{plan.name}</h3>
-                  <p className="text-white/50 text-sm mb-4">{plan.description}</p>
-                  <div className="mb-6">
-                    <span className="text-4xl font-bold text-white">
-                      £{billingCycle === "monthly" ? plan.price : Math.round(plan.price * 0.8)}
-                    </span>
-                    <span className="text-white/50">/month</span>
-                  </div>
-                  <ul className="space-y-3 mb-6">
-                    {plan.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-start gap-2">
-                        <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                        <span className="text-white/70 text-sm">{feature}</span>
-                      </li>
-                    ))}
-                    {plan.notIncluded?.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-start gap-2">
-                        <span className="w-5 h-5 rounded-full border border-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <span className="text-white/30 text-xs">-</span>
-                        </span>
-                        <span className="text-white/30 text-sm line-through">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    variant={
-                      currentPlanId === plan.id ? "glass" : plan.highlighted ? "gradient" : "glass"
-                    }
-                    className="w-full"
-                    disabled={
-                      currentPlanId === plan.id ||
-                      checkoutPlan === plan.id ||
-                      (plan.id === "starter" && currentPlanId != null && currentPlanId !== "starter")
-                    }
-                    onClick={() => void startStripeCheckout(plan.id as SubscriptionPlan)}
-                  >
-                    {checkoutPlan === plan.id ? (
-                      <>
-                        <Loader2 className="size-4 animate-spin mr-2" />
-                        Redirecting…
-                      </>
-                    ) : currentPlanId === plan.id ? (
-                      "Current plan"
-                    ) : plan.id === "starter" && currentPlanId != null && currentPlanId !== "starter" ? (
-                      "Lower tier"
-                    ) : plan.id === "starter" ? (
-                      "Free"
-                    ) : (
-                      "Subscribe"
-                    )}
-                  </Button>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          <PricingSection
+            compact
+            gridId="billing-plan-grid"
+            onSelectPlan={(key) => void handleSelectPlan(key)}
+            isLoadingPlan={loadingPlan}
+            activePlanId={
+              !summary || summary.isAdmin ? undefined : (summary.planId ?? "starter")
+            }
+            isAdmin={!!summary?.isAdmin}
+          />
         </TabsContent>
 
         {/* Usage Tab */}
@@ -422,7 +282,7 @@ export default function BillingPage() {
             </CardHeader>
             <CardContent>
               <div className="rounded-xl border border-white/10 bg-white/5 p-8 text-center text-white/55 text-sm mb-4">
-                No saved payment method. Use <strong className="text-white/80">Subscribe</strong> on a paid
+                No saved payment method. Use <strong className="text-white/80">Get Started</strong> on a paid
                 plan to add one via Stripe Checkout.
               </div>
               <Button
