@@ -23,7 +23,7 @@ const footerLinks = {
     { name: 'About', href: null },
     { name: 'Blog', href: null },
     { name: 'Careers', href: null },
-    { name: 'Contact', href: null },
+    { name: 'Contact', href: 'mailto:info@quantiva.world' as const },
   ],
   Legal: [
     { name: 'Privacy', href: '/privacy' as const },
@@ -54,6 +54,15 @@ export const HomeFooter = forwardRef<HTMLElement>(function HomeFooter(_, ref) {
               any document with AI.
             </p>
 
+            <p className="text-sm text-gray-400 mb-6">
+              <a
+                href="mailto:info@quantiva.world"
+                className="text-gray-300 hover:text-white underline-offset-4 hover:underline transition-colors"
+              >
+                info@quantiva.world
+              </a>
+            </p>
+
             <div className="flex gap-3">
               {socialLinks.map((social, index) => (
                 <a
@@ -78,6 +87,10 @@ export const HomeFooter = forwardRef<HTMLElement>(function HomeFooter(_, ref) {
                   <li key={index}>
                     {link.href ? (
                       link.href.startsWith('#') ? (
+                        <a href={link.href} className="text-sm text-gray-500 hover:text-white transition-colors">
+                          {link.name}
+                        </a>
+                      ) : link.href.startsWith('mailto:') ? (
                         <a href={link.href} className="text-sm text-gray-500 hover:text-white transition-colors">
                           {link.name}
                         </a>
